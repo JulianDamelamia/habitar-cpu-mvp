@@ -146,3 +146,8 @@ async def root(request: Request):
     if user.role == ROLE_DIRECTOR:
         return RedirectResponse(url="/analytics", status_code=303)
     return RedirectResponse(url="/home", status_code=303)
+
+if __name__ == "__main__":
+    import uvicorn
+    # Arranca el servidor ASGI localmente en el puerto 8000
+    uvicorn.run("app.main:app", host="127.0.0.1", port=8000, reload=True)

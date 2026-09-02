@@ -1,4 +1,4 @@
-"""Idempotent demo seed: SIU legajos, staff/students, activities, FAQ, config."""
+"""Idempotent demo seed: SIU legajos, staff/students, activities, FAQ, config, carreras."""
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -10,6 +10,7 @@ from app.models import (
     Activity,
     AppConfig,
     Attendance,
+    Carrera,
     ESTADO_PUBLICADA,
     Enrollment,
     ENROLL_INSCRIPTO,
@@ -20,6 +21,7 @@ from app.models import (
     ROLE_ESTUDIANTE,
     TIPO_PRESENCIAL,
     TIPO_VIRTUAL,
+    TipoCarrera,
     User,
     ValidLegajo,
 )
@@ -40,6 +42,21 @@ LEGAJOS = [
     ("2002", "Martín Groisman"),
 ]
 
+CARRERAS = [
+    ("Ambiental", "Ingeniería"),
+    ("Biomédica", "Ingeniería"),
+    ("Electrónica", "Ingeniería"),
+    ("Energía", "Ingeniería"),
+    ("Industrial", "Ingeniería"),
+    ("Sistemas Espaciales", "Ingeniería"),
+    ("Telecomunicaciones", "Ingeniería"),
+    ("Transporte", "Ingeniería"),
+    ("Desarrollo de Software", "Licenciatura"),
+    ("Biotecnología", "Licenciatura"),
+    ("Ciencia de Datos", "Licenciatura"),
+    ("Física Médica", "Licenciatura"),
+]
+
 
 def _now() -> datetime:
     return datetime.now(timezone.utc)
@@ -56,6 +73,22 @@ def _get_or_create_user(db: Session, email: str, **fields) -> User:
 
 
 def seed_all(db: Session) -> None:
+    # --- Tipos de Carrera ---
+    tipos_map = {}
+    for tipo_nombre in ["Licenciatura", "Ingeniería"]:
+        tipo_obj = db.query(TipoCarrera).filter(TipoCarrera.nombre == tipo_nombre).first()
+        if not tipo_obj:
+            tipo_obj = TipoCarrera(nombre=tipo_nombre)
+            db.add(tipo_obj)
+            db.flush()
+        tipos_map[tipo_nombre] = tipo_obj.id
+
+    # --- Carreras ---
+    if db.query(Carrera).count() == 0:
+        for nombre_carrera, tipo_nombre in CARRERAS:
+            tipo_id = tipos_map[tipo_nombre]
+            db.add(Carrera(nombre=nombre_carrera, tipo_id=tipo_id))
+
     # --- SIU legajos (mock) ---
     if db.query(ValidLegajo).count() == 0:
         for legajo, nombre in LEGAJOS:

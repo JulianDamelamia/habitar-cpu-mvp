@@ -85,7 +85,32 @@ class Activity(Base):
         back_populates="activity", cascade="all, delete-orphan"
     )
 
+class TipoCarrera(Base):
+    __tablename__ = 'tipos_carrera'
 
+    id: Mapped[int] = mapped_column(primary_key=True)
+    nombre: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)  # {Licenciatura,  Ingeniería}
+
+    # relación uno a muchos con Carrera
+    carreras = relationship("Carrera", back_populates="tipo")
+
+    def __repr__(self):
+        return f"<TipoCarrera(id={self.id}, nombre='{self.nombre}')>"
+    
+class Carrera(Base):
+    __tablename__ = "carreras"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    nombre: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
+    tipo_id: Mapped[int] = mapped_column(Integer, ForeignKey('tipos_carrera.id'), nullable=False)
+
+    # Relación muchos a uno con Tipo
+    tipo = relationship("TipoCarrera", back_populates="carreras")
+
+    def __repr__(self) -> str:
+        return f"<Carrera(id={self.id}, nombre='{self.nombre}', tipo_id={self.tipo_id})>"
+
+    
 class Enrollment(Base):
     __tablename__ = "enrollments"
     __table_args__ = (UniqueConstraint("activity_id", "user_id", name="uq_enroll_activity_user"),)
