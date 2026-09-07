@@ -6,7 +6,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Faq, User
+from app.models.models import Faq, User
 from app.security import current_user_required, requiere_roles
 from app.templating import render
 

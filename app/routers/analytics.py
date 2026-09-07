@@ -5,7 +5,7 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import User
+from app.models.models import User
 from app.security import requiere_roles
 from app.services import analytics as analytics_svc
 from app.templating import render

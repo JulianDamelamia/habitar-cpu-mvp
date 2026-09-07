@@ -8,7 +8,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 from app.database import SessionLocal
 from app.email_util import send_email
-from app.models import (
+from app.models.models import (
     Actividad,
     ESTADO_PUBLICADA,
     Inscripcion,

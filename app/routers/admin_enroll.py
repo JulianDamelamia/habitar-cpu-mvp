@@ -10,7 +10,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import User, ValidLegajo
+from app.models.models import User, ValidLegajo
 from app.security import requiere_roles
 from app.services import actividades as actividades_svc
 from app.services import asistencia as asistencia_svc

@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import List
 
 from sqlalchemy import (
     Boolean,
@@ -13,11 +14,11 @@ from sqlalchemy import (
     UniqueConstraint,
     func,
 )
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 from sqlalchemy import Table, Column, ForeignKey
 from app.database import Base
 
-# ---- Role / status constants -------------------------------------------------
+# ---- Rol / status constants -------------------------------------------------
 ROL_ESTUDIANTE = "estudiante"
 ROL_COORDINACION = "coordinacion"
 ROL_DOCENTE = "docente"
@@ -34,7 +35,13 @@ ESTADO_CANCELADA = "cancelada"
 INSCRIPCION_ALTA = "inscripto"
 INSCRIPCION_BAJA = "baja"
 
-
+#tabla intermedia para linkear usuarios y carreras
+user_carrera = Table(
+    "user_carrera",
+    Base.metadata,
+    Column("user_id", ForeignKey("users.id", ondelete="CASCADE"), primary_key=True),
+    Column("carrera_id", ForeignKey("carreras.id", ondelete="CASCADE"), primary_key=True),
+)
 class User(Base):
     __tablename__ = "users"
 
@@ -45,7 +52,10 @@ class User(Base):
     nombre: Mapped[str] = mapped_column(String(120), default="")
     apellido: Mapped[str] = mapped_column(String(120), default="")
     dni: Mapped[str | None] = mapped_column(String(20))
-    carrera: Mapped[str | None] = mapped_column(String(160))
+    carreras: Mapped[list["Carrera"]] = relationship(
+        secondary=user_carrera,
+        back_populates="estudiantes"
+    )
     rol: Mapped[str] = mapped_column(String(20), default=ROL_ESTUDIANTE, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
@@ -53,6 +63,12 @@ class User(Base):
     def nombre_completo(self) -> str:
         name = f"{self.nombre} {self.apellido}".strip()
         return name or self.email
+    
+    @validates("carreras")
+    def validate_carreras(self, key, carrera):
+        # Validación opcional en el ORM (se ejecuta al asignar elementos a user.carreras)
+        return carrera
+    
 
 
 class ValidLegajo(Base):
@@ -120,6 +136,11 @@ class Carrera(Base):
     actividades: Mapped[list[Actividad]] = relationship(
         secondary=actividad_carrera,
         back_populates="carreras_asociadas"
+    )
+    
+    estudiantes: Mapped[List[User]] = relationship(
+        secondary=user_carrera,
+        back_populates="carreras"
     )
     def __repr__(self) -> str:
         return f"<Carrera(id={self.id}, nombre='{self.nombre}', tipo_id={self.tipo_id})>"

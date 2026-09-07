@@ -4,7 +4,7 @@ from uuid import uuid4
 from sqlalchemy import inspect, select
 
 from app.database import SessionLocal, engine
-from app.models import User
+from app.models.models import User
 
 
 class DatabaseCrudTest(unittest.TestCase):

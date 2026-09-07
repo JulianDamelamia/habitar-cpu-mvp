@@ -9,7 +9,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Notification, User
+from app.models.models import Notification, User
 from app.notifications import notify
 from app.security import current_user_required, requiere_roles
 from app.services import actividades as actividades_svc

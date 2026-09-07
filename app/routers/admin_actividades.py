@@ -2,13 +2,14 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from typing import Literal
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import (
+from app.models.models import (
     Actividad,
     Inscripcion,
     INSCRIPCION_ALTA,
@@ -19,6 +20,7 @@ from app.models import (
     TIPO_PRESENCIAL,
     TIPO_VIRTUAL,
     User,
+    Carrera
 )
 from app.notifications import notify
 from app.security import requiere_roles
@@ -81,6 +83,7 @@ def crear(
     docente_id: str = Form(""),
     creditos: int = Form(1),
     cupo_max: int = Form(30),
+    carreras_asociadas_ids: list[int] | Literal["todas"] | None = None,
     user: User = Depends(ADMIN),
     db: Session = Depends(get_db),
 ):
@@ -88,15 +91,23 @@ def crear(
         inicio, fin = _parse_dates(fecha_inicio, fecha_fin)
     except ValueError:
         return RedirectResponse(url="/admin?err=Fechas inválidas: revisá inicio y fin.", status_code=303)
+
+    if carreras_asociadas_ids == "todas":
+        carreras_asociadas = db.query(Carrera).all()
+    elif carreras_asociadas_ids:
+        carreras_asociadas = db.query(Carrera).filter(Carrera.id.in_(carreras_asociadas_ids)).all()
+        if len(carreras_asociadas) != len(set(carreras_asociadas_ids)):
+            raise ValueError("Una o más carreras especificadas no existen.")
+        
     actividades_svc.create(
         db,
         titulo=titulo.strip(), descripcion=descripcion.strip(), tipo=tipo,
         fecha_inicio=inicio, fecha_fin=fin,
         lugar=lugar.strip(), docente_id=int(docente_id) if docente_id.isdigit() else None,
         creditos=creditos, cupo_max=cupo_max, estado=ESTADO_BORRADOR, created_by=user.id,
+        carreras_asociadas=carreras_asociadas_ids,  # <--- Pasa el argumento procesado
     )
     return RedirectResponse(url="/admin?msg=Actividad creada como borrador.", status_code=303)
-
 
 @router.get("/admin/actividades/{actividad_id}/editar")
 def editar(request: Request, actividad_id: int, user: User = Depends(ADMIN), db: Session = Depends(get_db)):

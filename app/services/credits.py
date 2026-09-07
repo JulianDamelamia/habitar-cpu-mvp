@@ -5,7 +5,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.models import Actividad, AppConfig, Asistencia
+from app.models.models import Actividad, AppConfig, Asistencia
 
 
 def required_credits(db: Session) -> int:

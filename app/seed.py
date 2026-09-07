@@ -2,11 +2,13 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
+from typing import Iterable
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.models import (
+from app.models.models import (
     Actividad,
     AppConfig,
     Asistencia,
@@ -66,6 +68,15 @@ def _get_or_create_user(db: Session, email: str, **fields) -> User:
     user = db.query(User).filter(User.email == email).first()
     if user:
         return user
+
+    rol = fields.get("rol", None)
+    if rol is None:
+        raise ValueError(f"Debe asignarse un rol al usuario asociado a {email}")
+
+    carreras = fields.get("carreras", [])
+    if rol == ROL_ESTUDIANTE and not carreras:
+        raise ValueError(f"Debe asignarse una o más carreras al usuario asociado a {email} por ser de tipo Estudiante")
+
     user = User(email=email, pw_hash=hash_password(DEMO_PASSWORD), **fields)
     db.add(user)
     db.flush()
@@ -126,19 +137,35 @@ def seed_all(db: Session) -> None:
         db, "director@unsam.edu.ar", nombre="Marcela", apellido="Vega",
         rol=ROL_DIRECTOR, legajo=None,
     )
+
+    lic_datos = db.query(Carrera).filter(Carrera.nombre == 'Ciencia de Datos').first()
+
+    ing_electronica = (
+        db.query(Carrera)
+        .join(TipoCarrera)
+        .filter(
+            Carrera.nombre == "Electrónica",
+            TipoCarrera.nombre == "Ingeniería"
+        )
+        .first()  # Devuelve la instancia de Carrera o None
+    )
+
     ana = _get_or_create_user(
         db, "ana@alumno.unsam.edu.ar", nombre="Ana", apellido="Pérez",
-        rol=ROL_ESTUDIANTE, legajo="1001", dni="40111222", carrera="Ing. en Computación",
+        rol=ROL_ESTUDIANTE, legajo="1001", dni="40111222", carreras=[lic_datos],
     )
     bruno = _get_or_create_user(
         db, "bruno@alumno.unsam.edu.ar", nombre="Bruno", apellido="Díaz",
-        rol=ROL_ESTUDIANTE, legajo="1002", dni="40333444", carrera="Lic. en Biotecnología",
+        rol=ROL_ESTUDIANTE, legajo="1002", dni="40333444", carreras=[lic_datos, ing_electronica],
     )
     db.flush()
 
     # --- actividades (only seed once) ---
     if db.query(Actividad).count() == 0:
         now = _now()
+        carrera_1 = db.query(Carrera).get(1)
+        carrera_2 = db.query(Carrera).get(2)
+        carrera_3 = db.query(Carrera).get(3)
         acts = [
             Actividad(
                 titulo="Bienvenida al campus",
@@ -146,7 +173,7 @@ def seed_all(db: Session) -> None:
                 tipo=TIPO_PRESENCIAL, fecha_inicio=now - timedelta(days=7),
                 fecha_fin=now - timedelta(days=7) + timedelta(hours=2),
                 lugar="Hall central - Campus Miguelete", docente_id=docente.id,
-                creditos=2, cupo_max=40, estado=ESTADO_PUBLICADA, created_by=coord.id,
+                creditos=2, cupo_max=40, estado=ESTADO_PUBLICADA, created_by=coord.id,carreras_asociadas = [carrera_1, carrera_2]
             ),
             Actividad(
                 titulo="Taller de hábitos de estudio",
@@ -154,7 +181,7 @@ def seed_all(db: Session) -> None:
                 tipo=TIPO_PRESENCIAL, fecha_inicio=now + timedelta(hours=24),
                 fecha_fin=now + timedelta(hours=26),
                 lugar="Aula 12 - Tornavía", docente_id=docente.id,
-                creditos=3, cupo_max=2, estado=ESTADO_PUBLICADA, created_by=coord.id,
+                creditos=3, cupo_max=2, estado=ESTADO_PUBLICADA, created_by=coord.id,carreras_asociadas = [carrera_1, carrera_2]
             ),
             Actividad(
                 titulo="Charla: vida universitaria",
@@ -162,7 +189,7 @@ def seed_all(db: Session) -> None:
                 tipo=TIPO_VIRTUAL, fecha_inicio=now + timedelta(days=5),
                 fecha_fin=now + timedelta(days=5) + timedelta(hours=1, minutes=30),
                 lugar="Zoom (link por mail)", docente_id=docente.id,
-                creditos=2, cupo_max=100, estado=ESTADO_PUBLICADA, created_by=coord.id,
+                creditos=2, cupo_max=100, estado=ESTADO_PUBLICADA, created_by=coord.id,carreras_asociadas =[carrera_1, carrera_3]
             ),
             Actividad(
                 titulo="Laboratorio abierto de Física",
@@ -170,7 +197,7 @@ def seed_all(db: Session) -> None:
                 tipo=TIPO_PRESENCIAL, fecha_inicio=now + timedelta(days=10),
                 fecha_fin=now + timedelta(days=10) + timedelta(hours=3),
                 lugar="Lab 3 - Pabellón de Física", docente_id=docente.id,
-                creditos=4, cupo_max=15, estado=ESTADO_PUBLICADA, created_by=coord.id,
+                creditos=4, cupo_max=15, estado=ESTADO_PUBLICADA, created_by=coord.id,carreras_asociadas = [carrera_1, carrera_2]
             ),
             Actividad(
                 titulo="Borrador: Taller de escritura",
@@ -178,7 +205,15 @@ def seed_all(db: Session) -> None:
                 tipo=TIPO_PRESENCIAL, fecha_inicio=now + timedelta(days=14),
                 fecha_fin=now + timedelta(days=14) + timedelta(hours=2),
                 lugar="Aula 5", docente_id=docente.id,
-                creditos=2, cupo_max=20, estado="borrador", created_by=coord.id,
+                creditos=2, cupo_max=20, estado="borrador", created_by=coord.id,carreras_asociadas = [carrera_3]
+            ),
+            Actividad(
+                titulo="Taller de Python",
+                descripcion="Pendiente de revisión, todavía sin publicar.",
+                tipo=TIPO_PRESENCIAL, fecha_inicio=now + timedelta(days=14),
+                fecha_fin=now + timedelta(days=14) + timedelta(hours=2),
+                lugar="Aula 5", docente_id=docente.id,
+                creditos=2, cupo_max=20, estado="borrador", created_by=coord.id,carreras_asociadas = [carrera_3, carrera_2]
             ),
         ]
         db.add_all(acts)

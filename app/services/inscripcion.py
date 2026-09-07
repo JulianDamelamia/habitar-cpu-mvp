@@ -4,7 +4,7 @@ from __future__ import annotations
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.models import (
+from app.models.models import (
     Actividad,
     ESTADO_PUBLICADA,
     Inscripcion,

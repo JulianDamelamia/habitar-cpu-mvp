@@ -6,7 +6,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import TIPO_PRESENCIAL, TIPO_VIRTUAL, User
+from app.models.models import TIPO_PRESENCIAL, TIPO_VIRTUAL, User
 from app.security import current_user_required
 from app.services import actividades as actividades_svc
 from app.services import inscripcion as enrollment_svc

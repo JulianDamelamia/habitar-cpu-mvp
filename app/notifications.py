@@ -4,7 +4,7 @@ from __future__ import annotations
 from sqlalchemy.orm import Session
 
 from app.email_util import send_email
-from app.models import Notification, User
+from app.models.models import Notification, User
 
 
 def notify(db: Session, user: User, mensaje: str, *, email_subject: str | None = None) -> None:

@@ -6,11 +6,12 @@ from datetime import datetime
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models import (
+from app.models.models import (
     Actividad,
     ESTADO_PUBLICADA,
     Inscripcion,
     INSCRIPCION_ALTA,
+    Carrera
 )
 
 
@@ -67,8 +68,23 @@ def list_all(db: Session) -> list[Actividad]:
     )
 
 
-def create(db: Session, **fields) -> Actividad:
-    actividad = Actividad(**fields)
+def create(db: Session, carreras: list[Carrera | int] | str | None = None, **fields) -> Actividad:
+    # 1. Separar la lógica de carreras antes de instanciar Actividad(**fields)
+    carreras_asociadas: list[Carrera] = []
+
+    if carreras == "todas":
+        # Carga todas las carreras existentes en la BD
+        carreras_asociadas = db.query(Carrera).all()
+    elif isinstance(carreras, list) and carreras:
+        if isinstance(carreras[0], int):
+            # Si pasaron una lista de IDs [1, 2, 3]
+            carreras_asociadas = db.query(Carrera).filter(Carrera.id.in_(carreras)).all()
+        else:
+            # Si ya pasaron directamente objetos de la clase Carrera
+            carreras_asociadas = carreras
+
+    # 2. Instanciar y asignar la relación
+    actividad = Actividad(**fields, carreras_asociadas=carreras_asociadas)
     db.add(actividad)
     db.commit()
     db.refresh(actividad)
