@@ -62,12 +62,14 @@ def panel(request: Request, user: User = Depends(ADMIN), db: Session = Depends(g
     }
     return render(request, "admin/panel.html", user=user, db=db, rows=rows, resumen=resumen)
 
-
+from sqlalchemy.orm import joinedload
 @router.get("/admin/actividades/nueva")
 def nueva(request: Request, user: User = Depends(ADMIN), db: Session = Depends(get_db)):
+    carreras = db.query(Carrera).options(joinedload(Carrera.tipo)).order_by(Carrera.nombre).all()
     return render(
         request, "admin/form.html", user=user, db=db,
         a=None, docentes=_docentes(db), tipos=[TIPO_PRESENCIAL, TIPO_VIRTUAL],
+        lista_carreras=carreras
     )
 
 
@@ -83,7 +85,7 @@ def crear(
     docente_id: str = Form(""),
     creditos: int = Form(1),
     cupo_max: int = Form(30),
-    carreras_asociadas_ids: list[int] | Literal["todas"] | None = None,
+    carreras: list[str] = Form([]),
     user: User = Depends(ADMIN),
     db: Session = Depends(get_db),
 ):
@@ -91,21 +93,22 @@ def crear(
         inicio, fin = _parse_dates(fecha_inicio, fecha_fin)
     except ValueError:
         return RedirectResponse(url="/admin?err=Fechas inválidas: revisá inicio y fin.", status_code=303)
-
-    if carreras_asociadas_ids == "todas":
+    carreras_asociadas = []
+    if "todas" in carreras:
         carreras_asociadas = db.query(Carrera).all()
-    elif carreras_asociadas_ids:
-        carreras_asociadas = db.query(Carrera).filter(Carrera.id.in_(carreras_asociadas_ids)).all()
-        if len(carreras_asociadas) != len(set(carreras_asociadas_ids)):
-            raise ValueError("Una o más carreras especificadas no existen.")
-        
+    elif carreras:
+        # Convertir los valores string del form (ej: ["1", "3"]) a enteros
+        carreras_ids = [int(c_id) for c_id in carreras if c_id.isdigit()]
+        carreras_asociadas = db.query(Carrera).filter(Carrera.id.in_(carreras_ids)).all()
+        if len(carreras_asociadas) != len(set(carreras_ids)):
+            raise ValueError("Una o más carreras especificadas no existen.")        
     actividades_svc.create(
         db,
         titulo=titulo.strip(), descripcion=descripcion.strip(), tipo=tipo,
         fecha_inicio=inicio, fecha_fin=fin,
         lugar=lugar.strip(), docente_id=int(docente_id) if docente_id.isdigit() else None,
         creditos=creditos, cupo_max=cupo_max, estado=ESTADO_BORRADOR, created_by=user.id,
-        carreras_asociadas=carreras_asociadas_ids,  # <--- Pasa el argumento procesado
+        carreras_asociadas=carreras_asociadas,  # <--- Pasa el argumento procesado
     )
     return RedirectResponse(url="/admin?msg=Actividad creada como borrador.", status_code=303)
 

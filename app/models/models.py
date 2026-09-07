@@ -35,6 +35,7 @@ ESTADO_CANCELADA = "cancelada"
 INSCRIPCION_ALTA = "inscripto"
 INSCRIPCION_BAJA = "baja"
 
+CARRERAS_ASOCIADAS_DEFALUT = "todas"
 #tabla intermedia para linkear usuarios y carreras
 user_carrera = Table(
     "user_carrera",

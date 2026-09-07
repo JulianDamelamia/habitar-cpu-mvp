@@ -14,6 +14,44 @@
       <textarea name="descripcion" rows="3" class="w-full border rounded-lg px-3 py-2">{{ a.descripcion if a else '' }}</textarea>
     </div>
     <div class="grid sm:grid-cols-2 gap-3">
+      <div class="mb-4">
+        <label class="block text-sm font-medium mb-1">Carreras asociadas</label>
+
+        <!-- Desplegable -->
+        <select id="carrera-select" class="w-full border rounded-lg px-3 py-2 bg-white">
+          <option value="">-- Seleccionar carrera para agregar --</option>
+          <option value="todas">-- TODAS LAS CARRERAS --</option>
+          {% for carrera in lista_carreras %}
+            <option value="{{ carrera.id }}" data-nombre="{{ carrera.nombre }} ({{ carrera.tipo.nombre }})">
+              {{ carrera.nombre }} ({{ carrera.tipo.nombre }})
+            </option>
+          {% endfor %}
+        </select>
+
+        <!-- Contenedor visual con flexbox forzado para garantizár visibilidad -->
+        <div 
+          id="carreras-tags-container" 
+          class="mt-2 min-h-[42px] p-2 border rounded-lg bg-gray-50 border-gray-200"
+          style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;"
+        >
+          <span id="carreras-empty-msg" class="text-xs text-gray-400">No hay carreras seleccionadas</span>
+        </div>
+
+        <!-- Inputs ocultos para el envío del Formulario POST -->
+        <div id="carreras-hidden-inputs"></div>
+
+        <!-- Precarga para modo Edición -->
+        {% if a and a.carreras_asociadas %}
+          <div style="display: none;">
+            {% for carrera in a.carreras_asociadas %}
+              <span class="preselected-carrera" data-id="{{ carrera.id }}" data-nombre="{{ carrera.nombre }} ({{ carrera.tipo.nombre }})"></span>
+            {% endfor %}
+          </div>
+        {% endif %}
+      </div>
+
+      <!-- Importación del archivo JavaScript -->
+      <script src="{{ url_for('static', path='/selector_carreras.js') }}"></script>
       <div>
         <label class="block text-sm font-medium mb-1">Tipo</label>
         <select name="tipo" class="w-full border rounded-lg px-3 py-2">
