@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from app.models import ROLE_ESTUDIANTE, User, ValidLegajo
+from app.models import ROL_ESTUDIANTE, User, ValidLegajo
 from app.security import hash_password, verify_password
 
 
@@ -45,7 +45,7 @@ def create_student(
         apellido=apellido.strip(),
         dni=(dni or "").strip() or None,
         carrera=(carrera or "").strip() or None,
-        role=ROLE_ESTUDIANTE,
+        rol=ROL_ESTUDIANTE,
     )
     db.add(user)
     db.commit()

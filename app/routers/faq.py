@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import Faq, User
-from app.security import current_user_required, require_roles
+from app.security import current_user_required, requiere_roles
 from app.templating import render
 
 router = APIRouter()
@@ -20,7 +20,7 @@ def faq_list(request: Request, user: User = Depends(current_user_required), db: 
 
 
 @router.get("/admin/faq")
-def faq_admin(request: Request, user: User = Depends(require_roles("coordinacion")), db: Session = Depends(get_db)):
+def faq_admin(request: Request, user: User = Depends(requiere_roles("coordinacion")), db: Session = Depends(get_db)):
     items = db.query(Faq).order_by(Faq.orden, Faq.id).all()
     return render(request, "admin/faq.html", user=user, db=db, items=items)
 
@@ -31,7 +31,7 @@ def faq_add(
     pregunta: str = Form(...),
     respuesta: str = Form(...),
     orden: int = Form(0),
-    user: User = Depends(require_roles("coordinacion")),
+    user: User = Depends(requiere_roles("coordinacion")),
     db: Session = Depends(get_db),
 ):
     db.add(Faq(pregunta=pregunta.strip(), respuesta=respuesta.strip(), orden=orden))
@@ -43,7 +43,7 @@ def faq_add(
 def faq_delete(
     request: Request,
     faq_id: int,
-    user: User = Depends(require_roles("coordinacion")),
+    user: User = Depends(requiere_roles("coordinacion")),
     db: Session = Depends(get_db),
 ):
     item = db.get(Faq, faq_id)

@@ -13,26 +13,26 @@
     <nav class="max-w-5xl mx-auto px-4 py-3 flex items-center gap-4 flex-wrap">
       <a href="/" class="font-semibold text-lg flex items-center gap-2"><i data-lucide="graduation-cap" class="w-5 h-5"></i> {{ app_name }}</a>
       <div class="flex-1"></div>
-      {% if user.role == 'estudiante' %}
+      {% if user.rol == 'estudiante' %}
         <a href="/home" class="hover:underline">Inicio</a>
         <a href="/actividades" class="hover:underline">Actividades</a>
         <a href="/checkin" class="hover:underline">Registrar asistencia</a>
         <a href="/faq" class="hover:underline">Ayuda</a>
-      {% elif user.role == 'coordinacion' %}
+      {% elif user.rol == 'coordinacion' %}
         <a href="/admin" class="hover:underline">Actividades</a>
         <a href="/admin/inscriptos" class="hover:underline">Inscriptos</a>
         <a href="/analytics" class="hover:underline">Analítica</a>
         <a href="/admin/faq" class="hover:underline">FAQ</a>
-      {% elif user.role == 'docente' %}
+      {% elif user.rol == 'docente' %}
         <a href="/docente" class="hover:underline">Mis actividades</a>
-      {% elif user.role == 'director' %}
+      {% elif user.rol == 'director' %}
         <a href="/analytics" class="hover:underline">Analítica</a>
       {% endif %}
       <a href="/notificaciones" class="relative hover:underline">
         Avisos
         {% if unread %}<span class="absolute -top-2 -right-3 bg-rose-500 text-xs rounded-full px-1.5">{{ unread }}</span>{% endif %}
       </a>
-      <a href="/perfil" class="text-slate-300 hover:text-white text-sm">{{ user.full_name }}</a>
+      <a href="/perfil" class="text-slate-300 hover:text-white text-sm">{{ user.nombre_completo }}</a>
       <a href="/logout" class="bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded text-sm">Salir</a>
     </nav>
   </header>

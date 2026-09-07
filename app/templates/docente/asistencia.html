@@ -20,7 +20,7 @@
     <div class="space-y-2 max-h-96 overflow-auto">
       {% for e in inscriptos %}
       <div class="flex items-center justify-between border rounded-lg px-3 py-2">
-        <span class="text-sm">{{ e.user.full_name }}</span>
+        <span class="text-sm">{{ e.user.nombre_completo }}</span>
         {% if e.user_id in present %}
           <span class="text-emerald-600 text-sm font-medium inline-flex items-center gap-1"><i data-lucide="check" class="w-4 h-4"></i> Presente</span>
         {% else %}

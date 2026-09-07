@@ -11,23 +11,23 @@ from app.database import get_db
 from app.models import (
     Actividad,
     Inscripcion,
-    ENROLL_INSCRIPTO,
+    INSCRIPCION_ALTA,
     ESTADO_BORRADOR,
     ESTADO_CANCELADA,
     ESTADO_PUBLICADA,
-    ROLE_DOCENTE,
+    ROL_DOCENTE,
     TIPO_PRESENCIAL,
     TIPO_VIRTUAL,
     User,
 )
 from app.notifications import notify
-from app.security import require_roles
+from app.security import requiere_roles
 from app.services import actividades as actividades_svc
 from app.services import inscripcion as enrollment_svc
 from app.templating import render
 
 router = APIRouter()
-ADMIN = require_roles("coordinacion")
+ADMIN = requiere_roles("coordinacion")
 
 
 def _parse_dt(value: str) -> datetime:
@@ -45,7 +45,7 @@ def _parse_dates(fecha_inicio: str, fecha_fin: str) -> tuple[datetime, datetime]
 
 
 def _docentes(db: Session) -> list[User]:
-    return db.query(User).filter(User.role == ROLE_DOCENTE).order_by(User.apellido).all()
+    return db.query(User).filter(User.rol == ROL_DOCENTE).order_by(User.apellido).all()
 
 
 @router.get("/admin")
@@ -145,7 +145,7 @@ def actualizar(
         # Cambió la fecha de inicio: re-armar el recordatorio de 24h de los inscriptos.
         db.query(Inscripcion).filter(
             Inscripcion.actividad_id == actividad_id,
-            Inscripcion.estado == ENROLL_INSCRIPTO,
+            Inscripcion.estado == INSCRIPCION_ALTA,
         ).update({Inscripcion.reminded: False})
         db.commit()
     if was_published:

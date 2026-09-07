@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import Notification, User
 from app.notifications import notify
-from app.security import current_user_required, require_roles
+from app.security import current_user_required, requiere_roles
 from app.services import actividades as actividades_svc
 from app.services import credits as credits_svc
 from app.services import inscripcion as enrollment_svc
@@ -28,7 +28,7 @@ def _aware(dt: datetime) -> datetime:
 def inscribir(
     request: Request,
     actividad_id: int,
-    user: User = Depends(require_roles("estudiante")),
+    user: User = Depends(requiere_roles("estudiante")),
     db: Session = Depends(get_db),
 ):
     try:
@@ -53,7 +53,7 @@ def inscribir(
 def baja(
     request: Request,
     actividad_id: int,
-    user: User = Depends(require_roles("estudiante")),
+    user: User = Depends(requiere_roles("estudiante")),
     db: Session = Depends(get_db),
 ):
     try:
@@ -66,7 +66,7 @@ def baja(
 @router.get("/home")
 def home(
     request: Request,
-    user: User = Depends(require_roles("estudiante")),
+    user: User = Depends(requiere_roles("estudiante")),
     db: Session = Depends(get_db),
 ):
     now = datetime.now(timezone.utc)

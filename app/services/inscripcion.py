@@ -8,8 +8,8 @@ from app.models import (
     Actividad,
     ESTADO_PUBLICADA,
     Inscripcion,
-    ENROLL_BAJA,
-    ENROLL_INSCRIPTO,
+    INSCRIPCION_BAJA,
+    INSCRIPCION_ALTA,
 )
 
 
@@ -23,7 +23,7 @@ def active_enrollment(db: Session, actividad_id: int, user_id: int) -> Inscripci
         .filter(
             Inscripcion.actividad_id == actividad_id,
             Inscripcion.user_id == user_id,
-            Inscripcion.estado == ENROLL_INSCRIPTO,
+            Inscripcion.estado == INSCRIPCION_ALTA,
         )
         .first()
     )
@@ -49,12 +49,12 @@ def inscribir(db: Session, actividad_id: int, user_id: int) -> Actividad:
         .filter(Inscripcion.actividad_id == actividad_id, Inscripcion.user_id == user_id)
         .first()
     )
-    if existing and existing.estado == ENROLL_INSCRIPTO:
+    if existing and existing.estado == INSCRIPCION_ALTA:
         raise EnrollError("Ya estás inscripto en esta actividad.")
 
     taken = (
         db.query(Inscripcion)
-        .filter(Inscripcion.actividad_id == actividad_id, Inscripcion.estado == ENROLL_INSCRIPTO)
+        .filter(Inscripcion.actividad_id == actividad_id, Inscripcion.estado == INSCRIPCION_ALTA)
         .count()
     )
     if taken >= actividad.cupo_max:
@@ -62,10 +62,10 @@ def inscribir(db: Session, actividad_id: int, user_id: int) -> Actividad:
         raise EnrollError("No quedan cupos disponibles.")
 
     if existing:
-        existing.estado = ENROLL_INSCRIPTO
+        existing.estado = INSCRIPCION_ALTA
         existing.reminded = False  # re-arm the 24h reminder after a baja/re-inscripción
     else:
-        db.add(Inscripcion(actividad_id=actividad_id, user_id=user_id, estado=ENROLL_INSCRIPTO))
+        db.add(Inscripcion(actividad_id=actividad_id, user_id=user_id, estado=INSCRIPCION_ALTA))
     db.commit()
     return actividad
 
@@ -74,7 +74,7 @@ def unenroll(db: Session, actividad_id: int, user_id: int) -> None:
     enr = active_enrollment(db, actividad_id, user_id)
     if not enr:
         raise EnrollError("No estás inscripto en esta actividad.")
-    enr.estado = ENROLL_BAJA
+    enr.estado = INSCRIPCION_BAJA
     db.commit()
 
 
@@ -84,7 +84,7 @@ def my_actividades(db: Session, user_id: int) -> list[Actividad]:
         .join(Inscripcion, Inscripcion.actividad_id == Actividad.id)
         .filter(
             Inscripcion.user_id == user_id,
-            Inscripcion.estado == ENROLL_INSCRIPTO,
+            Inscripcion.estado == INSCRIPCION_ALTA,
             Actividad.estado == ESTADO_PUBLICADA,
         )
         .order_by(Actividad.fecha_inicio.asc())
@@ -96,6 +96,6 @@ def my_actividades(db: Session, user_id: int) -> list[Actividad]:
 def inscriptos(db: Session, actividad_id: int) -> list[Inscripcion]:
     return (
         db.query(Inscripcion)
-        .filter(Inscripcion.actividad_id == actividad_id, Inscripcion.estado == ENROLL_INSCRIPTO)
+        .filter(Inscripcion.actividad_id == actividad_id, Inscripcion.estado == INSCRIPCION_ALTA)
         .all()
     )

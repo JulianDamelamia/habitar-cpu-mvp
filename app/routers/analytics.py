@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import User
-from app.security import require_roles
+from app.security import requiere_roles
 from app.services import analytics as analytics_svc
 from app.templating import render
 
@@ -16,7 +16,7 @@ router = APIRouter()
 @router.get("/analytics")
 def dashboard(
     request: Request,
-    user: User = Depends(require_roles("director", "coordinacion")),
+    user: User = Depends(requiere_roles("director", "coordinacion")),
     db: Session = Depends(get_db),
 ):
     return render(

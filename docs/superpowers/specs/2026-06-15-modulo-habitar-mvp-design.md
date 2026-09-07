@@ -30,7 +30,7 @@ app/
   config.py        Settings (DATABASE_URL, SECRET_KEY, SMTP, REQUIRED_CREDITS)
   database.py      engine, SessionLocal, Base, get_db
   models.py        all ORM models
-  security.py      bcrypt hashing, session cookie, current_user deps, role guards
+  security.py      bcrypt hashing, session cookie, current_user deps, rol guards
   email_util.py    email backend: SMTP if configured else console/log
   notifications.py in-app + email notify service
   scheduler.py     APScheduler, 24h reminders
@@ -46,7 +46,7 @@ app/
 `docente` (seeded, validates asistencia), `director` (seeded, read-only analytics).
 
 ## Data model
-- **users**(id, legajo, email unique, pw_hash, nombre, apellido, dni, carrera, role, created_at)
+- **users**(id, legajo, email unique, pw_hash, nombre, apellido, dni, carrera, rol, created_at)
 - **valid_legajos**(legajo PK, nombre), SIU mock; signup must match
 - **actividades**(id, titulo, descripcion, tipo[presencial|virtual], fecha_inicio, fecha_fin, lugar, docente_id→users, creditos, cupo_max, estado[borrador|publicada|cancelada], created_by, created_at)
 - **inscripciones**(id, actividad_id, user_id, estado[inscripto|baja], created_at), unique active (actividad,user); cupo enforced **transactionally** (row lock on actividad)
@@ -58,7 +58,7 @@ app/
 - **app_config**(key PK, value), holds `required_credits`
 
 ## Epic behaviour (MVP depth)
-- **E-01 Auth:** signup(legajo∈valid_legajos)→estudiante; login/logout; min profile; role guards. Staff seeded.
+- **E-01 Auth:** signup(legajo∈valid_legajos)→estudiante; login/logout; min profile; rol guards. Staff seeded.
 - **E-02 Discovery:** calendar + list of `publicada` actividades; filters fecha/tipo/créditos/cupo-disponible; detail page.
 - **E-03 Inscription:** 1-click inscribir w/ transactional cupo check; unenroll frees cupo; email + in-app confirm.
 - **E-04 Reminders:** "Mis próximas actividades" on home; APScheduler job emails enrolled 24h before start; admin-editable FAQ.
@@ -70,7 +70,7 @@ app/
 - **E-10 Analytics:** dashboard (asistencia rate, top actividades by enrollment, enrollment summary, survey averages) via Chart.js; director read-only.
 
 ## Non-functional (whitepaper attributes)
-- **Security:** role-based access, bcrypt passwords, signed session cookies.
+- **Security:** rol-based access, bcrypt passwords, signed session cookies.
 - **Reliability:** cupo race resolved by `SELECT ... FOR UPDATE` on actividad row inside inscribir txn.
 - **Auditability:** asistencia rows carry validated_by + validated_at.
 - **Interoperability:** SIU lookup isolated behind `services/identity.py` (one swap point).
@@ -84,7 +84,7 @@ app/
 5. Push to GitHub (account korentomas); user connects repo in Render → live URL.
 
 ## Demo seed
-valid_legajos sample; one user per role (coordinacion/docente/director + a couple estudiantes);
+valid_legajos sample; one user per rol (coordinacion/docente/director + a couple estudiantes);
 a few publicada actividades across dates; FAQ entries; required_credits.
 
 ## Out of scope (MVP)

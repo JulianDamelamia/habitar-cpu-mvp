@@ -13,7 +13,7 @@ from app.models import (
     Asistencia,
     SesionAsistencia,
     ESTADO_PUBLICADA,
-    ROLE_ESTUDIANTE,
+    ROL_ESTUDIANTE,
     User,
 )
 from app.services.inscripcion import is_enrolled
@@ -128,7 +128,7 @@ def mark_present_manual(db: Session, actividad_id: int, user_id: int, validated_
     in the actividad, so asistencia/credits cannot be fabricated for arbitrary ids.
     """
     target = db.get(User, user_id)
-    if target is None or target.role != ROLE_ESTUDIANTE:
+    if target is None or target.rol != ROL_ESTUDIANTE:
         raise AsistenciaError("El usuario indicado no es un estudiante válido.")
     if not is_enrolled(db, actividad_id, user_id):
         raise AsistenciaError("El estudiante no está inscripto en esta actividad.")

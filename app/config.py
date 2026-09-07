@@ -8,7 +8,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Session cookies are signed with SECRET_KEY. Never sign with a weak/guessable value:
-# anyone who knows the key can forge a session and impersonate any role. We reject not
+# anyone who knows the key can forge a session and impersonate any rol. We reject not
 # just exact placeholders but any low-entropy or placeholder-style key (too short, or
 # containing words like "change"/"secret"/"example"). A near-miss like
 # "dev-secret-change-me-7f3a..." must NOT pass. When rejected, fall back to a random

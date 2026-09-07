@@ -14,9 +14,9 @@ from starlette.middleware.sessions import SessionMiddleware
 from app.config import settings
 from app.database import Base, SessionLocal, engine
 from app.models import (
-    ROLE_COORDINACION,
-    ROLE_DIRECTOR,
-    ROLE_DOCENTE,
+    ROL_COORDINACION,
+    ROL_DIRECTOR,
+    ROL_DOCENTE,
 )
 from app.routers import (
     admin_actividades,
@@ -139,11 +139,11 @@ async def root(request: Request):
         db.close()
     if user is None:
         return RedirectResponse(url="/login", status_code=303)
-    if user.role == ROLE_COORDINACION:
+    if user.rol == ROL_COORDINACION:
         return RedirectResponse(url="/admin", status_code=303)
-    if user.role == ROLE_DOCENTE:
+    if user.rol == ROL_DOCENTE:
         return RedirectResponse(url="/docente", status_code=303)
-    if user.role == ROLE_DIRECTOR:
+    if user.rol == ROL_DIRECTOR:
         return RedirectResponse(url="/analytics", status_code=303)
     return RedirectResponse(url="/home", status_code=303)
 

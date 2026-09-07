@@ -11,14 +11,14 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import User, ValidLegajo
-from app.security import require_roles
+from app.security import requiere_roles
 from app.services import actividades as actividades_svc
 from app.services import asistencia as asistencia_svc
 from app.services import inscripcion as enrollment_svc
 from app.templating import render
 
 router = APIRouter()
-ADMIN = require_roles("coordinacion")
+ADMIN = requiere_roles("coordinacion")
 
 
 def _inscriptos_dataframe(db: Session, actividad_id: int) -> pd.DataFrame:

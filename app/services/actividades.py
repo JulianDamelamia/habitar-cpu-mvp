@@ -10,7 +10,7 @@ from app.models import (
     Actividad,
     ESTADO_PUBLICADA,
     Inscripcion,
-    ENROLL_INSCRIPTO,
+    INSCRIPCION_ALTA,
 )
 
 
@@ -21,7 +21,7 @@ def get(db: Session, actividad_id: int) -> Actividad | None:
 def inscriptos_count(db: Session, actividad_id: int) -> int:
     return (
         db.query(Inscripcion)
-        .filter(Inscripcion.actividad_id == actividad_id, Inscripcion.estado == ENROLL_INSCRIPTO)
+        .filter(Inscripcion.actividad_id == actividad_id, Inscripcion.estado == INSCRIPCION_ALTA)
         .count()
     )
 

@@ -24,7 +24,7 @@
         <label class="block text-sm font-medium mb-1">Docente</label>
         <select name="docente_id" class="w-full border rounded-lg px-3 py-2">
           <option value="">Sin asignar</option>
-          {% for d in docentes %}<option value="{{ d.id }}" {% if a and a.docente_id==d.id %}selected{% endif %}>{{ d.full_name }}</option>{% endfor %}
+          {% for d in docentes %}<option value="{{ d.id }}" {% if a and a.docente_id==d.id %}selected{% endif %}>{{ d.nombre_completo }}</option>{% endfor %}
         </select>
       </div>
     </div>

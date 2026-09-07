@@ -62,7 +62,7 @@ como se declaró en el whitepaper. La etapa de filtrado por autenticación es la
 - El middleware de sesión se monta en `app/main.py` (`app.add_middleware(SessionMiddleware, ...)`)
   y reconstruye la identidad del usuario a partir de la cookie firmada.
 - El filtro de autorización es la dependencia `current_user_required` y la fábrica de guardas
-  `require_roles(*roles)` en `app/security.py`. Cada endpoint declara con `Depends(...)` qué
+  `requiere_roles(*roles)` en `app/security.py`. Cada endpoint declara con `Depends(...)` qué
   filtro debe atravesar antes de ejecutarse.
 - Cuando un filtro rechaza la petición, las excepciones `NotAuthenticated` y `NotAuthorized`
   (definidas en `app/security.py`) se transforman en redirección o en una pantalla de acceso
@@ -104,7 +104,7 @@ el lugar del código que lo resuelve.
 | Paso declarado | Dónde se resuelve en el código |
 |---|---|
 | 1. Clic en "Inscribirme" | `POST /actividades/{id}/inscribir`, función `inscribir` en `app/routers/enrollment.py` |
-| 2. Verificación de sesión | Guarda `require_roles("estudiante")` en `app/security.py` |
+| 2. Verificación de sesión | Guarda `requiere_roles("estudiante")` en `app/security.py` |
 | 3. Control de cupo | `inscribir` en `app/services/enrollment.py`, con bloqueo de fila y comparación contra `cupo_max` |
 | 4. Control de inscripción duplicada | `inscribir`: comprueba si ya existe una inscripción activa del estudiante |
 | 5. Registro de la inscripción | `inscribir`: inserta o reactiva la fila `Inscripcion` |
@@ -132,9 +132,9 @@ auditabilidad, interoperabilidad).
 
 | Patrón | Dónde está | Qué resuelve |
 |---|---|---|
-| Inyección de dependencias | `Depends(get_db)`, `Depends(require_roles(...))` en `app/routers/` | Desacopla cada endpoint de la obtención de la sesión de base de datos y del usuario actual |
+| Inyección de dependencias | `Depends(get_db)`, `Depends(requiere_roles(...))` en `app/routers/` | Desacopla cada endpoint de la obtención de la sesión de base de datos y del usuario actual |
 | Capa de servicios sobre el ORM | `app/services/*.py` | Aísla la lógica de dominio del acceso a datos; los routers no construyen consultas |
-| Guarda de acceso por rol | `require_roles` y `current_user_required` en `app/security.py` | Centraliza el control de acceso (seguridad) en un único lugar reutilizable |
+| Guarda de acceso por rol | `requiere_roles` y `current_user_required` en `app/security.py` | Centraliza el control de acceso (seguridad) en un único lugar reutilizable |
 | Bloqueo pesimista | `select(...).with_for_update()` en `inscribir`, `app/services/enrollment.py` | Garantiza que dos inscripciones simultáneas no superen el cupo (fiabilidad) |
 | Estrategia de envío de correo | `send_email` en `app/email_util.py` | Elige en tiempo de ejecución entre un servidor SMTP real y una salida de consola |
 | Punto de adaptación al SIU | `legajo_is_valid` en `app/services/identity.py` | Aísla la verificación de matrícula para poder reemplazar el simulador por el SIU real (interoperabilidad) |

@@ -12,7 +12,7 @@ from app.models import (
     Actividad,
     ESTADO_PUBLICADA,
     Inscripcion,
-    ENROLL_INSCRIPTO,
+    INSCRIPCION_ALTA,
     Notification,
 )
 
@@ -44,7 +44,7 @@ def send_reminders() -> None:
                 db.query(Inscripcion)
                 .filter(
                     Inscripcion.actividad_id == actividad.id,
-                    Inscripcion.estado == ENROLL_INSCRIPTO,
+                    Inscripcion.estado == INSCRIPCION_ALTA,
                     Inscripcion.reminded.is_(False),
                 )
                 .all()

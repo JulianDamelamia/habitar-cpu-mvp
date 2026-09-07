@@ -17,11 +17,11 @@ from app.models import (
     Actividad,
     Asistencia,
     ESTADO_PUBLICADA,
-    ROLE_COORDINACION,
+    ROL_COORDINACION,
     SurveyResponse,
     User,
 )
-from app.security import current_user_required, require_roles
+from app.security import current_user_required, requiere_roles
 from app.services import asistencia as asistencia_svc
 from app.services import inscripcion as enrollment_svc
 from app.templating import render
@@ -37,12 +37,12 @@ def _qr_data_uri(text: str) -> str:
 
 
 def _can_manage(actividad: Actividad, user: User) -> bool:
-    return user.role == ROLE_COORDINACION or actividad.docente_id == user.id
+    return user.rol == ROL_COORDINACION or actividad.docente_id == user.id
 
 
 # ---- Student check-in --------------------------------------------------------
 @router.get("/checkin")
-def checkin_page(request: Request, user: User = Depends(require_roles("estudiante")), db: Session = Depends(get_db)):
+def checkin_page(request: Request, user: User = Depends(requiere_roles("estudiante")), db: Session = Depends(get_db)):
     return render(request, "student/checkin.html", user=user, db=db)
 
 
@@ -50,7 +50,7 @@ def checkin_page(request: Request, user: User = Depends(require_roles("estudiant
 def checkin_submit(
     request: Request,
     codigo: str = Form(...),
-    user: User = Depends(require_roles("estudiante")),
+    user: User = Depends(requiere_roles("estudiante")),
     db: Session = Depends(get_db),
 ):
     try:
@@ -68,7 +68,7 @@ def checkin_submit(
 def survey_form(
     request: Request,
     actividad_id: int,
-    user: User = Depends(require_roles("estudiante")),
+    user: User = Depends(requiere_roles("estudiante")),
     db: Session = Depends(get_db),
 ):
     actividad = db.get(Actividad, actividad_id)
@@ -95,7 +95,7 @@ def survey_submit(
     actividad_id: int,
     rating: int = Form(...),
     comment: str = Form(""),
-    user: User = Depends(require_roles("estudiante")),
+    user: User = Depends(requiere_roles("estudiante")),
     db: Session = Depends(get_db),
 ):
     attended = (
@@ -139,11 +139,11 @@ def survey_submit(
 @router.get("/docente")
 def docente_home(
     request: Request,
-    user: User = Depends(require_roles("docente", "coordinacion")),
+    user: User = Depends(requiere_roles("docente", "coordinacion")),
     db: Session = Depends(get_db),
 ):
     q = db.query(Actividad).filter(Actividad.estado == ESTADO_PUBLICADA)
-    if user.role != ROLE_COORDINACION:
+    if user.rol != ROL_COORDINACION:
         q = q.filter(Actividad.docente_id == user.id)
     actividades = q.order_by(Actividad.fecha_inicio.desc()).all()
     return render(request, "docente/home.html", user=user, db=db, actividades=actividades)
@@ -153,7 +153,7 @@ def docente_home(
 def docente_asistencia(
     request: Request,
     actividad_id: int,
-    user: User = Depends(require_roles("docente", "coordinacion")),
+    user: User = Depends(requiere_roles("docente", "coordinacion")),
     db: Session = Depends(get_db),
 ):
     actividad = db.get(Actividad, actividad_id)
@@ -171,7 +171,7 @@ def docente_asistencia(
 def docente_token(
     request: Request,
     actividad_id: int,
-    user: User = Depends(require_roles("docente", "coordinacion")),
+    user: User = Depends(requiere_roles("docente", "coordinacion")),
     db: Session = Depends(get_db),
 ):
     actividad = db.get(Actividad, actividad_id)
@@ -188,7 +188,7 @@ def docente_mark(
     request: Request,
     actividad_id: int,
     student_id: int,
-    user: User = Depends(require_roles("docente", "coordinacion")),
+    user: User = Depends(requiere_roles("docente", "coordinacion")),
     db: Session = Depends(get_db),
 ):
     actividad = db.get(Actividad, actividad_id)

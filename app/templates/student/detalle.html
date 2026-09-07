@@ -12,12 +12,12 @@
     <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">Inicio</dt><dd class="font-medium">{{ a.fecha_inicio|fmt_dt }}</dd></div>
     <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">Fin</dt><dd class="font-medium">{{ a.fecha_fin|fmt_dt }}</dd></div>
     <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">Lugar</dt><dd class="font-medium">{{ a.lugar }}</dd></div>
-    <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">Docente</dt><dd class="font-medium">{{ a.docente.full_name if a.docente else 'Sin asignar' }}</dd></div>
+    <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">Docente</dt><dd class="font-medium">{{ a.docente.nombre_completo if a.docente else 'Sin asignar' }}</dd></div>
     <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">Créditos</dt><dd class="font-medium">{{ a.creditos }}</dd></div>
     <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">Cupos disponibles</dt><dd class="font-medium">{{ cupo.free }} / {{ a.cupo_max }}</dd></div>
   </dl>
 
-  {% if user.role == 'estudiante' %}
+  {% if user.rol == 'estudiante' %}
     {% if enrolled %}
       <div class="flex items-center gap-3">
         <span class="text-emerald-600 font-medium inline-flex items-center gap-1"><i data-lucide="check" class="w-4 h-4"></i> Estás inscripto/a</span>

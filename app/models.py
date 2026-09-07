@@ -18,11 +18,11 @@ from sqlalchemy import Table, Column, ForeignKey
 from app.database import Base
 
 # ---- Role / status constants -------------------------------------------------
-ROLE_ESTUDIANTE = "estudiante"
-ROLE_COORDINACION = "coordinacion"
-ROLE_DOCENTE = "docente"
-ROLE_DIRECTOR = "director"
-ROLES = (ROLE_ESTUDIANTE, ROLE_COORDINACION, ROLE_DOCENTE, ROLE_DIRECTOR)
+ROL_ESTUDIANTE = "estudiante"
+ROL_COORDINACION = "coordinacion"
+ROL_DOCENTE = "docente"
+ROL_DIRECTOR = "director"
+ROLES = (ROL_ESTUDIANTE, ROL_COORDINACION, ROL_DOCENTE, ROL_DIRECTOR)
 
 TIPO_PRESENCIAL = "presencial"
 TIPO_VIRTUAL = "virtual"
@@ -31,8 +31,8 @@ ESTADO_BORRADOR = "borrador"
 ESTADO_PUBLICADA = "publicada"
 ESTADO_CANCELADA = "cancelada"
 
-ENROLL_INSCRIPTO = "inscripto"
-ENROLL_BAJA = "baja"
+INSCRIPCION_ALTA = "inscripto"
+INSCRIPCION_BAJA = "baja"
 
 
 class User(Base):
@@ -46,11 +46,11 @@ class User(Base):
     apellido: Mapped[str] = mapped_column(String(120), default="")
     dni: Mapped[str | None] = mapped_column(String(20))
     carrera: Mapped[str | None] = mapped_column(String(160))
-    role: Mapped[str] = mapped_column(String(20), default=ROLE_ESTUDIANTE, index=True)
+    rol: Mapped[str] = mapped_column(String(20), default=ROL_ESTUDIANTE, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     @property
-    def full_name(self) -> str:
+    def nombre_completo(self) -> str:
         name = f"{self.nombre} {self.apellido}".strip()
         return name or self.email
 
@@ -132,7 +132,7 @@ class Inscripcion(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     actividad_id: Mapped[int] = mapped_column(ForeignKey("actividades.id"), index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
-    estado: Mapped[str] = mapped_column(String(20), default=ENROLL_INSCRIPTO, index=True)
+    estado: Mapped[str] = mapped_column(String(20), default=INSCRIPCION_ALTA, index=True)
     reminded: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 

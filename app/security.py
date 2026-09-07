@@ -1,4 +1,4 @@
-"""Authentication: password hashing, session cookies, role guards."""
+"""Authentication: password hashing, session cookies, rol guards."""
 from __future__ import annotations
 
 import bcrypt
@@ -43,7 +43,7 @@ class NotAuthenticated(Exception):
 
 
 class NotAuthorized(Exception):
-    """Raised when the user lacks the required role -> 403."""
+    """Raised when the user lacks the required rol -> 403."""
 
 
 def current_user_required(request: Request, db: Session = Depends(get_db)) -> User:
@@ -53,9 +53,9 @@ def current_user_required(request: Request, db: Session = Depends(get_db)) -> Us
     return user
 
 
-def require_roles(*roles: str):
+def requiere_roles(*roles: str):
     def dependency(user: User = Depends(current_user_required)) -> User:
-        if user.role not in roles:
+        if user.rol not in roles:
             raise NotAuthorized()
         return user
 

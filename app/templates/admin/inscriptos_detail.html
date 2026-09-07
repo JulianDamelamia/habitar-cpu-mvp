@@ -20,7 +20,7 @@
     {% for e in inscriptos %}
       <tr class="border-t">
         <td class="px-4 py-3">{{ e.user.legajo or 'Sin dato' }}</td>
-        <td class="font-medium">{{ e.user.full_name }}</td>
+        <td class="font-medium">{{ e.user.nombre_completo }}</td>
         <td class="text-slate-500">{{ e.user.email }}</td>
         <td>
           {% if e.user_id in present %}<span class="text-emerald-600 font-medium inline-flex items-center gap-1"><i data-lucide="check" class="w-4 h-4"></i> Presente</span>

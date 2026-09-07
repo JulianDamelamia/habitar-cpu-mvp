@@ -13,12 +13,12 @@ from app.models import (
     Carrera,
     ESTADO_PUBLICADA,
     Inscripcion,
-    ENROLL_INSCRIPTO,
+    INSCRIPCION_ALTA,
     Faq,
-    ROLE_COORDINACION,
-    ROLE_DIRECTOR,
-    ROLE_DOCENTE,
-    ROLE_ESTUDIANTE,
+    ROL_COORDINACION,
+    ROL_DIRECTOR,
+    ROL_DOCENTE,
+    ROL_ESTUDIANTE,
     TIPO_PRESENCIAL,
     TIPO_VIRTUAL,
     TipoCarrera,
@@ -116,23 +116,23 @@ def seed_all(db: Session) -> None:
     # --- users ---
     coord = _get_or_create_user(
         db, "coordinacion@unsam.edu.ar", nombre="Laura", apellido="Rasia",
-        role=ROLE_COORDINACION, legajo=None,
+        rol=ROL_COORDINACION, legajo=None,
     )
     docente = _get_or_create_user(
         db, "docente@unsam.edu.ar", nombre="Pablo", apellido="Méndez",
-        role=ROLE_DOCENTE, legajo=None,
+        rol=ROL_DOCENTE, legajo=None,
     )
     _get_or_create_user(
         db, "director@unsam.edu.ar", nombre="Marcela", apellido="Vega",
-        role=ROLE_DIRECTOR, legajo=None,
+        rol=ROL_DIRECTOR, legajo=None,
     )
     ana = _get_or_create_user(
         db, "ana@alumno.unsam.edu.ar", nombre="Ana", apellido="Pérez",
-        role=ROLE_ESTUDIANTE, legajo="1001", dni="40111222", carrera="Ing. en Computación",
+        rol=ROL_ESTUDIANTE, legajo="1001", dni="40111222", carrera="Ing. en Computación",
     )
     bruno = _get_or_create_user(
         db, "bruno@alumno.unsam.edu.ar", nombre="Bruno", apellido="Díaz",
-        role=ROLE_ESTUDIANTE, legajo="1002", dni="40333444", carrera="Lic. en Biotecnología",
+        rol=ROL_ESTUDIANTE, legajo="1002", dni="40333444", carrera="Lic. en Biotecnología",
     )
     db.flush()
 
@@ -187,10 +187,10 @@ def seed_all(db: Session) -> None:
         bienvenida, taller, charla = acts[0], acts[1], acts[2]
         # Ana attended the welcome (past) -> has credits, and is enrolled in upcoming ones.
         db.add_all([
-            Inscripcion(actividad_id=bienvenida.id, user_id=ana.id, estado=ENROLL_INSCRIPTO),
-            Inscripcion(actividad_id=taller.id, user_id=ana.id, estado=ENROLL_INSCRIPTO),
-            Inscripcion(actividad_id=charla.id, user_id=ana.id, estado=ENROLL_INSCRIPTO),
-            Inscripcion(actividad_id=bienvenida.id, user_id=bruno.id, estado=ENROLL_INSCRIPTO),
+            Inscripcion(actividad_id=bienvenida.id, user_id=ana.id, estado=INSCRIPCION_ALTA),
+            Inscripcion(actividad_id=taller.id, user_id=ana.id, estado=INSCRIPCION_ALTA),
+            Inscripcion(actividad_id=charla.id, user_id=ana.id, estado=INSCRIPCION_ALTA),
+            Inscripcion(actividad_id=bienvenida.id, user_id=bruno.id, estado=INSCRIPCION_ALTA),
         ])
         db.add(Asistencia(actividad_id=bienvenida.id, user_id=ana.id, validated_by=docente.id))
 

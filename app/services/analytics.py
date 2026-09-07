@@ -9,14 +9,14 @@ from app.models import (
     Asistencia,
     ESTADO_PUBLICADA,
     Inscripcion,
-    ENROLL_INSCRIPTO,
+    INSCRIPCION_ALTA,
     SurveyResponse,
 )
 
 
 def overview(db: Session) -> dict:
     publicadas = db.query(Actividad).filter(Actividad.estado == ESTADO_PUBLICADA).count()
-    inscripciones = db.query(Inscripcion).filter(Inscripcion.estado == ENROLL_INSCRIPTO).count()
+    inscripciones = db.query(Inscripcion).filter(Inscripcion.estado == INSCRIPCION_ALTA).count()
     asistencias = db.query(Asistencia).count()
     rate = round(asistencias / inscripciones * 100, 1) if inscripciones else 0.0
     return {
@@ -31,7 +31,7 @@ def top_actividades(db: Session, limit: int = 5) -> list[dict]:
     rows = (
         db.query(Actividad.titulo, func.count(Inscripcion.id).label("n"))
         .join(Inscripcion, Inscripcion.actividad_id == Actividad.id)
-        .filter(Inscripcion.estado == ENROLL_INSCRIPTO)
+        .filter(Inscripcion.estado == INSCRIPCION_ALTA)
         .group_by(Actividad.id, Actividad.titulo)
         .order_by(func.count(Inscripcion.id).desc())
         .limit(limit)
@@ -52,7 +52,7 @@ def asistencia_per_actividad(db: Session) -> list[dict]:
     for a in actividades:
         insc = (
             db.query(Inscripcion)
-            .filter(Inscripcion.actividad_id == a.id, Inscripcion.estado == ENROLL_INSCRIPTO)
+            .filter(Inscripcion.actividad_id == a.id, Inscripcion.estado == INSCRIPCION_ALTA)
             .count()
         )
         if insc == 0:
