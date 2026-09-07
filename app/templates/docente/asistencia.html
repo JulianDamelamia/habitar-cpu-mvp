@@ -38,10 +38,10 @@
 {% endblock %}
 {% block scripts %}
 <script>
-  const activityId = {{ a.id }};
+  const actividadId = {{ a.id }};
   async function refresh() {
     try {
-      const r = await fetch(`/docente/actividades/${activityId}/token`);
+      const r = await fetch(`/docente/actividades/${actividadId}/token`);
       if (!r.ok) return;
       const d = await r.json();
       document.getElementById('qr').src = d.qr;

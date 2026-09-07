@@ -1,4 +1,4 @@
-"""Idempotent demo seed: SIU legajos, staff/students, activities, FAQ, config, carreras."""
+"""Idempotent demo seed: SIU legajos, staff/students, actividades, FAQ, config, carreras."""
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -7,12 +7,12 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.models import (
-    Activity,
+    Actividad,
     AppConfig,
-    Attendance,
+    Asistencia,
     Carrera,
     ESTADO_PUBLICADA,
-    Enrollment,
+    Inscripcion,
     ENROLL_INSCRIPTO,
     Faq,
     ROLE_COORDINACION,
@@ -136,11 +136,11 @@ def seed_all(db: Session) -> None:
     )
     db.flush()
 
-    # --- activities (only seed once) ---
-    if db.query(Activity).count() == 0:
+    # --- actividades (only seed once) ---
+    if db.query(Actividad).count() == 0:
         now = _now()
         acts = [
-            Activity(
+            Actividad(
                 titulo="Bienvenida al campus",
                 descripcion="Recorrido guiado por la ECyT y presentación del Módulo Habitar.",
                 tipo=TIPO_PRESENCIAL, fecha_inicio=now - timedelta(days=7),
@@ -148,7 +148,7 @@ def seed_all(db: Session) -> None:
                 lugar="Hall central - Campus Miguelete", docente_id=docente.id,
                 creditos=2, cupo_max=40, estado=ESTADO_PUBLICADA, created_by=coord.id,
             ),
-            Activity(
+            Actividad(
                 titulo="Taller de hábitos de estudio",
                 descripcion="Estrategias para organizar el tiempo y estudiar en la universidad.",
                 tipo=TIPO_PRESENCIAL, fecha_inicio=now + timedelta(hours=24),
@@ -156,7 +156,7 @@ def seed_all(db: Session) -> None:
                 lugar="Aula 12 - Tornavía", docente_id=docente.id,
                 creditos=3, cupo_max=2, estado=ESTADO_PUBLICADA, created_by=coord.id,
             ),
-            Activity(
+            Actividad(
                 titulo="Charla: vida universitaria",
                 descripcion="Egresados cuentan su experiencia y responden preguntas.",
                 tipo=TIPO_VIRTUAL, fecha_inicio=now + timedelta(days=5),
@@ -164,7 +164,7 @@ def seed_all(db: Session) -> None:
                 lugar="Zoom (link por mail)", docente_id=docente.id,
                 creditos=2, cupo_max=100, estado=ESTADO_PUBLICADA, created_by=coord.id,
             ),
-            Activity(
+            Actividad(
                 titulo="Laboratorio abierto de Física",
                 descripcion="Experiencias prácticas en el laboratorio de física.",
                 tipo=TIPO_PRESENCIAL, fecha_inicio=now + timedelta(days=10),
@@ -172,7 +172,7 @@ def seed_all(db: Session) -> None:
                 lugar="Lab 3 - Pabellón de Física", docente_id=docente.id,
                 creditos=4, cupo_max=15, estado=ESTADO_PUBLICADA, created_by=coord.id,
             ),
-            Activity(
+            Actividad(
                 titulo="Borrador: Taller de escritura",
                 descripcion="Pendiente de revisión, todavía sin publicar.",
                 tipo=TIPO_PRESENCIAL, fecha_inicio=now + timedelta(days=14),
@@ -187,11 +187,11 @@ def seed_all(db: Session) -> None:
         bienvenida, taller, charla = acts[0], acts[1], acts[2]
         # Ana attended the welcome (past) -> has credits, and is enrolled in upcoming ones.
         db.add_all([
-            Enrollment(activity_id=bienvenida.id, user_id=ana.id, estado=ENROLL_INSCRIPTO),
-            Enrollment(activity_id=taller.id, user_id=ana.id, estado=ENROLL_INSCRIPTO),
-            Enrollment(activity_id=charla.id, user_id=ana.id, estado=ENROLL_INSCRIPTO),
-            Enrollment(activity_id=bienvenida.id, user_id=bruno.id, estado=ENROLL_INSCRIPTO),
+            Inscripcion(actividad_id=bienvenida.id, user_id=ana.id, estado=ENROLL_INSCRIPTO),
+            Inscripcion(actividad_id=taller.id, user_id=ana.id, estado=ENROLL_INSCRIPTO),
+            Inscripcion(actividad_id=charla.id, user_id=ana.id, estado=ENROLL_INSCRIPTO),
+            Inscripcion(actividad_id=bienvenida.id, user_id=bruno.id, estado=ENROLL_INSCRIPTO),
         ])
-        db.add(Attendance(activity_id=bienvenida.id, user_id=ana.id, validated_by=docente.id))
+        db.add(Asistencia(actividad_id=bienvenida.id, user_id=ana.id, validated_by=docente.id))
 
     db.commit()

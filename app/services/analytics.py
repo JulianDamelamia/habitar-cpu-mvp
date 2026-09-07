@@ -5,59 +5,59 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.models import (
-    Activity,
-    Attendance,
+    Actividad,
+    Asistencia,
     ESTADO_PUBLICADA,
-    Enrollment,
+    Inscripcion,
     ENROLL_INSCRIPTO,
     SurveyResponse,
 )
 
 
 def overview(db: Session) -> dict:
-    publicadas = db.query(Activity).filter(Activity.estado == ESTADO_PUBLICADA).count()
-    inscripciones = db.query(Enrollment).filter(Enrollment.estado == ENROLL_INSCRIPTO).count()
-    asistencias = db.query(Attendance).count()
+    publicadas = db.query(Actividad).filter(Actividad.estado == ESTADO_PUBLICADA).count()
+    inscripciones = db.query(Inscripcion).filter(Inscripcion.estado == ENROLL_INSCRIPTO).count()
+    asistencias = db.query(Asistencia).count()
     rate = round(asistencias / inscripciones * 100, 1) if inscripciones else 0.0
     return {
         "actividades_publicadas": publicadas,
         "inscripciones": inscripciones,
         "asistencias": asistencias,
-        "attendance_rate": rate,
+        "asistencia_rate": rate,
     }
 
 
-def top_activities(db: Session, limit: int = 5) -> list[dict]:
+def top_actividades(db: Session, limit: int = 5) -> list[dict]:
     rows = (
-        db.query(Activity.titulo, func.count(Enrollment.id).label("n"))
-        .join(Enrollment, Enrollment.activity_id == Activity.id)
-        .filter(Enrollment.estado == ENROLL_INSCRIPTO)
-        .group_by(Activity.id, Activity.titulo)
-        .order_by(func.count(Enrollment.id).desc())
+        db.query(Actividad.titulo, func.count(Inscripcion.id).label("n"))
+        .join(Inscripcion, Inscripcion.actividad_id == Actividad.id)
+        .filter(Inscripcion.estado == ENROLL_INSCRIPTO)
+        .group_by(Actividad.id, Actividad.titulo)
+        .order_by(func.count(Inscripcion.id).desc())
         .limit(limit)
         .all()
     )
     return [{"titulo": r[0], "inscriptos": int(r[1])} for r in rows]
 
 
-def attendance_per_activity(db: Session) -> list[dict]:
-    """Published activities that have at least one enrollment (skip empty/draft ones)."""
+def asistencia_per_actividad(db: Session) -> list[dict]:
+    """Published actividades that have at least one enrollment (skip empty/draft ones)."""
     result = []
-    activities = (
-        db.query(Activity)
-        .filter(Activity.estado == ESTADO_PUBLICADA)
-        .order_by(Activity.fecha_inicio.desc())
+    actividades = (
+        db.query(Actividad)
+        .filter(Actividad.estado == ESTADO_PUBLICADA)
+        .order_by(Actividad.fecha_inicio.desc())
         .all()
     )
-    for a in activities:
+    for a in actividades:
         insc = (
-            db.query(Enrollment)
-            .filter(Enrollment.activity_id == a.id, Enrollment.estado == ENROLL_INSCRIPTO)
+            db.query(Inscripcion)
+            .filter(Inscripcion.actividad_id == a.id, Inscripcion.estado == ENROLL_INSCRIPTO)
             .count()
         )
         if insc == 0:
             continue
-        asis = db.query(Attendance).filter(Attendance.activity_id == a.id).count()
+        asis = db.query(Asistencia).filter(Asistencia.actividad_id == a.id).count()
         result.append(
             {
                 "titulo": a.titulo,
@@ -72,12 +72,12 @@ def attendance_per_activity(db: Session) -> list[dict]:
 def survey_averages(db: Session) -> list[dict]:
     rows = (
         db.query(
-            Activity.titulo,
+            Actividad.titulo,
             func.avg(SurveyResponse.rating).label("avg"),
             func.count(SurveyResponse.id).label("n"),
         )
-        .join(SurveyResponse, SurveyResponse.activity_id == Activity.id)
-        .group_by(Activity.id, Activity.titulo)
+        .join(SurveyResponse, SurveyResponse.actividad_id == Actividad.id)
+        .group_by(Actividad.id, Actividad.titulo)
         .order_by(func.avg(SurveyResponse.rating).desc())
         .all()
     )

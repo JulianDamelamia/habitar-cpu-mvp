@@ -8,13 +8,13 @@
   <div class="bg-white rounded-xl shadow p-4"><p class="text-xs text-slate-400">Actividades publicadas</p><p class="text-2xl font-bold">{{ overview.actividades_publicadas }}</p></div>
   <div class="bg-white rounded-xl shadow p-4"><p class="text-xs text-slate-400">Inscripciones</p><p class="text-2xl font-bold text-indigo-600">{{ overview.inscripciones }}</p></div>
   <div class="bg-white rounded-xl shadow p-4"><p class="text-xs text-slate-400">Asistencias</p><p class="text-2xl font-bold text-emerald-600">{{ overview.asistencias }}</p></div>
-  <div class="bg-white rounded-xl shadow p-4"><p class="text-xs text-slate-400">Tasa de asistencia</p><p class="text-2xl font-bold">{{ overview.attendance_rate }}%</p></div>
+  <div class="bg-white rounded-xl shadow p-4"><p class="text-xs text-slate-400">Tasa de asistencia</p><p class="text-2xl font-bold">{{ overview.asistencia_rate }}%</p></div>
 </div>
 
 <div class="grid md:grid-cols-2 gap-6 mb-6">
   <div class="bg-white rounded-2xl shadow p-5">
     <h2 class="font-semibold mb-3">Inscriptos vs. asistencias</h2>
-    {% if per_activity %}<canvas id="chartAttendance" height="220"></canvas>
+    {% if per_actividad %}<canvas id="chartAsistencia" height="220"></canvas>
     {% else %}<p class="text-slate-500 text-sm">Sin actividades con inscriptos todavía.</p>{% endif %}
   </div>
   <div class="bg-white rounded-2xl shadow p-5">
@@ -45,11 +45,11 @@
 {% block scripts %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
-  const perActivity = {{ per_activity|tojson }};
+  const perActivity = {{ per_actividad|tojson }};
   const topActivities = {{ top|tojson }};
 
   if (window.Chart && perActivity.length) {
-    new Chart(document.getElementById('chartAttendance'), {
+    new Chart(document.getElementById('chartAsistencia'), {
       type: 'bar',
       data: {
         labels: perActivity.map(a => a.titulo),

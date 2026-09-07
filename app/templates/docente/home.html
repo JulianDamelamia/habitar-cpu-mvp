@@ -2,11 +2,11 @@
 {% block title %}Mis actividades{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-bold mb-4">Actividades para tomar asistencia</h1>
-{% if not activities %}
+{% if not actividades %}
   <p class="text-slate-500">No tenés actividades asignadas.</p>
 {% endif %}
 <div class="space-y-3">
-  {% for a in activities %}
+  {% for a in actividades %}
   <div class="bg-white rounded-xl shadow p-4 flex items-center justify-between">
     <div>
       <p class="font-semibold">{{ a.titulo }}</p>

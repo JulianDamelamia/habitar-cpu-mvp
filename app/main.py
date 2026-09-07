@@ -19,14 +19,14 @@ from app.models import (
     ROLE_DOCENTE,
 )
 from app.routers import (
-    admin_activities,
+    admin_actividades,
     admin_enroll,
     analytics,
-    attendance,
+    asistencia,
     auth,
     discovery,
-    enrollment,
     faq,
+    inscripcion,
 )
 from app.scheduler import start_scheduler
 from app.security import NotAuthenticated, NotAuthorized, get_current_user
@@ -117,9 +117,9 @@ async def _unhandled(request: Request, exc: Exception):
 # ---- Routers ----------------------------------------------------------------
 app.include_router(auth.router)
 app.include_router(discovery.router)
-app.include_router(enrollment.router)
-app.include_router(attendance.router)
-app.include_router(admin_activities.router)
+app.include_router(inscripcion.router)
+app.include_router(asistencia.router)
+app.include_router(admin_actividades.router)
 app.include_router(admin_enroll.router)
 app.include_router(analytics.router)
 app.include_router(faq.router)

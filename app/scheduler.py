@@ -1,4 +1,4 @@
-"""APScheduler job: email a reminder 24h before each activity (E-04, US-14)."""
+"""APScheduler job: email a reminder 24h before each actividad (E-04, US-14)."""
 from __future__ import annotations
 
 import logging
@@ -9,9 +9,9 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from app.database import SessionLocal
 from app.email_util import send_email
 from app.models import (
-    Activity,
+    Actividad,
     ESTADO_PUBLICADA,
-    Enrollment,
+    Inscripcion,
     ENROLL_INSCRIPTO,
     Notification,
 )
@@ -24,35 +24,35 @@ def send_reminders() -> None:
     db = SessionLocal()
     try:
         now = datetime.now(timezone.utc)
-        # Remind for any upcoming activity within the next ~24h that has not been
+        # Remind for any upcoming actividad within the next ~24h that has not been
         # reminded yet. Using `now` as the lower bound (instead of now+23h) makes the
         # job self-healing: if the free-tier instance hibernated through the exact 24h
         # mark, the reminder is still sent on the next run instead of being lost.
         window_end = now + timedelta(hours=24)
-        activities = (
-            db.query(Activity)
+        actividades = (
+            db.query(Actividad)
             .filter(
-                Activity.estado == ESTADO_PUBLICADA,
-                Activity.fecha_inicio >= now,
-                Activity.fecha_inicio <= window_end,
+                Actividad.estado == ESTADO_PUBLICADA,
+                Actividad.fecha_inicio >= now,
+                Actividad.fecha_inicio <= window_end,
             )
             .all()
         )
         sent = 0
-        for activity in activities:
-            enrollments = (
-                db.query(Enrollment)
+        for actividad in actividades:
+            inscripciones = (
+                db.query(Inscripcion)
                 .filter(
-                    Enrollment.activity_id == activity.id,
-                    Enrollment.estado == ENROLL_INSCRIPTO,
-                    Enrollment.reminded.is_(False),
+                    Inscripcion.actividad_id == actividad.id,
+                    Inscripcion.estado == ENROLL_INSCRIPTO,
+                    Inscripcion.reminded.is_(False),
                 )
                 .all()
             )
-            for enr in enrollments:
+            for enr in inscripciones:
                 msg = (
-                    f"Recordatorio: '{activity.titulo}' comienza el "
-                    f"{activity.fecha_inicio.strftime('%d/%m/%Y %H:%M')} en {activity.lugar or 'el campus'}."
+                    f"Recordatorio: '{actividad.titulo}' comienza el "
+                    f"{actividad.fecha_inicio.strftime('%d/%m/%Y %H:%M')} en {actividad.lugar or 'el campus'}."
                 )
                 # Persist the reminded flag + notification BEFORE the email side
                 # effect, and commit per-enrollment, so a later DB failure can never
@@ -64,7 +64,7 @@ def send_reminders() -> None:
                     send_email(enr.user.email, "Recordatorio de actividad", msg)
                 sent += 1
         if sent:
-            logger.info("Sent %d activity reminders", sent)
+            logger.info("Sent %d actividad reminders", sent)
     except Exception as exc:  # noqa: BLE001
         logger.warning("Reminder job failed: %s", exc)
         db.rollback()

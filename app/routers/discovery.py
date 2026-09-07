@@ -1,4 +1,4 @@
-"""E-02 Discovery & exploration of activities (student-facing)."""
+"""E-02 Discovery & exploration of actividades (student-facing)."""
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request
@@ -8,15 +8,15 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import TIPO_PRESENCIAL, TIPO_VIRTUAL, User
 from app.security import current_user_required
-from app.services import activities as activities_svc
-from app.services import enrollment as enrollment_svc
+from app.services import actividades as actividades_svc
+from app.services import inscripcion as enrollment_svc
 from app.templating import render
 
 router = APIRouter()
 
 
 @router.get("/actividades")
-def list_activities(
+def list_actividades(
     request: Request,
     tipo: str = "",
     fecha: str = "",
@@ -26,15 +26,15 @@ def list_activities(
     db: Session = Depends(get_db),
 ):
     min_cred = int(min_creditos) if min_creditos.isdigit() else None
-    items = activities_svc.list_published(
+    items = actividades_svc.list_published(
         db,
         tipo=tipo or None,
         fecha=fecha or None,
         min_creditos=min_cred,
         solo_disponibles=bool(solo_disponibles),
     )
-    enrolled_ids = {a.id for a in enrollment_svc.my_activities(db, user.id)}
-    rows = [{"a": a, "cupo": activities_svc.cupo_info(db, a), "enrolled": a.id in enrolled_ids} for a in items]
+    enrolled_ids = {a.id for a in enrollment_svc.my_actividades(db, user.id)}
+    rows = [{"a": a, "cupo": actividades_svc.cupo_info(db, a), "enrolled": a.id in enrolled_ids} for a in items]
     return render(
         request, "student/actividades.html", user=user, db=db,
         rows=rows,
@@ -43,19 +43,19 @@ def list_activities(
     )
 
 
-@router.get("/actividades/{activity_id}")
-def activity_detail(
+@router.get("/actividades/{actividad_id}")
+def actividad_detail(
     request: Request,
-    activity_id: int,
+    actividad_id: int,
     user: User = Depends(current_user_required),
     db: Session = Depends(get_db),
 ):
-    activity = activities_svc.get(db, activity_id)
-    if activity is None or activity.estado != "publicada":
+    actividad = actividades_svc.get(db, actividad_id)
+    if actividad is None or actividad.estado != "publicada":
         return RedirectResponse(url="/actividades?err=La actividad no está disponible.", status_code=303)
-    cupo = activities_svc.cupo_info(db, activity)
-    enrolled = enrollment_svc.is_enrolled(db, activity_id, user.id)
+    cupo = actividades_svc.cupo_info(db, actividad)
+    enrolled = enrollment_svc.is_enrolled(db, actividad_id, user.id)
     return render(
         request, "student/detalle.html", user=user, db=db,
-        a=activity, cupo=cupo, enrolled=enrolled,
+        a=actividad, cupo=cupo, enrolled=enrolled,
     )

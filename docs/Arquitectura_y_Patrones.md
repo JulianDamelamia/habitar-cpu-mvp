@@ -46,7 +46,7 @@ contigua y tiene una responsabilidad única.
 |---|---|
 | Cliente | Plantillas Jinja en `app/templates/` y el helper `app/templating.py` |
 | Servidor web | La aplicación y el middleware en `app/main.py`; las guardas en `app/security.py` |
-| Backend (módulos de dominio) | `app/services/` (identity, activities, enrollment, attendance, credits, analytics) |
+| Backend (módulos de dominio) | `app/services/` (identity, actividades, enrollment, asistencia, credits, analytics) |
 | Base de datos | Los modelos ORM en `app/models.py` sobre PostgreSQL, configurada en `app/database.py` |
 
 Los routers (`app/routers/`) actúan como frontera entre el servidor web y el dominio: reciben
@@ -78,9 +78,9 @@ El whitepaper modela la comunicación entre la coordinación y los estudiantes c
 Publish-Subscribe: cada actividad es un *topic* y la inscripción del estudiante lo deja
 suscripto. La intención es que quien publica un cambio no necesite conocer a los suscriptos.
 
-En el código, la suscripción es la fila de `Enrollment` (un estudiante inscripto en una
+En el código, la suscripción es la fila de `Inscripcion` (un estudiante inscripto en una
 actividad), y la publicación de un cambio ocurre cuando la coordinación edita una actividad ya
-publicada: en `app/routers/admin_activities.py`, la función `actualizar` recorre los inscriptos
+publicada: en `app/routers/admin_actividades.py`, la función `actualizar` recorre los inscriptos
 de la actividad (`enrollment_svc.inscriptos`) y notifica a cada uno con `notify(...)`. El
 servicio de notificación está en `app/notifications.py`: `notify` escribe una fila en la tabla
 `notifications` y, si corresponde, envía un correo.
@@ -105,15 +105,15 @@ el lugar del código que lo resuelve.
 |---|---|
 | 1. Clic en "Inscribirme" | `POST /actividades/{id}/inscribir`, función `inscribir` en `app/routers/enrollment.py` |
 | 2. Verificación de sesión | Guarda `require_roles("estudiante")` en `app/security.py` |
-| 3. Control de cupo | `enroll` en `app/services/enrollment.py`, con bloqueo de fila y comparación contra `cupo_max` |
-| 4. Control de inscripción duplicada | `enroll`: comprueba si ya existe una inscripción activa del estudiante |
-| 5. Registro de la inscripción | `enroll`: inserta o reactiva la fila `Enrollment` |
-| 6. Descuento del cupo | Se deriva en lectura: `cupo_info` en `app/services/activities.py` calcula los lugares libres |
+| 3. Control de cupo | `inscribir` en `app/services/enrollment.py`, con bloqueo de fila y comparación contra `cupo_max` |
+| 4. Control de inscripción duplicada | `inscribir`: comprueba si ya existe una inscripción activa del estudiante |
+| 5. Registro de la inscripción | `inscribir`: inserta o reactiva la fila `Inscripcion` |
+| 6. Descuento del cupo | Se deriva en lectura: `cupo_info` en `app/services/actividades.py` calcula los lugares libres |
 | 7. Actualización del inicio del alumno | `home` en `app/routers/enrollment.py` consulta las inscripciones vigentes en vivo |
 | 8. Mail de confirmación | `notify(..., email_subject=...)` en `app/notifications.py`, que usa `send_email` |
-| 9. Recordatorio agendado | La fila `Enrollment` nace con `reminded = False` (`app/models.py`); el job lo toma luego |
+| 9. Recordatorio agendado | La fila `Inscripcion` nace con `reminded = False` (`app/models.py`); el job lo toma luego |
 | 10. Mail de recordatorio 24 horas antes | `send_reminders` en `app/scheduler.py`, ejecutado periódicamente por APScheduler |
-| 11. Actualización del panel de la coordinación | `panel` en `app/routers/admin_activities.py` lee el resumen en vivo |
+| 11. Actualización del panel de la coordinación | `panel` en `app/routers/admin_actividades.py` lee el resumen en vivo |
 
 Cada paso es discreto y se procesa de forma aislada, sin un flujo continuo de eventos ni
 correlación entre varios eventos, que es lo que distingue a Single Event Processing de los
@@ -135,11 +135,11 @@ auditabilidad, interoperabilidad).
 | Inyección de dependencias | `Depends(get_db)`, `Depends(require_roles(...))` en `app/routers/` | Desacopla cada endpoint de la obtención de la sesión de base de datos y del usuario actual |
 | Capa de servicios sobre el ORM | `app/services/*.py` | Aísla la lógica de dominio del acceso a datos; los routers no construyen consultas |
 | Guarda de acceso por rol | `require_roles` y `current_user_required` en `app/security.py` | Centraliza el control de acceso (seguridad) en un único lugar reutilizable |
-| Bloqueo pesimista | `select(...).with_for_update()` en `enroll`, `app/services/enrollment.py` | Garantiza que dos inscripciones simultáneas no superen el cupo (fiabilidad) |
+| Bloqueo pesimista | `select(...).with_for_update()` en `inscribir`, `app/services/enrollment.py` | Garantiza que dos inscripciones simultáneas no superen el cupo (fiabilidad) |
 | Estrategia de envío de correo | `send_email` en `app/email_util.py` | Elige en tiempo de ejecución entre un servidor SMTP real y una salida de consola |
 | Punto de adaptación al SIU | `legajo_is_valid` en `app/services/identity.py` | Aísla la verificación de matrícula para poder reemplazar el simulador por el SIU real (interoperabilidad) |
-| Registro auditable | Filas de `Attendance` con `validated_by` y `validated_at` en `app/models.py` | Deja trazabilidad de cada acreditación (auditabilidad) |
-| Token rotativo | `open_or_rotate` y `check_in` en `app/services/attendance.py` | Renueva el código de asistencia por tiempo y valida la acreditación |
+| Registro auditable | Filas de `Asistencia` con `validated_by` y `validated_at` en `app/models.py` | Deja trazabilidad de cada acreditación (auditabilidad) |
+| Token rotativo | `open_or_rotate` y `check_in` en `app/services/asistencia.py` | Renueva el código de asistencia por tiempo y valida la acreditación |
 
 ---
 

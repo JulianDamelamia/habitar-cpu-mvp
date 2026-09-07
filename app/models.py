@@ -14,7 +14,7 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
+from sqlalchemy import Table, Column, ForeignKey
 from app.database import Base
 
 # ---- Role / status constants -------------------------------------------------
@@ -62,9 +62,16 @@ class ValidLegajo(Base):
     legajo: Mapped[str] = mapped_column(String(32), primary_key=True)
     nombre: Mapped[str | None] = mapped_column(String(160))
 
+# Tabla intermedia N:M entre Actividad y Carrera
+actividad_carrera = Table(
+    "actividad_carrera",
+    Base.metadata,
+    Column("actividad_id", ForeignKey("actividades.id", ondelete="CASCADE"), primary_key=True),
+    Column("carrera_id", ForeignKey("carreras.id", ondelete="CASCADE"), primary_key=True),
+)
 
-class Activity(Base):
-    __tablename__ = "activities"
+class Actividad(Base):
+    __tablename__ = "actividades"
 
     id: Mapped[int] = mapped_column(primary_key=True)
     titulo: Mapped[str] = mapped_column(String(200))
@@ -79,10 +86,13 @@ class Activity(Base):
     estado: Mapped[str] = mapped_column(String(20), default=ESTADO_BORRADOR, index=True)
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
-
     docente: Mapped[User | None] = relationship(foreign_keys=[docente_id])
-    enrollments: Mapped[list[Enrollment]] = relationship(
-        back_populates="activity", cascade="all, delete-orphan"
+    inscripciones: Mapped[list[Inscripcion]] = relationship(
+        back_populates="actividad", cascade="all, delete-orphan"
+    )
+    carreras_asociadas: Mapped[list[Carrera]] = relationship(
+        secondary=actividad_carrera,
+        back_populates="actividades"
     )
 
 class TipoCarrera(Base):
@@ -106,66 +116,70 @@ class Carrera(Base):
 
     # Relación muchos a uno con Tipo
     tipo = relationship("TipoCarrera", back_populates="carreras")
-
+    
+    actividades: Mapped[list[Actividad]] = relationship(
+        secondary=actividad_carrera,
+        back_populates="carreras_asociadas"
+    )
     def __repr__(self) -> str:
         return f"<Carrera(id={self.id}, nombre='{self.nombre}', tipo_id={self.tipo_id})>"
 
     
-class Enrollment(Base):
-    __tablename__ = "enrollments"
-    __table_args__ = (UniqueConstraint("activity_id", "user_id", name="uq_enroll_activity_user"),)
+class Inscripcion(Base):
+    __tablename__ = "inscripciones"
+    __table_args__ = (UniqueConstraint("actividad_id", "user_id", name="uq_enroll_actividad_user"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    activity_id: Mapped[int] = mapped_column(ForeignKey("activities.id"), index=True)
+    actividad_id: Mapped[int] = mapped_column(ForeignKey("actividades.id"), index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     estado: Mapped[str] = mapped_column(String(20), default=ENROLL_INSCRIPTO, index=True)
     reminded: Mapped[bool] = mapped_column(Boolean, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    activity: Mapped[Activity] = relationship(back_populates="enrollments")
+    actividad: Mapped[Actividad] = relationship(back_populates="inscripciones")
     user: Mapped[User] = relationship()
 
 
-class AttendanceSession(Base):
+class SesionAsistencia(Base):
     """A docente-opened window producing a rotating token for QR check-in."""
-    __tablename__ = "attendance_sessions"
+    __tablename__ = "sesiones_asistencia"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    activity_id: Mapped[int] = mapped_column(ForeignKey("activities.id"), index=True)
+    actividad_id: Mapped[int] = mapped_column(ForeignKey("actividades.id"), index=True)
     token: Mapped[str] = mapped_column(String(64), unique=True, index=True)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    activity: Mapped[Activity] = relationship()
+    actividad: Mapped[Actividad] = relationship()
 
 
-class Attendance(Base):
-    __tablename__ = "attendance"
-    __table_args__ = (UniqueConstraint("activity_id", "user_id", name="uq_attendance_activity_user"),)
+class Asistencia(Base):
+    __tablename__ = "asistencia"
+    __table_args__ = (UniqueConstraint("actividad_id", "user_id", name="uq_asistencia_actividad_user"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    activity_id: Mapped[int] = mapped_column(ForeignKey("activities.id"), index=True)
+    actividad_id: Mapped[int] = mapped_column(ForeignKey("actividades.id"), index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     validated_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
     validated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    activity: Mapped[Activity] = relationship()
+    actividad: Mapped[Actividad] = relationship()
     user: Mapped[User] = relationship(foreign_keys=[user_id])
 
 
 class SurveyResponse(Base):
     __tablename__ = "survey_responses"
-    __table_args__ = (UniqueConstraint("activity_id", "user_id", name="uq_survey_activity_user"),)
+    __table_args__ = (UniqueConstraint("actividad_id", "user_id", name="uq_survey_actividad_user"),)
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    activity_id: Mapped[int] = mapped_column(ForeignKey("activities.id"), index=True)
+    actividad_id: Mapped[int] = mapped_column(ForeignKey("actividades.id"), index=True)
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     rating: Mapped[int] = mapped_column(Integer)
     comment: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
-    activity: Mapped[Activity] = relationship()
+    actividad: Mapped[Actividad] = relationship()
 
 
 class Faq(Base):

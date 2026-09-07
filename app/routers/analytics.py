@@ -22,7 +22,7 @@ def dashboard(
     return render(
         request, "analytics/dashboard.html", user=user, db=db,
         overview=analytics_svc.overview(db),
-        top=analytics_svc.top_activities(db),
-        per_activity=analytics_svc.attendance_per_activity(db),
+        top=analytics_svc.top_actividades(db),
+        per_actividad=analytics_svc.asistencia_per_actividad(db),
         surveys=analytics_svc.survey_averages(db),
     )

@@ -71,7 +71,7 @@ Al iniciar crea las tablas (`create_all`) y siembra datos demo de forma idempote
 Estilos y patrones de diseño con referencias al código: [`docs/Arquitectura_y_Patrones.md`](docs/Arquitectura_y_Patrones.md).
 
 Capas jerárquicas: `routers/` (páginas Jinja + endpoints) → `services/` (dominio:
-identity, activities, enrollment, attendance, credits, analytics) → `models.py` (ORM) → Postgres.
+identity, actividades, enrollment, asistencia, credits, analytics) → `models.py` (ORM) → Postgres.
 
 ```
 app/
@@ -79,7 +79,7 @@ app/
   models.py      modelos ORM
   security.py    hashing bcrypt, sesiones, guards por rol
   services/      lógica de dominio
-  routers/       auth, discovery, enrollment, attendance, admin_*, analytics, faq
+  routers/       auth, discovery, enrollment, asistencia, admin_*, analytics, faq
   templates/     Jinja2
 ```
 

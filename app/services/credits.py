@@ -5,7 +5,7 @@ from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.models import Activity, AppConfig, Attendance
+from app.models import Actividad, AppConfig, Asistencia
 
 
 def required_credits(db: Session) -> int:
@@ -17,20 +17,20 @@ def required_credits(db: Session) -> int:
 
 def accumulated_credits(db: Session, user_id: int) -> int:
     total = (
-        db.query(func.coalesce(func.sum(Activity.creditos), 0))
-        .join(Attendance, Attendance.activity_id == Activity.id)
-        .filter(Attendance.user_id == user_id)
+        db.query(func.coalesce(func.sum(Actividad.creditos), 0))
+        .join(Asistencia, Asistencia.actividad_id == Actividad.id)
+        .filter(Asistencia.user_id == user_id)
         .scalar()
     )
     return int(total or 0)
 
 
-def completed_activities(db: Session, user_id: int) -> list[tuple[Activity, object]]:
+def completed_actividades(db: Session, user_id: int) -> list[tuple[Actividad, object]]:
     rows = (
-        db.query(Activity, Attendance.validated_at)
-        .join(Attendance, Attendance.activity_id == Activity.id)
-        .filter(Attendance.user_id == user_id)
-        .order_by(Attendance.validated_at.desc())
+        db.query(Actividad, Asistencia.validated_at)
+        .join(Asistencia, Asistencia.actividad_id == Actividad.id)
+        .filter(Asistencia.user_id == user_id)
+        .order_by(Asistencia.validated_at.desc())
         .all()
     )
     return [(r[0], r[1]) for r in rows]

@@ -1,4 +1,4 @@
-"""E-05 QR attendance (docente rotating code + student check-in) and E-06 survey."""
+"""E-05 QR asistencia (docente rotating code + student check-in) and E-06 survey."""
 from __future__ import annotations
 
 import base64
@@ -14,16 +14,16 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import (
-    Activity,
-    Attendance,
+    Actividad,
+    Asistencia,
     ESTADO_PUBLICADA,
     ROLE_COORDINACION,
     SurveyResponse,
     User,
 )
 from app.security import current_user_required, require_roles
-from app.services import attendance as attendance_svc
-from app.services import enrollment as enrollment_svc
+from app.services import asistencia as asistencia_svc
+from app.services import inscripcion as enrollment_svc
 from app.templating import render
 
 router = APIRouter()
@@ -36,8 +36,8 @@ def _qr_data_uri(text: str) -> str:
     return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
 
 
-def _can_manage(activity: Activity, user: User) -> bool:
-    return user.role == ROLE_COORDINACION or activity.docente_id == user.id
+def _can_manage(actividad: Actividad, user: User) -> bool:
+    return user.role == ROLE_COORDINACION or actividad.docente_id == user.id
 
 
 # ---- Student check-in --------------------------------------------------------
@@ -54,60 +54,60 @@ def checkin_submit(
     db: Session = Depends(get_db),
 ):
     try:
-        activity = attendance_svc.check_in(db, codigo, user.id)
-    except attendance_svc.AttendanceError as exc:
+        actividad = asistencia_svc.check_in(db, codigo, user.id)
+    except asistencia_svc.AsistenciaError as exc:
         return RedirectResponse(url=f"/checkin?err={quote(str(exc))}", status_code=303)
     return RedirectResponse(
-        url=f"/actividades/{activity.id}/encuesta?msg=¡Asistencia registrada! Sumaste {activity.creditos} créditos.",
+        url=f"/actividades/{actividad.id}/encuesta?msg=¡Asistencia registrada! Sumaste {actividad.creditos} créditos.",
         status_code=303,
     )
 
 
 # ---- Survey (E-06) -----------------------------------------------------------
-@router.get("/actividades/{activity_id}/encuesta")
+@router.get("/actividades/{actividad_id}/encuesta")
 def survey_form(
     request: Request,
-    activity_id: int,
+    actividad_id: int,
     user: User = Depends(require_roles("estudiante")),
     db: Session = Depends(get_db),
 ):
-    activity = db.get(Activity, activity_id)
-    if activity is None:
+    actividad = db.get(Actividad, actividad_id)
+    if actividad is None:
         return RedirectResponse(url="/home", status_code=303)
     attended = (
-        db.query(Attendance)
-        .filter(Attendance.activity_id == activity_id, Attendance.user_id == user.id)
+        db.query(Asistencia)
+        .filter(Asistencia.actividad_id == actividad_id, Asistencia.user_id == user.id)
         .first()
     )
     if not attended:
         return RedirectResponse(url="/home?err=Solo podés responder la encuesta de actividades a las que asististe.", status_code=303)
     answered = (
         db.query(SurveyResponse)
-        .filter(SurveyResponse.activity_id == activity_id, SurveyResponse.user_id == user.id)
+        .filter(SurveyResponse.actividad_id == actividad_id, SurveyResponse.user_id == user.id)
         .first()
     )
-    return render(request, "student/encuesta.html", user=user, db=db, a=activity, answered=answered)
+    return render(request, "student/encuesta.html", user=user, db=db, a=actividad, answered=answered)
 
 
-@router.post("/actividades/{activity_id}/encuesta")
+@router.post("/actividades/{actividad_id}/encuesta")
 def survey_submit(
     request: Request,
-    activity_id: int,
+    actividad_id: int,
     rating: int = Form(...),
     comment: str = Form(""),
     user: User = Depends(require_roles("estudiante")),
     db: Session = Depends(get_db),
 ):
     attended = (
-        db.query(Attendance)
-        .filter(Attendance.activity_id == activity_id, Attendance.user_id == user.id)
+        db.query(Asistencia)
+        .filter(Asistencia.actividad_id == actividad_id, Asistencia.user_id == user.id)
         .first()
     )
     if not attended:
         return RedirectResponse(url="/home?err=No podés responder esta encuesta.", status_code=303)
     existing = (
         db.query(SurveyResponse)
-        .filter(SurveyResponse.activity_id == activity_id, SurveyResponse.user_id == user.id)
+        .filter(SurveyResponse.actividad_id == actividad_id, SurveyResponse.user_id == user.id)
         .first()
     )
     rating = max(1, min(5, rating))
@@ -117,7 +117,7 @@ def survey_submit(
         existing.comment = comment_val
         db.commit()
     else:
-        db.add(SurveyResponse(activity_id=activity_id, user_id=user.id, rating=rating, comment=comment_val))
+        db.add(SurveyResponse(actividad_id=actividad_id, user_id=user.id, rating=rating, comment=comment_val))
         try:
             db.commit()
         except IntegrityError:
@@ -125,7 +125,7 @@ def survey_submit(
             db.rollback()
             row = (
                 db.query(SurveyResponse)
-                .filter(SurveyResponse.activity_id == activity_id, SurveyResponse.user_id == user.id)
+                .filter(SurveyResponse.actividad_id == actividad_id, SurveyResponse.user_id == user.id)
                 .first()
             )
             if row:
@@ -135,67 +135,67 @@ def survey_submit(
     return RedirectResponse(url="/home?msg=¡Gracias por tu opinión!", status_code=303)
 
 
-# ---- Docente attendance session ---------------------------------------------
+# ---- Docente asistencia session ---------------------------------------------
 @router.get("/docente")
 def docente_home(
     request: Request,
     user: User = Depends(require_roles("docente", "coordinacion")),
     db: Session = Depends(get_db),
 ):
-    q = db.query(Activity).filter(Activity.estado == ESTADO_PUBLICADA)
+    q = db.query(Actividad).filter(Actividad.estado == ESTADO_PUBLICADA)
     if user.role != ROLE_COORDINACION:
-        q = q.filter(Activity.docente_id == user.id)
-    activities = q.order_by(Activity.fecha_inicio.desc()).all()
-    return render(request, "docente/home.html", user=user, db=db, activities=activities)
+        q = q.filter(Actividad.docente_id == user.id)
+    actividades = q.order_by(Actividad.fecha_inicio.desc()).all()
+    return render(request, "docente/home.html", user=user, db=db, actividades=actividades)
 
 
-@router.get("/docente/actividades/{activity_id}/asistencia")
-def docente_attendance(
+@router.get("/docente/actividades/{actividad_id}/asistencia")
+def docente_asistencia(
     request: Request,
-    activity_id: int,
+    actividad_id: int,
     user: User = Depends(require_roles("docente", "coordinacion")),
     db: Session = Depends(get_db),
 ):
-    activity = db.get(Activity, activity_id)
-    if activity is None or not _can_manage(activity, user):
+    actividad = db.get(Actividad, actividad_id)
+    if actividad is None or not _can_manage(actividad, user):
         return RedirectResponse(url="/docente?err=Actividad no encontrada.", status_code=303)
-    inscriptos = enrollment_svc.inscriptos(db, activity_id)
-    present = attendance_svc.present_user_ids(db, activity_id)
+    inscriptos = enrollment_svc.inscriptos(db, actividad_id)
+    present = asistencia_svc.present_user_ids(db, actividad_id)
     return render(
         request, "docente/asistencia.html", user=user, db=db,
-        a=activity, inscriptos=inscriptos, present=present,
+        a=actividad, inscriptos=inscriptos, present=present,
     )
 
 
-@router.get("/docente/actividades/{activity_id}/token")
+@router.get("/docente/actividades/{actividad_id}/token")
 def docente_token(
     request: Request,
-    activity_id: int,
+    actividad_id: int,
     user: User = Depends(require_roles("docente", "coordinacion")),
     db: Session = Depends(get_db),
 ):
-    activity = db.get(Activity, activity_id)
-    if activity is None or not _can_manage(activity, user):
+    actividad = db.get(Actividad, actividad_id)
+    if actividad is None or not _can_manage(actividad, user):
         return JSONResponse({"error": "forbidden"}, status_code=403)
-    sess = attendance_svc.open_or_rotate(db, activity_id, user.id)
+    sess = asistencia_svc.open_or_rotate(db, actividad_id, user.id)
     exp = sess.expires_at if sess.expires_at.tzinfo else sess.expires_at.replace(tzinfo=timezone.utc)
     seconds_left = max(int((exp - datetime.now(timezone.utc)).total_seconds()), 0)
     return JSONResponse({"token": sess.token, "qr": _qr_data_uri(sess.token), "seconds_left": seconds_left})
 
 
-@router.post("/docente/actividades/{activity_id}/marcar/{student_id}")
+@router.post("/docente/actividades/{actividad_id}/marcar/{student_id}")
 def docente_mark(
     request: Request,
-    activity_id: int,
+    actividad_id: int,
     student_id: int,
     user: User = Depends(require_roles("docente", "coordinacion")),
     db: Session = Depends(get_db),
 ):
-    activity = db.get(Activity, activity_id)
-    if activity is None or not _can_manage(activity, user):
+    actividad = db.get(Actividad, actividad_id)
+    if actividad is None or not _can_manage(actividad, user):
         return RedirectResponse(url="/docente?err=Actividad no encontrada.", status_code=303)
     try:
-        attendance_svc.mark_present_manual(db, activity_id, student_id, user.id)
-    except attendance_svc.AttendanceError as exc:
-        return RedirectResponse(url=f"/docente/actividades/{activity_id}/asistencia?err={quote(str(exc))}", status_code=303)
-    return RedirectResponse(url=f"/docente/actividades/{activity_id}/asistencia?msg=Asistencia registrada.", status_code=303)
+        asistencia_svc.mark_present_manual(db, actividad_id, student_id, user.id)
+    except asistencia_svc.AsistenciaError as exc:
+        return RedirectResponse(url=f"/docente/actividades/{actividad_id}/asistencia?err={quote(str(exc))}", status_code=303)
+    return RedirectResponse(url=f"/docente/actividades/{actividad_id}/asistencia?msg=Asistencia registrada.", status_code=303)

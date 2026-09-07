@@ -1,4 +1,4 @@
-"""E-09 Enrollment & attendance supervision, CSV/XLSX import-export (coordination)."""
+"""E-09 Inscripcion & asistencia supervision, CSV/XLSX import-export (coordination)."""
 from __future__ import annotations
 
 import io
@@ -12,18 +12,18 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models import User, ValidLegajo
 from app.security import require_roles
-from app.services import activities as activities_svc
-from app.services import attendance as attendance_svc
-from app.services import enrollment as enrollment_svc
+from app.services import actividades as actividades_svc
+from app.services import asistencia as asistencia_svc
+from app.services import inscripcion as enrollment_svc
 from app.templating import render
 
 router = APIRouter()
 ADMIN = require_roles("coordinacion")
 
 
-def _inscriptos_dataframe(db: Session, activity_id: int) -> pd.DataFrame:
-    inscriptos = enrollment_svc.inscriptos(db, activity_id)
-    present = attendance_svc.present_user_ids(db, activity_id)
+def _inscriptos_dataframe(db: Session, actividad_id: int) -> pd.DataFrame:
+    inscriptos = enrollment_svc.inscriptos(db, actividad_id)
+    present = asistencia_svc.present_user_ids(db, actividad_id)
     data = [
         {
             "legajo": e.user.legajo or "",
@@ -39,45 +39,45 @@ def _inscriptos_dataframe(db: Session, activity_id: int) -> pd.DataFrame:
 
 @router.get("/admin/inscriptos")
 def inscriptos_index(request: Request, user: User = Depends(ADMIN), db: Session = Depends(get_db)):
-    items = activities_svc.list_all(db)
-    rows = [{"a": a, "cupo": activities_svc.cupo_info(db, a)} for a in items]
+    items = actividades_svc.list_all(db)
+    rows = [{"a": a, "cupo": actividades_svc.cupo_info(db, a)} for a in items]
     return render(request, "admin/inscriptos_index.html", user=user, db=db, rows=rows)
 
 
-@router.get("/admin/inscriptos/{activity_id}")
-def inscriptos_detail(request: Request, activity_id: int, user: User = Depends(ADMIN), db: Session = Depends(get_db)):
-    a = activities_svc.get(db, activity_id)
+@router.get("/admin/inscriptos/{actividad_id}")
+def inscriptos_detail(request: Request, actividad_id: int, user: User = Depends(ADMIN), db: Session = Depends(get_db)):
+    a = actividades_svc.get(db, actividad_id)
     if a is None:
         return RedirectResponse(url="/admin/inscriptos?err=Actividad no encontrada.", status_code=303)
-    inscriptos = enrollment_svc.inscriptos(db, activity_id)
-    present = attendance_svc.present_user_ids(db, activity_id)
+    inscriptos = enrollment_svc.inscriptos(db, actividad_id)
+    present = asistencia_svc.present_user_ids(db, actividad_id)
     return render(
         request, "admin/inscriptos_detail.html", user=user, db=db,
         a=a, inscriptos=inscriptos, present=present,
     )
 
 
-@router.get("/admin/inscriptos/{activity_id}/export.csv")
-def export_csv(activity_id: int, user: User = Depends(ADMIN), db: Session = Depends(get_db)):
-    df = _inscriptos_dataframe(db, activity_id)
+@router.get("/admin/inscriptos/{actividad_id}/export.csv")
+def export_csv(actividad_id: int, user: User = Depends(ADMIN), db: Session = Depends(get_db)):
+    df = _inscriptos_dataframe(db, actividad_id)
     csv_bytes = df.to_csv(index=False).encode("utf-8-sig")
     return Response(
         content=csv_bytes,
         media_type="text/csv",
-        headers={"Content-Disposition": f"attachment; filename=inscriptos_{activity_id}.csv"},
+        headers={"Content-Disposition": f"attachment; filename=inscriptos_{actividad_id}.csv"},
     )
 
 
-@router.get("/admin/inscriptos/{activity_id}/export.xlsx")
-def export_xlsx(activity_id: int, user: User = Depends(ADMIN), db: Session = Depends(get_db)):
-    df = _inscriptos_dataframe(db, activity_id)
+@router.get("/admin/inscriptos/{actividad_id}/export.xlsx")
+def export_xlsx(actividad_id: int, user: User = Depends(ADMIN), db: Session = Depends(get_db)):
+    df = _inscriptos_dataframe(db, actividad_id)
     buf = io.BytesIO()
     with pd.ExcelWriter(buf, engine="openpyxl") as writer:
         df.to_excel(writer, index=False, sheet_name="Inscriptos")
     return Response(
         content=buf.getvalue(),
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        headers={"Content-Disposition": f"attachment; filename=inscriptos_{activity_id}.xlsx"},
+        headers={"Content-Disposition": f"attachment; filename=inscriptos_{actividad_id}.xlsx"},
     )
 
 
