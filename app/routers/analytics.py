@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.models import User
 from app.security import requiere_roles
-from app.services import analytics as analytics_svc
+from app import services
 from app.templating import render
 
 router = APIRouter()
@@ -21,8 +21,8 @@ def dashboard(
 ):
     return render(
         request, "analytics/dashboard.html", user=user, db=db,
-        overview=analytics_svc.overview(db),
-        top=analytics_svc.top_actividades(db),
-        per_actividad=analytics_svc.asistencia_per_actividad(db),
-        surveys=analytics_svc.survey_averages(db),
+        overview=services.analytics.overview(db),
+        top=services.analytics.top_actividades(db),
+        per_actividad=services.analytics.asistencia_per_actividad(db),
+        surveys=services.analytics.survey_averages(db),
     )

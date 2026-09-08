@@ -22,8 +22,7 @@ from app.models.models import (
     User,
 )
 from app.security import current_user_required, requiere_roles
-from app.services import asistencia as asistencia_svc
-from app.services import inscripcion as enrollment_svc
+from app import services
 from app.templating import render
 
 router = APIRouter()
@@ -54,8 +53,8 @@ def checkin_submit(
     db: Session = Depends(get_db),
 ):
     try:
-        actividad = asistencia_svc.check_in(db, codigo, user.id)
-    except asistencia_svc.AsistenciaError as exc:
+        actividad = services.asistencia.check_in(db, codigo, user.id)
+    except services.asistencia.AsistenciaError as exc:
         return RedirectResponse(url=f"/checkin?err={quote(str(exc))}", status_code=303)
     return RedirectResponse(
         url=f"/actividades/{actividad.id}/encuesta?msg=¡Asistencia registrada! Sumaste {actividad.creditos} créditos.",
@@ -159,8 +158,8 @@ def docente_asistencia(
     actividad = db.get(Actividad, actividad_id)
     if actividad is None or not _can_manage(actividad, user):
         return RedirectResponse(url="/docente?err=Actividad no encontrada.", status_code=303)
-    inscriptos = enrollment_svc.inscriptos(db, actividad_id)
-    present = asistencia_svc.present_user_ids(db, actividad_id)
+    inscriptos = services.inscripcion.inscriptos(db, actividad_id)
+    present = services.asistencia.present_user_ids(db, actividad_id)
     return render(
         request, "docente/asistencia.html", user=user, db=db,
         a=actividad, inscriptos=inscriptos, present=present,
@@ -177,7 +176,7 @@ def docente_token(
     actividad = db.get(Actividad, actividad_id)
     if actividad is None or not _can_manage(actividad, user):
         return JSONResponse({"error": "forbidden"}, status_code=403)
-    sess = asistencia_svc.open_or_rotate(db, actividad_id, user.id)
+    sess = services.asistencia.open_or_rotate(db, actividad_id, user.id)
     exp = sess.expires_at if sess.expires_at.tzinfo else sess.expires_at.replace(tzinfo=timezone.utc)
     seconds_left = max(int((exp - datetime.now(timezone.utc)).total_seconds()), 0)
     return JSONResponse({"token": sess.token, "qr": _qr_data_uri(sess.token), "seconds_left": seconds_left})
@@ -195,7 +194,7 @@ def docente_mark(
     if actividad is None or not _can_manage(actividad, user):
         return RedirectResponse(url="/docente?err=Actividad no encontrada.", status_code=303)
     try:
-        asistencia_svc.mark_present_manual(db, actividad_id, student_id, user.id)
-    except asistencia_svc.AsistenciaError as exc:
+        services.asistencia.mark_present_manual(db, actividad_id, student_id, user.id)
+    except services.asistencia.AsistenciaError as exc:
         return RedirectResponse(url=f"/docente/actividades/{actividad_id}/asistencia?err={quote(str(exc))}", status_code=303)
     return RedirectResponse(url=f"/docente/actividades/{actividad_id}/asistencia?msg=Asistencia registrada.", status_code=303)

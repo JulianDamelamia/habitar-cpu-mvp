@@ -25,9 +25,8 @@ from app.models.models import (
 )
 from app.notifications import notify
 from app.security import requiere_roles
-from app.services import actividades as actividades_svc
-from app.services import inscripcion as enrollment_svc
-from app.services import carreras as carreras_svc
+from app import services 
+
 from app.templating import render
 
 router = APIRouter()
@@ -53,8 +52,8 @@ def _docentes(db: Session) -> list[User]:
 
 @router.get("/admin")
 def panel(request: Request, user: User = Depends(ADMIN), db: Session = Depends(get_db)):
-    items = actividades_svc.list_all(db)
-    rows = [{"a": a, "cupo": actividades_svc.cupo_info(db, a)} for a in items]
+    items = services.actividades.list_all(db)
+    rows = [{"a": a, "cupo": services.actividades.cupo_info(db, a)} for a in items]
     resumen = {
         "publicadas": sum(1 for a in items if a.estado == ESTADO_PUBLICADA),
         "borradores": sum(1 for a in items if a.estado == ESTADO_BORRADOR),
@@ -69,7 +68,7 @@ def nueva(request: Request, user: User = Depends(ADMIN), db: Session = Depends(g
     return render(
         request, "admin/form.html", user=user, db=db,
         a=None, docentes=_docentes(db), tipos=[TIPO_PRESENCIAL, TIPO_VIRTUAL],
-        lista_carreras=carreras_svc.get_carreras(db)
+        lista_carreras=services.carreras.get_carreras(db)
     )
 
 
@@ -93,8 +92,8 @@ def crear(
         inicio, fin = _parse_dates(fecha_inicio, fecha_fin)
     except ValueError:
         return RedirectResponse(url="/admin?err=Fechas inválidas: revisá inicio y fin.", status_code=303)
-    carreras_asociadas_list = carreras_svc.resolver_carreras_desde_input(carreras_asociadas, db)      
-    actividades_svc.create(
+    carreras_asociadas_list = services.carreras.resolver_carreras_desde_input(carreras_asociadas, db)      
+    services.actividades.create(
         db,
         titulo=titulo.strip(), descripcion=descripcion.strip(), tipo=tipo,
         fecha_inicio=inicio, fecha_fin=fin, lugar=lugar.strip(),
@@ -106,13 +105,13 @@ def crear(
 
 @router.get("/admin/actividades/{actividad_id}/editar")
 def editar(request: Request, actividad_id: int, user: User = Depends(ADMIN), db: Session = Depends(get_db)):
-    a = actividades_svc.get(db, actividad_id)
+    a = services.actividades.get(db, actividad_id)
     if a is None:
         return RedirectResponse(url="/admin?err=Actividad no encontrada.", status_code=303)    
     return render(
         request, "admin/form.html", user=user, db=db,
         a=a, docentes=_docentes(db), tipos=[TIPO_PRESENCIAL, TIPO_VIRTUAL],
-        lista_carreras = carreras_svc.get_carreras(db)
+        lista_carreras = services.carreras.get_carreras(db)
     )
 
 
@@ -133,7 +132,7 @@ def actualizar(
     db: Session = Depends(get_db),
     carreras_asociadas: list[str] = Form([])
 ):
-    a = actividades_svc.get(db, actividad_id)
+    a = services.actividades.get(db, actividad_id)
     if a is None:
         return RedirectResponse(url="/admin?err=Actividad no encontrada.", status_code=303)
     try:
@@ -142,8 +141,8 @@ def actualizar(
         return RedirectResponse(url="/admin?err=Fechas inválidas: revisá inicio y fin.", status_code=303)
     was_published = a.estado == ESTADO_PUBLICADA
     fecha_cambio = a.fecha_inicio != inicio
-    carreras_asociadas_list = carreras_svc.resolver_carreras_desde_input(carreras_asociadas, db)  
-    actividades_svc.update(
+    carreras_asociadas_list = services.carreras.resolver_carreras_desde_input(carreras_asociadas, db)  
+    services.actividades.update(
         db, a,
         titulo=titulo.strip(), descripcion=descripcion.strip(), tipo=tipo,
         fecha_inicio=inicio, fecha_fin=fin,
@@ -161,7 +160,7 @@ def actualizar(
     if was_published:
         # Best-effort notifications; the actividad update is already committed.
         try:
-            for enr in enrollment_svc.inscriptos(db, actividad_id):
+            for enr in services.inscripcion.inscriptos(db, actividad_id):
                 notify(
                     db, enr.user,
                     f"La actividad '{a.titulo}' fue actualizada. Revisá los nuevos datos (fecha {a.fecha_inicio.strftime('%d/%m/%Y %H:%M')}).",
@@ -175,25 +174,25 @@ def actualizar(
 
 @router.get("/admin/actividades/{actividad_id}/preview")
 def preview(request: Request, actividad_id: int, user: User = Depends(ADMIN), db: Session = Depends(get_db)):
-    a = actividades_svc.get(db, actividad_id)
+    a = services.actividades.get(db, actividad_id)
     if a is None:
         return RedirectResponse(url="/admin?err=Actividad no encontrada.", status_code=303)
-    return render(request, "admin/preview.html", user=user, db=db, a=a, cupo=actividades_svc.cupo_info(db, a))
+    return render(request, "admin/preview.html", user=user, db=db, a=a, cupo=services.actividades.cupo_info(db, a))
 
 
 @router.post("/admin/actividades/{actividad_id}/publicar")
 def publicar(request: Request, actividad_id: int, user: User = Depends(ADMIN), db: Session = Depends(get_db)):
-    a = actividades_svc.get(db, actividad_id)
+    a = services.actividades.get(db, actividad_id)
     if a is None:
         return RedirectResponse(url="/admin?err=Actividad no encontrada.", status_code=303)
-    actividades_svc.update(db, a, estado=ESTADO_PUBLICADA)
+    services.actividades.update(db, a, estado=ESTADO_PUBLICADA)
     return RedirectResponse(url="/admin?msg=Actividad publicada. Ya es visible para los estudiantes.", status_code=303)
 
 
 @router.post("/admin/actividades/{actividad_id}/cancelar")
 def cancelar(request: Request, actividad_id: int, user: User = Depends(ADMIN), db: Session = Depends(get_db)):
-    a = actividades_svc.get(db, actividad_id)
+    a = services.actividades.get(db, actividad_id)
     if a is None:
         return RedirectResponse(url="/admin?err=Actividad no encontrada.", status_code=303)
-    actividades_svc.update(db, a, estado=ESTADO_CANCELADA)
+    services.actividades.update(db, a, estado=ESTADO_CANCELADA)
     return RedirectResponse(url="/admin?msg=Actividad cancelada.", status_code=303)

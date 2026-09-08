@@ -12,7 +12,7 @@ from app.security import (
     login_user,
     logout_user,
 )
-from app.services import identity
+from app import services
 from app.templating import render
 
 router = APIRouter()
@@ -30,7 +30,7 @@ def login_submit(
     password: str = Form(...),
     db: Session = Depends(get_db),
 ):
-    user = identity.authenticate(db, email, password)
+    user = services.identity.authenticate(db, email, password)
     if not user:
         return render(request, "auth/login.html", error="Email o contraseña incorrectos.", email=email)
     login_user(request, user)
@@ -55,11 +55,11 @@ def signup_submit(
     db: Session = Depends(get_db),
 ):
     try:
-        user = identity.create_student(
+        user = services.identity.create_student(
             db, legajo=legajo, email=email, password=password,
             nombre=nombre, apellido=apellido, dni=dni, carrera=carrera,
         )
-    except identity.SignupError as exc:
+    except services.identity.SignupError as exc:
         return render(
             request, "auth/signup.html", error=str(exc),
             legajo=legajo, email=email, nombre=nombre, apellido=apellido, dni=dni, carrera=carrera,
@@ -76,7 +76,7 @@ def logout(request: Request):
 
 @router.get("/perfil")
 def perfil(request: Request, user: User = Depends(current_user_required), db: Session = Depends(get_db)):
-    # Student identity comes from the SIU, so it is read-only; staff accounts are
+    # Student services.identity comes from the SIU, so it is read-only; staff accounts are
     # internal and can edit their own profile.
     editable = user.rol != ROL_ESTUDIANTE
     return render(request, "auth/perfil.html", user=user, db=db, editable=editable)
@@ -93,7 +93,7 @@ def perfil_update(
     db: Session = Depends(get_db),
 ):
     if user.rol == ROL_ESTUDIANTE:
-        # Identity data is sourced from the SIU; students cannot edit it here.
+        # Services.identity data is sourced from the SIU; students cannot edit it here.
         return RedirectResponse(
             url="/perfil?err=Tus datos provienen del SIU Guaraní y no se editan desde la plataforma.",
             status_code=303,

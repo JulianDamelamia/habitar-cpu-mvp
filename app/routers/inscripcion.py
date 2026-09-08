@@ -12,9 +12,7 @@ from app.database import get_db
 from app.models.models import Notification, User
 from app.notifications import notify
 from app.security import current_user_required, requiere_roles
-from app.services import actividades as actividades_svc
-from app.services import credits as credits_svc
-from app.services import inscripcion as enrollment_svc
+from app import services
 from app.templating import render
 
 router = APIRouter()
@@ -32,8 +30,8 @@ def inscribir(
     db: Session = Depends(get_db),
 ):
     try:
-        actividad = enrollment_svc.inscribir(db, actividad_id, user.id)
-    except enrollment_svc.EnrollError as exc:
+        actividad = services.inscripcion.inscribir(db, actividad_id, user.id)
+    except services.inscripcion.EnrollError as exc:
         return RedirectResponse(url=f"/actividades/{actividad_id}?err={quote(str(exc))}", status_code=303)
     # Inscripcion is already durably committed by inscribir(); the confirmation
     # notification is best-effort and must not fail the (successful) inscription.
@@ -57,8 +55,8 @@ def baja(
     db: Session = Depends(get_db),
 ):
     try:
-        enrollment_svc.unenroll(db, actividad_id, user.id)
-    except enrollment_svc.EnrollError as exc:
+        services.inscripcion.unenroll(db, actividad_id, user.id)
+    except services.inscripcion.EnrollError as exc:
         return RedirectResponse(url=f"/actividades/{actividad_id}?err={quote(str(exc))}", status_code=303)
     return RedirectResponse(url=f"/actividades/{actividad_id}?msg=Te diste de baja. Liberaste tu cupo.", status_code=303)
 
@@ -70,10 +68,10 @@ def home(
     db: Session = Depends(get_db),
 ):
     now = datetime.now(timezone.utc)
-    mine = enrollment_svc.my_actividades(db, user.id)
+    mine = services.inscripcion.my_actividades(db, user.id)
     proximas = [a for a in mine if _aware(a.fecha_fin) >= now]
-    progreso = credits_svc.progress(db, user.id)
-    historial = credits_svc.completed_actividades(db, user.id)
+    progreso = services.credits.progress(db, user.id)
+    historial = services.credits.completed_actividades(db, user.id)
     return render(
         request, "student/home.html", user=user, db=db,
         proximas=proximas, progreso=progreso, historial=historial,

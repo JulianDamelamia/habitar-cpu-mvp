@@ -12,9 +12,8 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.models import User, ValidLegajo
 from app.security import requiere_roles
-from app.services import actividades as actividades_svc
-from app.services import asistencia as asistencia_svc
-from app.services import inscripcion as enrollment_svc
+from app import services 
+
 from app.templating import render
 
 router = APIRouter()
@@ -22,8 +21,8 @@ ADMIN = requiere_roles("coordinacion")
 
 
 def _inscriptos_dataframe(db: Session, actividad_id: int) -> pd.DataFrame:
-    inscriptos = enrollment_svc.inscriptos(db, actividad_id)
-    present = asistencia_svc.present_user_ids(db, actividad_id)
+    inscriptos = services.inscripcion.inscriptos(db, actividad_id)
+    present = services.asistencia.present_user_ids(db, actividad_id)
     data = [
         {
             "legajo": e.user.legajo or "",
@@ -39,18 +38,18 @@ def _inscriptos_dataframe(db: Session, actividad_id: int) -> pd.DataFrame:
 
 @router.get("/admin/inscriptos")
 def inscriptos_index(request: Request, user: User = Depends(ADMIN), db: Session = Depends(get_db)):
-    items = actividades_svc.list_all(db)
-    rows = [{"a": a, "cupo": actividades_svc.cupo_info(db, a)} for a in items]
+    items = services.actividades.list_all(db)
+    rows = [{"a": a, "cupo": services.actividades.cupo_info(db, a)} for a in items]
     return render(request, "admin/inscriptos_index.html", user=user, db=db, rows=rows)
 
 
 @router.get("/admin/inscriptos/{actividad_id}")
 def inscriptos_detail(request: Request, actividad_id: int, user: User = Depends(ADMIN), db: Session = Depends(get_db)):
-    a = actividades_svc.get(db, actividad_id)
+    a = services.actividades.get(db, actividad_id)
     if a is None:
         return RedirectResponse(url="/admin/inscriptos?err=Actividad no encontrada.", status_code=303)
-    inscriptos = enrollment_svc.inscriptos(db, actividad_id)
-    present = asistencia_svc.present_user_ids(db, actividad_id)
+    inscriptos = services.inscripcion.inscriptos(db, actividad_id)
+    present = services.asistencia.present_user_ids(db, actividad_id)
     return render(
         request, "admin/inscriptos_detail.html", user=user, db=db,
         a=a, inscriptos=inscriptos, present=present,
