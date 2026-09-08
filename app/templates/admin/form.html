@@ -44,7 +44,7 @@
         {% if a and a.carreras_asociadas %}
           <div style="display: none;">
             {% for carrera in a.carreras_asociadas %}
-              <span class="preselected-carrera" data-id="{{ carrera.id }}" data-nombre="{{ carrera.nombre }} ({{ carrera.tipo.nombre }})"></span>
+              <span class="preselected-carrera" data-id="{{ carrera.id }}" data-nombre="{{ carrera.tipo.nombre }} {{ carrera.nombre }}"></span>
             {% endfor %}
           </div>
         {% endif %}

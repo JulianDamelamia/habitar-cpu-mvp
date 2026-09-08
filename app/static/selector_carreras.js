@@ -50,7 +50,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // 2. Crear input oculto para enviarlo por POST
     const hiddenInput = document.createElement("input");
     hiddenInput.type = "hidden";
-    hiddenInput.name = "carreras";
+    hiddenInput.name = "carreras_asociadas";
     hiddenInput.value = value;
     hiddenInput.id = `input-${value}`;
     hiddenInputsContainer.appendChild(hiddenInput);

@@ -2,11 +2,11 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from typing import Literal
+from typing import List, Literal
 
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session,contains_eager
 
 from app.database import get_db
 from app.models.models import (
@@ -32,6 +32,17 @@ from app.templating import render
 router = APIRouter()
 ADMIN = requiere_roles("coordinacion")
 
+def _listar_carreras(carreras_asociadas: list[str], db: Session) -> List[Carrera]:
+    carreras_asociadas_list = []
+    if "todas" in carreras_asociadas:
+        carreras_asociadas_list = db.query(Carrera).all()
+    elif carreras_asociadas:
+        # Convertir los valores string del form (ej: ["1", "3"]) a enteros
+        carreras_ids = [int(c_id) for c_id in carreras_asociadas if c_id.isdigit()]
+        carreras_asociadas_list = db.query(Carrera).filter(Carrera.id.in_(carreras_ids)).all()
+        if len(carreras_asociadas_list) != len(set(carreras_ids)):
+            raise ValueError("Una o más carreras especificadas no existen.")
+    return carreras_asociadas_list
 
 def _parse_dt(value: str) -> datetime:
     # datetime-local -> naive; store as UTC-aware (wall-clock kept for display).
@@ -63,15 +74,15 @@ def panel(request: Request, user: User = Depends(ADMIN), db: Session = Depends(g
     }
     return render(request, "admin/panel.html", user=user, db=db, rows=rows, resumen=resumen)
 
-from sqlalchemy.orm import contains_eager
+
 @router.get("/admin/actividades/nueva")
 def nueva(request: Request, user: User = Depends(ADMIN), db: Session = Depends(get_db)):
     carreras = (db.query(Carrera)
-    .join(Carrera.tipo)  # Realiza el JOIN explícito
-    .options(contains_eager(Carrera.tipo))  # Popula la relación reutilizando el JOIN
+    .join(Carrera.tipo)
+    .options(contains_eager(Carrera.tipo))
     .order_by(
-        TipoCarrera.nombre.asc(),  # 1º Criterio: Nombre del Tipo (Licenciatura, Ingeniería, etc.)
-        Carrera.nombre.asc()       # 2º Criterio: Nombre de la Carrera alfabéticamente
+        TipoCarrera.nombre.asc(),  
+        Carrera.nombre.asc()
     )
     .all())
     return render(
@@ -93,7 +104,7 @@ def crear(
     docente_id: str = Form(""),
     creditos: int = Form(1),
     cupo_max: int = Form(30),
-    carreras: list[str] = Form([]),
+    carreras_asociadas: list[str] = Form([]),
     user: User = Depends(ADMIN),
     db: Session = Depends(get_db),
 ):
@@ -101,22 +112,14 @@ def crear(
         inicio, fin = _parse_dates(fecha_inicio, fecha_fin)
     except ValueError:
         return RedirectResponse(url="/admin?err=Fechas inválidas: revisá inicio y fin.", status_code=303)
-    carreras_asociadas = []
-    if "todas" in carreras:
-        carreras_asociadas = db.query(Carrera).all()
-    elif carreras:
-        # Convertir los valores string del form (ej: ["1", "3"]) a enteros
-        carreras_ids = [int(c_id) for c_id in carreras if c_id.isdigit()]
-        carreras_asociadas = db.query(Carrera).filter(Carrera.id.in_(carreras_ids)).all()
-        if len(carreras_asociadas) != len(set(carreras_ids)):
-            raise ValueError("Una o más carreras especificadas no existen.")        
+    carreras_asociadas_list = _listar_carreras(carreras_asociadas, db)      
     actividades_svc.create(
         db,
         titulo=titulo.strip(), descripcion=descripcion.strip(), tipo=tipo,
-        fecha_inicio=inicio, fecha_fin=fin,
-        lugar=lugar.strip(), docente_id=int(docente_id) if docente_id.isdigit() else None,
+        fecha_inicio=inicio, fecha_fin=fin, lugar=lugar.strip(),
+        docente_id=int(docente_id) if docente_id.isdigit() else None,
         creditos=creditos, cupo_max=cupo_max, estado=ESTADO_BORRADOR, created_by=user.id,
-        carreras_asociadas=carreras_asociadas,  # <--- Pasa el argumento procesado
+        carreras_asociadas=carreras_asociadas_list,
     )
     return RedirectResponse(url="/admin?msg=Actividad creada como borrador.", status_code=303)
 
@@ -125,9 +128,20 @@ def editar(request: Request, actividad_id: int, user: User = Depends(ADMIN), db:
     a = actividades_svc.get(db, actividad_id)
     if a is None:
         return RedirectResponse(url="/admin?err=Actividad no encontrada.", status_code=303)
+
+    carreras = (db.query(Carrera)
+        .join(Carrera.tipo)
+        .options(contains_eager(Carrera.tipo))
+        .order_by(
+            TipoCarrera.nombre.asc(),  
+            Carrera.nombre.asc()
+        )
+        .all())
+    
     return render(
         request, "admin/form.html", user=user, db=db,
         a=a, docentes=_docentes(db), tipos=[TIPO_PRESENCIAL, TIPO_VIRTUAL],
+        lista_carreras = carreras
     )
 
 
@@ -146,6 +160,7 @@ def actualizar(
     cupo_max: int = Form(30),
     user: User = Depends(ADMIN),
     db: Session = Depends(get_db),
+    carreras_asociadas: list[str] = Form([])
 ):
     a = actividades_svc.get(db, actividad_id)
     if a is None:
@@ -156,12 +171,14 @@ def actualizar(
         return RedirectResponse(url="/admin?err=Fechas inválidas: revisá inicio y fin.", status_code=303)
     was_published = a.estado == ESTADO_PUBLICADA
     fecha_cambio = a.fecha_inicio != inicio
+    carreras_asociadas_list = _listar_carreras(carreras_asociadas, db)  
     actividades_svc.update(
         db, a,
         titulo=titulo.strip(), descripcion=descripcion.strip(), tipo=tipo,
         fecha_inicio=inicio, fecha_fin=fin,
         lugar=lugar.strip(), docente_id=int(docente_id) if docente_id.isdigit() else None,
         creditos=creditos, cupo_max=cupo_max,
+        carreras_asociadas=carreras_asociadas_list
     )
     if fecha_cambio:
         # Cambió la fecha de inicio: re-armar el recordatorio de 24h de los inscriptos.
