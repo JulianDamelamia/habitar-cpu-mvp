@@ -1,5 +1,5 @@
 from typing import Optional
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session,contains_eager
 from app.models.models import Carrera, TipoCarrera
 
 def obtener_y_validar_tipo_id(
@@ -61,3 +61,35 @@ def add_carrera(
     db.refresh(nueva_carrera)
     
     return nueva_carrera
+
+def get_carreras(db: Session) -> list[Carrera]:
+    return (db.query(Carrera)
+        .join(Carrera.tipo)
+        .options(contains_eager(Carrera.tipo))
+        .order_by(
+            TipoCarrera.nombre.asc(),  
+            Carrera.nombre.asc()
+        )
+        .all())
+
+def resolver_carreras_desde_input(carreras_input: list[str], db: Session) -> list[Carrera]:
+    """
+    Convierte la entrada enviada por un Form (ej: ["1", "3"] o ["todas"]) 
+    en una lista de instancias del modelo Carrera de SQLAlchemy.
+    """
+    if not carreras_input:
+        return []
+
+    if "todas" in carreras_input:
+        return db.query(Carrera).all()
+
+    carreras_ids = [int(c_id) for c_id in carreras_input if c_id.isdigit()]
+    if not carreras_ids:
+        return []
+
+    carreras_encontradas = db.query(Carrera).filter(Carrera.id.in_(carreras_ids)).all()
+
+    if len(carreras_encontradas) != len(set(carreras_ids)):
+        raise ValueError("Una o más carreras especificadas no existen.")
+
+    return carreras_encontradas

@@ -27,22 +27,11 @@ from app.notifications import notify
 from app.security import requiere_roles
 from app.services import actividades as actividades_svc
 from app.services import inscripcion as enrollment_svc
+from app.services import carreras as carreras_svc
 from app.templating import render
 
 router = APIRouter()
 ADMIN = requiere_roles("coordinacion")
-
-def _listar_carreras(carreras_asociadas: list[str], db: Session) -> List[Carrera]:
-    carreras_asociadas_list = []
-    if "todas" in carreras_asociadas:
-        carreras_asociadas_list = db.query(Carrera).all()
-    elif carreras_asociadas:
-        # Convertir los valores string del form (ej: ["1", "3"]) a enteros
-        carreras_ids = [int(c_id) for c_id in carreras_asociadas if c_id.isdigit()]
-        carreras_asociadas_list = db.query(Carrera).filter(Carrera.id.in_(carreras_ids)).all()
-        if len(carreras_asociadas_list) != len(set(carreras_ids)):
-            raise ValueError("Una o más carreras especificadas no existen.")
-    return carreras_asociadas_list
 
 def _parse_dt(value: str) -> datetime:
     # datetime-local -> naive; store as UTC-aware (wall-clock kept for display).
@@ -77,18 +66,10 @@ def panel(request: Request, user: User = Depends(ADMIN), db: Session = Depends(g
 
 @router.get("/admin/actividades/nueva")
 def nueva(request: Request, user: User = Depends(ADMIN), db: Session = Depends(get_db)):
-    carreras = (db.query(Carrera)
-    .join(Carrera.tipo)
-    .options(contains_eager(Carrera.tipo))
-    .order_by(
-        TipoCarrera.nombre.asc(),  
-        Carrera.nombre.asc()
-    )
-    .all())
     return render(
         request, "admin/form.html", user=user, db=db,
         a=None, docentes=_docentes(db), tipos=[TIPO_PRESENCIAL, TIPO_VIRTUAL],
-        lista_carreras=carreras
+        lista_carreras=carreras_svc.get_carreras(db)
     )
 
 
@@ -112,7 +93,7 @@ def crear(
         inicio, fin = _parse_dates(fecha_inicio, fecha_fin)
     except ValueError:
         return RedirectResponse(url="/admin?err=Fechas inválidas: revisá inicio y fin.", status_code=303)
-    carreras_asociadas_list = _listar_carreras(carreras_asociadas, db)      
+    carreras_asociadas_list = carreras_svc.resolver_carreras_desde_input(carreras_asociadas, db)      
     actividades_svc.create(
         db,
         titulo=titulo.strip(), descripcion=descripcion.strip(), tipo=tipo,
@@ -127,21 +108,11 @@ def crear(
 def editar(request: Request, actividad_id: int, user: User = Depends(ADMIN), db: Session = Depends(get_db)):
     a = actividades_svc.get(db, actividad_id)
     if a is None:
-        return RedirectResponse(url="/admin?err=Actividad no encontrada.", status_code=303)
-
-    carreras = (db.query(Carrera)
-        .join(Carrera.tipo)
-        .options(contains_eager(Carrera.tipo))
-        .order_by(
-            TipoCarrera.nombre.asc(),  
-            Carrera.nombre.asc()
-        )
-        .all())
-    
+        return RedirectResponse(url="/admin?err=Actividad no encontrada.", status_code=303)    
     return render(
         request, "admin/form.html", user=user, db=db,
         a=a, docentes=_docentes(db), tipos=[TIPO_PRESENCIAL, TIPO_VIRTUAL],
-        lista_carreras = carreras
+        lista_carreras = carreras_svc.get_carreras(db)
     )
 
 
@@ -171,7 +142,7 @@ def actualizar(
         return RedirectResponse(url="/admin?err=Fechas inválidas: revisá inicio y fin.", status_code=303)
     was_published = a.estado == ESTADO_PUBLICADA
     fecha_cambio = a.fecha_inicio != inicio
-    carreras_asociadas_list = _listar_carreras(carreras_asociadas, db)  
+    carreras_asociadas_list = carreras_svc.resolver_carreras_desde_input(carreras_asociadas, db)  
     actividades_svc.update(
         db, a,
         titulo=titulo.strip(), descripcion=descripcion.strip(), tipo=tipo,
