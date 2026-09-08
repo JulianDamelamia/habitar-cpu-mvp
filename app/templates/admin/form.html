@@ -22,8 +22,8 @@
           <option value="">-- Seleccionar carrera para agregar --</option>
           <option value="todas">-- TODAS LAS CARRERAS --</option>
           {% for carrera in lista_carreras %}
-            <option value="{{ carrera.id }}" data-nombre="{{ carrera.nombre }} ({{ carrera.tipo.nombre }})">
-              {{ carrera.nombre }} ({{ carrera.tipo.nombre }})
+            <option value="{{ carrera.id }}" data-nombre="{{ carrera.tipo.nombre }} {{ carrera.nombre }} ">
+             {{ carrera.tipo.nombre }} {{ carrera.nombre }} 
             </option>
           {% endfor %}
         </select>

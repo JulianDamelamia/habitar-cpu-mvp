@@ -74,7 +74,7 @@ async def lifespan(_app: FastAPI):
     # Never let a cold/unavailable DB abort the boot: the health check must pass so
     # Render keeps the service up, and request-time access retries once Neon is warm.
     try:
-        _init_database(attempts= 1, drop_tables=True)
+        _init_database(attempts= 5, drop_tables=False)
     except Exception:  # noqa: BLE001
         log.exception("Database init/seed failed at startup; continuing so the app can boot.")
     try:

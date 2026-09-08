@@ -19,6 +19,7 @@ from app.models.models import (
     ROL_DOCENTE,
     TIPO_PRESENCIAL,
     TIPO_VIRTUAL,
+    TipoCarrera,
     User,
     Carrera
 )
@@ -62,10 +63,17 @@ def panel(request: Request, user: User = Depends(ADMIN), db: Session = Depends(g
     }
     return render(request, "admin/panel.html", user=user, db=db, rows=rows, resumen=resumen)
 
-from sqlalchemy.orm import joinedload
+from sqlalchemy.orm import contains_eager
 @router.get("/admin/actividades/nueva")
 def nueva(request: Request, user: User = Depends(ADMIN), db: Session = Depends(get_db)):
-    carreras = db.query(Carrera).options(joinedload(Carrera.tipo)).order_by(Carrera.nombre).all()
+    carreras = (db.query(Carrera)
+    .join(Carrera.tipo)  # Realiza el JOIN explícito
+    .options(contains_eager(Carrera.tipo))  # Popula la relación reutilizando el JOIN
+    .order_by(
+        TipoCarrera.nombre.asc(),  # 1º Criterio: Nombre del Tipo (Licenciatura, Ingeniería, etc.)
+        Carrera.nombre.asc()       # 2º Criterio: Nombre de la Carrera alfabéticamente
+    )
+    .all())
     return render(
         request, "admin/form.html", user=user, db=db,
         a=None, docentes=_docentes(db), tipos=[TIPO_PRESENCIAL, TIPO_VIRTUAL],
