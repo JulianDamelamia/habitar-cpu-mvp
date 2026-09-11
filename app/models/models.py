@@ -64,13 +64,17 @@ class User(Base):
     def nombre_completo(self) -> str:
         name = f"{self.nombre} {self.apellido}".strip()
         return name or self.email
+    @property
+    def carreras_ids(self) -> list[int] | None:
+        if self.rol == ROL_ESTUDIANTE:
+            return [c.id for c in self.carreras]
+        return None
     
     @validates("carreras")
     def validate_carreras(self, key, carrera):
         # Validación opcional en el ORM (se ejecuta al asignar elementos a user.carreras)
         return carrera
     
-
 
 class ValidLegajo(Base):
     """SIU Guaraní simulator: a legajo must exist here to register."""

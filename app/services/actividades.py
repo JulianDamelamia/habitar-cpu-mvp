@@ -13,7 +13,7 @@ from app.models.models import (
     INSCRIPCION_ALTA,
     Carrera
 )
-
+from .carreras import resolver_carreras_desde_input
 
 def get(db: Session, actividad_id: int) -> Actividad | None:
     return db.get(Actividad, actividad_id)
@@ -39,12 +39,23 @@ def cupo_info(db: Session, actividad: Actividad) -> dict:
 def list_published(
     db: Session,
     *,
+    carreras_ids: list[int] | None = None,
     tipo: str | None = None,
     fecha: str | None = None,
     min_creditos: int | None = None,
     solo_disponibles: bool = False,
 ) -> list[Actividad]:
+    #si es estudiante, habrá una lista de ids (puede ser vacía)
+    #si no es estudiante, carreras_ids es None
+
+    #caso estudiante no tiene asignada ninguna carrera, early return
+    if carreras_ids is not None and len(carreras_ids) == 0: 
+        return []
+
     stmt = select(Actividad).where(Actividad.estado == ESTADO_PUBLICADA)
+
+    if carreras_ids:
+        stmt = stmt.where(Actividad.carreras_asociadas.any(Carrera.id.in_(carreras_ids)))
     if tipo:
         stmt = stmt.where(Actividad.tipo == tipo)
     if min_creditos:

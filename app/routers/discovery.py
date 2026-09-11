@@ -22,11 +22,12 @@ def list_actividades(
     min_creditos: str = "",
     solo_disponibles: str = "",
     user: User = Depends(current_user_required),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db)
 ):
     min_cred = int(min_creditos) if min_creditos.isdigit() else None
     items = services.actividades.list_published(
         db,
+        carreras_ids = user.carreras_ids,
         tipo=tipo or None,
         fecha=fecha or None,
         min_creditos=min_cred,
@@ -37,7 +38,7 @@ def list_actividades(
     return render(
         request, "student/actividades.html", user=user, db=db,
         rows=rows,
-        filtros={"tipo": tipo, "fecha": fecha, "min_creditos": min_creditos, "solo_disponibles": solo_disponibles},
+        filtros={"tipo": tipo, "fecha": fecha, "min_creditos": min_creditos, "solo_disponibles": solo_disponibles,},
         tipos=[TIPO_PRESENCIAL, TIPO_VIRTUAL],
     )
 

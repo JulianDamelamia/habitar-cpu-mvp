@@ -95,7 +95,7 @@ async def legajos_import(
 ):
     raw = await archivo.read()
     try:
-        if archivo.filename.lower().endswith(".xlsx"):
+        if archivo.filename.lower().endswith(".xlsx"): # type: ignore
             df = pd.read_excel(io.BytesIO(raw))
         else:
             df = pd.read_csv(io.BytesIO(raw))

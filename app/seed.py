@@ -173,7 +173,7 @@ def seed_all(db: Session) -> None:
                 tipo=TIPO_PRESENCIAL, fecha_inicio=now - timedelta(days=7),
                 fecha_fin=now - timedelta(days=7) + timedelta(hours=2),
                 lugar="Hall central - Campus Miguelete", docente_id=docente.id,
-                creditos=2, cupo_max=40, estado=ESTADO_PUBLICADA, created_by=coord.id,carreras_asociadas = [carrera_1, carrera_2]
+                creditos=2, cupo_max=40, estado=ESTADO_PUBLICADA, created_by=coord.id,carreras_asociadas = [lic_datos,carrera_1, carrera_2]
             ),
             Actividad(
                 titulo="Taller de hábitos de estudio",
@@ -181,7 +181,7 @@ def seed_all(db: Session) -> None:
                 tipo=TIPO_PRESENCIAL, fecha_inicio=now + timedelta(hours=24),
                 fecha_fin=now + timedelta(hours=26),
                 lugar="Aula 12 - Tornavía", docente_id=docente.id,
-                creditos=3, cupo_max=2, estado=ESTADO_PUBLICADA, created_by=coord.id,carreras_asociadas = [carrera_1, carrera_2]
+                creditos=3, cupo_max=2, estado=ESTADO_PUBLICADA, created_by=coord.id,carreras_asociadas = [lic_datos, carrera_1, carrera_2]
             ),
             Actividad(
                 titulo="Charla: vida universitaria",
