@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.config import settings
-from app.models.models import (
+from app.models import (
     Actividad,
     AppConfig,
     Asistencia,

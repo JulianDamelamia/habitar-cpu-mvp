@@ -1,4 +1,4 @@
-from app.models.models import (
+from app.models import (
     Asistencia,
     ESTADO_PUBLICADA,
     Inscripcion,

@@ -1,6 +1,6 @@
 import pytest
 
-from app.models.models import ROL_ESTUDIANTE, User, ValidLegajo
+from app.models import ROL_ESTUDIANTE, User, ValidLegajo
 from app.security import hash_password
 from app.services.identity import (
     SignupError,

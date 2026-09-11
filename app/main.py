@@ -13,7 +13,7 @@ from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import settings
 from app.database import Base, SessionLocal, engine
-from app.models.models import (
+from app.models import (
     ROL_COORDINACION,
     ROL_DIRECTOR,
     ROL_DOCENTE,

@@ -7,7 +7,7 @@ from typing import Optional
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.models.models import (
+from app.models import (
     Actividad,
     ESTADO_PUBLICADA,
     Inscripcion,

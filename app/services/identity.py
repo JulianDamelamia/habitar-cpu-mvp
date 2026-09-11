@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from app.models.models import ROL_ESTUDIANTE, User, ValidLegajo
+from app.models import ROL_ESTUDIANTE, User, ValidLegajo
 from app.security import hash_password, verify_password
 
 

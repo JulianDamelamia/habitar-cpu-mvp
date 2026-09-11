@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from app.database import Base
-from app.models.models import (
+from app.models import (
     Actividad,
     Carrera,
     ESTADO_BORRADOR,

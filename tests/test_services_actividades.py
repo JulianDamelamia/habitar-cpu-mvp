@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-from app.models.models import ESTADO_PUBLICADA, Inscripcion
+from app.models import ESTADO_PUBLICADA, Inscripcion
 from app.services.actividades import (
     create,
     cupo_info,

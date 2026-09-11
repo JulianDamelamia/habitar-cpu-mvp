@@ -1,6 +1,6 @@
 import pytest
 
-from app.models.models import Carrera
+from app.models import Carrera
 from app.services.carreras import (
     add_carrera,
     get_carreras,

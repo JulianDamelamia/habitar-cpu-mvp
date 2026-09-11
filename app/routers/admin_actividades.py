@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session,contains_eager
 from starlette.templating import _TemplateResponse
 
 from app.database import get_db
-from app.models.models import (
+from app.models import (
     Actividad,
     Inscripcion,
     INSCRIPCION_ALTA,
@@ -24,7 +24,7 @@ from app.models.models import (
     User,
     Carrera
 )
-from app.notifications import notify
+from app.services.notifications import notify
 from app.security import requiere_roles
 from app import services 
 

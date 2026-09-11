@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy import inspect, select
 
 from app.database import SessionLocal, engine
-from app.models.models import User
+from app.models import User
 
 
 @pytest.fixture

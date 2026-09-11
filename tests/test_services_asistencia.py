@@ -2,7 +2,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from app.models.models import Asistencia, ESTADO_PUBLICADA
+from app.models import Asistencia, ESTADO_PUBLICADA
 from app.services import asistencia
 from app.services.asistencia import (
     AsistenciaError,

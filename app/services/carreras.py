@@ -1,6 +1,6 @@
 from typing import Optional
 from sqlalchemy.orm import Session,contains_eager
-from app.models.models import Carrera, TipoCarrera
+from app.models import Carrera, TipoCarrera
 
 def obtener_y_validar_tipo_id(
     db: Session, 

@@ -1,6 +1,6 @@
 import pytest
 
-from app.models.models import ESTADO_PUBLICADA, INSCRIPCION_ALTA, Inscripcion
+from app.models import ESTADO_PUBLICADA, INSCRIPCION_ALTA, Inscripcion
 from app.services.inscripcion import (
     EnrollError,
     active_enrollment,

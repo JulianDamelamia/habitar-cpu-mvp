@@ -1,4 +1,4 @@
-from app.models.models import AppConfig, Asistencia
+from app.models import AppConfig, Asistencia
 from app.services.credits import (
     accumulated_credits,
     completed_actividades,

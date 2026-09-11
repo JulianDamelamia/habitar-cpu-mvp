@@ -4,7 +4,7 @@ from __future__ import annotations
 from fastapi.templating import Jinja2Templates
 
 from app.config import settings
-from app.notifications import unread_count
+from app.services.notifications import unread_count
 
 templates = Jinja2Templates(directory="app/templates")
 

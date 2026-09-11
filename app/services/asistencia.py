@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.models.models import (
+from app.models import (
     Actividad,
     Asistencia,
     SesionAsistencia,
