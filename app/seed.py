@@ -1,4 +1,4 @@
-"""Idempotent demo seed: SIU legajos, staff/students, actividades, FAQ, config, carreras."""
+"""Idempotent demo seed: SIU legajos, staff/students, actividades, FAQ y carreras."""
 from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
@@ -7,10 +7,8 @@ from typing import Iterable
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.config import settings
 from app.models import (
     Actividad,
-    AppConfig,
     Asistencia,
     Carrera,
     ESTADO_PUBLICADA,
@@ -27,7 +25,7 @@ from app.models import (
     User,
     ValidLegajo,
 )
-from app.security import hash_password
+from app.security import hash_password, verify_password
 
 DEMO_PASSWORD = "habitar123"
 
@@ -45,18 +43,18 @@ LEGAJOS = [
 ]
 
 CARRERAS = [
-    ("Ambiental", "Ingeniería"),
-    ("Biomédica", "Ingeniería"),
-    ("Electrónica", "Ingeniería"),
-    ("Energía", "Ingeniería"),
-    ("Industrial", "Ingeniería"),
-    ("Sistemas Espaciales", "Ingeniería"),
-    ("Telecomunicaciones", "Ingeniería"),
-    ("Transporte", "Ingeniería"),
-    ("Desarrollo de Software", "Licenciatura"),
-    ("Biotecnología", "Licenciatura"),
-    ("Ciencia de Datos", "Licenciatura"),
-    ("Física Médica", "Licenciatura"),
+    ("Ambiental", "Ingeniería", 20),
+    ("Biomédica", "Ingeniería", 20),
+    ("Electrónica", "Ingeniería", 20),
+    ("Energía", "Ingeniería", 20),
+    ("Industrial", "Ingeniería", 20),
+    ("Sistemas Espaciales", "Ingeniería", 20),
+    ("Telecomunicaciones", "Ingeniería", 20),
+    ("Transporte", "Ingeniería", 20),
+    ("Desarrollo de Software", "Licenciatura", 10),
+    ("Biotecnología", "Licenciatura", 10),
+    ("Ciencia de Datos", "Licenciatura", 10),
+    ("Física Médica", "Licenciatura", 10),
 ]
 
 
@@ -67,6 +65,11 @@ def _now() -> datetime:
 def _get_or_create_user(db: Session, email: str, **fields) -> User:
     user = db.query(User).filter(User.email == email).first()
     if user:
+        # Las cuentas creadas por este seed son cuentas demo: mantener su contraseña
+        # documentada permite recuperar el acceso después de cambios de base o hash.
+        if not verify_password(DEMO_PASSWORD, user.pw_hash):
+            user.pw_hash = hash_password(DEMO_PASSWORD)
+            db.flush()
         return user
 
     rol = fields.get("rol", None)
@@ -96,18 +99,18 @@ def seed_all(db: Session) -> None:
 
     # --- Carreras ---
     if db.query(Carrera).count() == 0:
-        for nombre_carrera, tipo_nombre in CARRERAS:
+        for nombre_carrera, tipo_nombre, creditos_requeridos in CARRERAS:
             tipo_id = tipos_map[tipo_nombre]
-            db.add(Carrera(nombre=nombre_carrera, tipo_id=tipo_id))
+            db.add(Carrera(
+                nombre=nombre_carrera,
+                tipo_id=tipo_id,
+                creditos_requeridos=creditos_requeridos,
+            ))
 
     # --- SIU legajos (mock) ---
     if db.query(ValidLegajo).count() == 0:
         for legajo, nombre in LEGAJOS:
             db.add(ValidLegajo(legajo=legajo, nombre=nombre))
-
-    # --- app config ---
-    if db.get(AppConfig, "required_credits") is None:
-        db.add(AppConfig(key="required_credits", value=str(settings.REQUIRED_CREDITS)))
 
     # --- FAQ ---
     if db.query(Faq).count() == 0:
@@ -118,7 +121,7 @@ def seed_all(db: Session) -> None:
                 Faq(orden=2, pregunta="¿Cómo registro mi asistencia?",
                     respuesta="En la actividad, el docente muestra un código QR. Abrí 'Registrar asistencia' y escaneá o ingresá el código de 6 dígitos."),
                 Faq(orden=3, pregunta="¿Cuántos créditos necesito para aprobar?",
-                    respuesta=f"Necesitás {settings.REQUIRED_CREDITS} créditos. Podés ver tu progreso en el inicio."),
+                    respuesta="Necesitás los créditos requeridos por tu carrera. Podés ver tu progreso en el inicio."),
                 Faq(orden=4, pregunta="¿Puedo darme de baja de una actividad?",
                     respuesta="Sí, desde el detalle de la actividad podés liberar tu cupo si no vas a asistir."),
             ]

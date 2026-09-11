@@ -43,27 +43,33 @@ def test_obtener_tipo_id_rechaza_argumentos_invalidos(db_session, kwargs, mensaj
 
 
 def test_add_carrera_crea_y_persiste_la_carrera(db_session):
-    carrera = add_carrera(db_session, "Arquitectura", tipo_id=1)
+    carrera = add_carrera(db_session, "Arquitectura", creditos_requeridos=12, tipo_id=1)
 
     assert isinstance(carrera, Carrera)
     assert carrera.id is not None
     assert carrera.nombre == "Arquitectura"
     assert carrera.tipo_id == 1
+    assert carrera.creditos_requeridos == 12
     assert carrera.tipo.nombre == "Grado"
     assert db_session.get(Carrera, carrera.id) == carrera
 
 
 def test_add_carrera_acepta_tipo_por_nombre(db_session):
-    carrera = add_carrera(db_session, "Diseño", tipo="Posgrado")
+    carrera = add_carrera(db_session, "Diseño", creditos_requeridos=15, tipo="Posgrado")
 
     assert carrera.tipo_id == 2
     assert carrera.tipo.nombre == "Posgrado"
 
 
+def test_add_carrera_rechaza_creditos_requeridos_invalidos(db_session):
+    with pytest.raises(ValueError, match="mayores que cero"):
+        add_carrera(db_session, "Arquitectura", creditos_requeridos=0, tipo_id=1)
+
+
 def test_get_carreras_ordena_por_tipo_y_luego_por_nombre(db_session):
-    add_carrera(db_session, "Zoología", tipo_id=1)
-    add_carrera(db_session, "Arquitectura", tipo_id=1)
-    add_carrera(db_session, "Biología", tipo_id=2)
+    add_carrera(db_session, "Zoología", creditos_requeridos=10, tipo_id=1)
+    add_carrera(db_session, "Arquitectura", creditos_requeridos=10, tipo_id=1)
+    add_carrera(db_session, "Biología", creditos_requeridos=10, tipo_id=2)
 
     carreras = get_carreras(db_session)
 
@@ -80,8 +86,8 @@ def test_resolver_carreras_devuelve_lista_vacia_sin_entrada(db_session):
 
 
 def test_resolver_carreras_resuelve_ids(db_session):
-    arquitectura = add_carrera(db_session, "Arquitectura", tipo_id=1)
-    diseño = add_carrera(db_session, "Diseño", tipo_id=2)
+    arquitectura = add_carrera(db_session, "Arquitectura", creditos_requeridos=10, tipo_id=1)
+    diseño = add_carrera(db_session, "Diseño", creditos_requeridos=15, tipo_id=2)
 
     carreras = resolver_carreras_desde_input(
         [str(diseño.id), str(arquitectura.id)], db_session
@@ -91,8 +97,8 @@ def test_resolver_carreras_resuelve_ids(db_session):
 
 
 def test_resolver_carreras_con_todas_devuelve_todas(db_session):
-    arquitectura = add_carrera(db_session, "Arquitectura", tipo_id=1)
-    diseño = add_carrera(db_session, "Diseño", tipo_id=2)
+    arquitectura = add_carrera(db_session, "Arquitectura", creditos_requeridos=10, tipo_id=1)
+    diseño = add_carrera(db_session, "Diseño", creditos_requeridos=15, tipo_id=2)
 
     carreras = resolver_carreras_desde_input(["todas"], db_session)
 
@@ -100,7 +106,7 @@ def test_resolver_carreras_con_todas_devuelve_todas(db_session):
 
 
 def test_resolver_carreras_ignora_valores_no_numericos(db_session):
-    carrera = add_carrera(db_session, "Arquitectura", tipo_id=1)
+    carrera = add_carrera(db_session, "Arquitectura", creditos_requeridos=10, tipo_id=1)
 
     carreras = resolver_carreras_desde_input(["no-es-un-id", str(carrera.id)], db_session)
 

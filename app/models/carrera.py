@@ -12,6 +12,7 @@ class Carrera(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True)
     nombre: Mapped[str] = mapped_column(String(50), nullable=False, unique=True)
+    creditos_requeridos: Mapped[int] = mapped_column(Integer, nullable=False)
     tipo_id: Mapped[int] = mapped_column(Integer, ForeignKey("tipos_carrera.id"), nullable=False)
     tipo = relationship("TipoCarrera", back_populates="carreras")
     actividades: Mapped[list["Actividad"]] = relationship(

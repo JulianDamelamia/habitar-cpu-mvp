@@ -9,8 +9,6 @@ services:
         sync: false   # paste the Neon connection string in the Render dashboard
       - key: SECRET_KEY
         generateValue: true
-      - key: REQUIRED_CREDITS
-        value: "10"
       - key: APP_NAME
         value: "Módulo Habitar"
       - key: SESSION_HTTPS_ONLY

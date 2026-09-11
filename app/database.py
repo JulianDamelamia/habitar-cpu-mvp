@@ -1,7 +1,7 @@
 """Database engine, session factory and declarative base."""
 from collections.abc import Generator
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, inspect, text
 from sqlalchemy.orm import DeclarativeBase, Session, sessionmaker
 
 from app.config import settings
@@ -28,3 +28,18 @@ def get_db() -> Generator[Session, None, None]:
         yield db
     finally:
         db.close()
+
+
+def migrate_schema() -> None:
+    """Apply small idempotent schema changes not handled by create_all()."""
+    inspector = inspect(engine)
+    if not inspector.has_table("carreras"):
+        return
+
+    columns = {column["name"] for column in inspector.get_columns("carreras")}
+    if "creditos_requeridos" not in columns:
+        with engine.begin() as connection:
+            connection.execute(text(
+                "ALTER TABLE carreras "
+                "ADD COLUMN creditos_requeridos INTEGER NOT NULL DEFAULT 10"
+            ))

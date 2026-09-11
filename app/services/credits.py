@@ -4,15 +4,18 @@ from __future__ import annotations
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.config import settings
-from app.models import Actividad, AppConfig, Asistencia
+from app.models import Actividad, Asistencia, Carrera
+from app.models.associations import user_carrera
 
 
-def required_credits(db: Session) -> int:
-    row = db.get(AppConfig, "required_credits")
-    if row and row.value.isdigit():
-        return int(row.value)
-    return settings.REQUIRED_CREDITS
+def required_credits(db: Session, user_id: int) -> int:
+    required = (
+        db.query(func.max(Carrera.creditos_requeridos))
+        .join(user_carrera, user_carrera.c.carrera_id == Carrera.id)
+        .filter(user_carrera.c.user_id == user_id)
+        .scalar()
+    )
+    return int(required or 0)
 
 
 def accumulated_credits(db: Session, user_id: int) -> int:
@@ -38,6 +41,6 @@ def completed_actividades(db: Session, user_id: int) -> list[tuple[Actividad, ob
 
 def progress(db: Session, user_id: int) -> dict:
     acc = accumulated_credits(db, user_id)
-    req = required_credits(db)
+    req = required_credits(db, user_id)
     pct = min(round(acc / req * 100), 100) if req else 0
     return {"accumulated": acc, "required": req, "pct": pct, "complete": acc >= req}

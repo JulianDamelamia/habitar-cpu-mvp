@@ -46,6 +46,7 @@ def obtener_y_validar_tipo_id(
 def add_carrera(
     db: Session,
     nombre: str,
+    creditos_requeridos: int,
     tipo: Optional[str] = None,
     tipo_id: Optional[int] = None
 ) -> Carrera:
@@ -53,8 +54,15 @@ def add_carrera(
     
     Acepta el tipo tanto por su nombre de catálogo ('tipo') como por su ID ('tipo_id').
     """
+    if creditos_requeridos <= 0:
+        raise ValueError("Los créditos requeridos deben ser mayores que cero.")
+
     tipo_id_validado = obtener_y_validar_tipo_id(db, tipo=tipo, tipo_id=tipo_id)
-    nueva_carrera = Carrera(nombre=nombre, tipo_id=tipo_id_validado)
+    nueva_carrera = Carrera(
+        nombre=nombre,
+        tipo_id=tipo_id_validado,
+        creditos_requeridos=creditos_requeridos,
+    )
     
     db.add(nueva_carrera)
     db.commit()

@@ -64,8 +64,6 @@ class Settings:
         return not is_local and bool(db_url)
     SECRET_KEY: str = _resolve_secret_key()
     SESSION_HTTPS_ONLY: bool = os.getenv("SESSION_HTTPS_ONLY", "").lower() in ("1", "true", "yes")
-    REQUIRED_CREDITS: int = int(os.getenv("REQUIRED_CREDITS", "10"))
-
     SMTP_HOST: str = os.getenv("SMTP_HOST", "")
     SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
     SMTP_USER: str = os.getenv("SMTP_USER", "")

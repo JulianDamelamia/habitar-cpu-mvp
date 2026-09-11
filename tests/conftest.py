@@ -61,8 +61,12 @@ def user_factory(db_session):
 
 @pytest.fixture
 def carrera_factory(db_session):
-    def create_carrera(nombre="Arquitectura", tipo_id=1):
-        carrera = Carrera(nombre=nombre, tipo_id=tipo_id)
+    def create_carrera(nombre="Arquitectura", tipo_id=1, creditos_requeridos=10):
+        carrera = Carrera(
+            nombre=nombre,
+            tipo_id=tipo_id,
+            creditos_requeridos=creditos_requeridos,
+        )
         db_session.add(carrera)
         db_session.commit()
         db_session.refresh(carrera)

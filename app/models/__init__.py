@@ -1,5 +1,4 @@
 from .actividad import Actividad
-from .app_config import AppConfig
 from .asistencia import Asistencia
 from .carrera import Carrera
 from .enums import *
@@ -14,7 +13,6 @@ from .valid_legajo import ValidLegajo
 
 __all__ = [
 	"Actividad",
-	"AppConfig",
 	"Asistencia",
 	"Carrera",
 	"Faq",

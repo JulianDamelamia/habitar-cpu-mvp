@@ -1,4 +1,4 @@
-from app.models import AppConfig, Asistencia
+from app.models import Asistencia
 from app.services.credits import (
     accumulated_credits,
     completed_actividades,
@@ -7,13 +7,16 @@ from app.services.credits import (
 )
 
 
-def test_required_credits_usa_configuracion_y_default(db_session):
-    default_value = required_credits(db_session)
-    db_session.add(AppConfig(key="required_credits", value="12"))
+def test_required_credits_usa_el_maximo_de_las_carreras_del_usuario(
+    db_session, user_factory, carrera_factory
+):
+    carrera_base = carrera_factory("Arquitectura", creditos_requeridos=10)
+    carrera_exigente = carrera_factory("Diseño", creditos_requeridos=12)
+    estudiante = user_factory()
+    estudiante.carreras.extend([carrera_base, carrera_exigente])
     db_session.commit()
 
-    assert required_credits(db_session) == 12
-    assert default_value > 0
+    assert required_credits(db_session, estudiante.id) == 12
 
 
 def test_accumulated_and_completed_actividades(db_session, actividad_factory, user_factory):
@@ -36,10 +39,12 @@ def test_accumulated_and_completed_actividades(db_session, actividad_factory, us
 
 
 def test_progress_calcula_porcentaje_y_limita_a_cien(
-    db_session, actividad_factory, user_factory
+    db_session, actividad_factory, user_factory, carrera_factory
 ):
     estudiante = user_factory()
-    db_session.add(AppConfig(key="required_credits", value="5"))
+    carrera = carrera_factory(creditos_requeridos=5)
+    db_session.refresh(estudiante)
+    estudiante.carreras.append(carrera)
     actividad = actividad_factory(creditos=8)
     db_session.add(Asistencia(actividad_id=actividad.id, user_id=estudiante.id))
     db_session.commit()
@@ -52,9 +57,11 @@ def test_progress_calcula_porcentaje_y_limita_a_cien(
     }
 
 
-def test_progress_sin_creditos_acumulados(db_session, user_factory):
+def test_progress_sin_creditos_acumulados(db_session, user_factory, carrera_factory):
     estudiante = user_factory()
-    db_session.add(AppConfig(key="required_credits", value="10"))
+    carrera = carrera_factory(creditos_requeridos=10)
+    db_session.refresh(estudiante)
+    estudiante.carreras.append(carrera)
     db_session.commit()
 
     assert progress(db_session, estudiante.id) == {
