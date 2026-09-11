@@ -49,6 +49,19 @@ def _normalize_db_url(url: str) -> str:
 class Settings:
     APP_NAME: str = os.getenv("APP_NAME", "Módulo Habitar")
     DATABASE_URL: str = _normalize_db_url(os.getenv("DATABASE_URL", ""))
+    
+    # Entorno configurable con fallback explícito
+    ENVIRONMENT: str = os.getenv("ENVIRONMENT", "production").lower()
+
+    @property
+    def IS_PRODUCTION(self) -> bool:
+        """Determina si la app corre en producción (por variable o por host de DB)."""
+        if self.ENVIRONMENT in ("production", "prod"):
+            return True
+        # Salvaguarda adicional: si la URL no es local, asumirlo como producción
+        db_url = self.DATABASE_URL.lower()
+        is_local = "localhost" in db_url or "127.0.0.1" in db_url or "sqlite" in db_url
+        return not is_local and bool(db_url)
     SECRET_KEY: str = _resolve_secret_key()
     SESSION_HTTPS_ONLY: bool = os.getenv("SESSION_HTTPS_ONLY", "").lower() in ("1", "true", "yes")
     REQUIRED_CREDITS: int = int(os.getenv("REQUIRED_CREDITS", "10"))

@@ -1,15 +1,6 @@
 
 
-# Backlog
-- [ ] Se debe poder asignar a 1 o varias carreras (requiere crud de carreras)
-- [ ] Agregar la opción de duración (o se pone fechar/hora de fin o duración)
-- [ ] ver módulo encuestas
-- [ ] total de créditos del CPU: este dato debería salir de una tabla de la BBDD (crear tabla de configuración y servicios asociados)
-- [ ] avisos: se lanzan por acción de inscripción en actividad y por cambios en una actividad. Mensajería interna + aviso a mail (avanzar)
-
-# Doing
-- [ ] CRUD de carreras
-
-# Revisar
-
-# Done
+# Notas
+- Debería armar panel backoffice para CRUD carreras? 
+Lo pospongo a propósito porque si no fuera necesario sería hacer cosas al pedo 
+pero entiendo por qué puede ser una necesidad

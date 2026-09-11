@@ -8,7 +8,6 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
-from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from starlette.middleware.sessions import SessionMiddleware
 
@@ -38,26 +37,15 @@ logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("habitar.startup")
 
 
-def _init_database(attempts: int = 5, delay: float = 2.0, drop_tables:bool = False) -> None:
-    """Reset schema, create tables and seed, with a bounded retry so a cold Neon endpoint can wake."""    
+def _init_database(attempts: int = 5, delay: float = 2.0) -> None:
+    """Create tables and seed, with a bounded retry so a cold Neon endpoint can wake."""
     last: Exception | None = None
     for i in range(attempts):
         try:
-            # Forzar borrado completo del esquema public en PostgreSQL
-            if drop_tables:
-                confirmacion_usuario = input('Está seguro de que desea borrar la base de datos y repopularla? [y/n]: ')
-                if confirmacion_usuario.lower() == 'y':
-                    with engine.begin() as conn:
-                        conn.execute(text("DROP SCHEMA public CASCADE;"))
-                        print('Tablas borradas (qué mal!)')
-                        conn.execute(text("CREATE SCHEMA public;"))
-                        print('Tablas recreadas (qué bien!)')
-                
             Base.metadata.create_all(bind=engine)
             db = SessionLocal()
             try:
                 seed_all(db)
-                print('Tablas ensemilladas (qué bien)')
             finally:
                 db.close()
             return
@@ -74,7 +62,7 @@ async def lifespan(_app: FastAPI):
     # Never let a cold/unavailable DB abort the boot: the health check must pass so
     # Render keeps the service up, and request-time access retries once Neon is warm.
     try:
-        _init_database(attempts= 5, drop_tables=False)
+        _init_database()
     except Exception:  # noqa: BLE001
         log.exception("Database init/seed failed at startup; continuing so the app can boot.")
     try:
