@@ -4,9 +4,10 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from typing import List, Literal
 
-from fastapi import APIRouter, Depends, Form, Request
+from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session,contains_eager
+from starlette.templating import _TemplateResponse
 
 from app.database import get_db
 from app.models.models import (
@@ -51,8 +52,8 @@ def _docentes(db: Session) -> list[User]:
 
 
 @router.get("/admin")
-def panel(request: Request, user: User = Depends(ADMIN), db: Session = Depends(get_db)):
-    items = services.actividades.list_all(db)
+def panel(request: Request,carreras_asociadas: list[str] = Query([]), user: User = Depends(ADMIN), db: Session = Depends(get_db)) -> _TemplateResponse:
+    items = services.actividades.list_all(db, carreras_ids=carreras_asociadas)
     rows = [{"a": a, "cupo": services.actividades.cupo_info(db, a)} for a in items]
     resumen = {
         "publicadas": sum(1 for a in items if a.estado == ESTADO_PUBLICADA),
@@ -60,7 +61,17 @@ def panel(request: Request, user: User = Depends(ADMIN), db: Session = Depends(g
         "total": len(items),
         "inscripciones": sum(r["cupo"]["taken"] for r in rows),
     }
-    return render(request, "admin/panel.html", user=user, db=db, rows=rows, resumen=resumen)
+    lista_carreras = services.carreras.get_carreras(db)
+    return render(
+        request,
+        "admin/panel.html",
+        user=user,
+        db=db,
+        rows=rows,
+        resumen=resumen,
+        lista_carreras=lista_carreras,
+        carreras_seleccionadas=carreras_asociadas
+    )
 
 
 @router.get("/admin/actividades/nueva")

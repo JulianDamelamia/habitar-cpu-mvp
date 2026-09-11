@@ -6,7 +6,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (!select || !tagsContainer || !hiddenInputsContainer) return;
 
+  const form = select.closest("form");
+  const shouldAutoSubmit = form && form.dataset.autoSubmit === "true";
   const selectedValues = new Set();
+
+  function triggerAutoSubmit() {
+    if (shouldAutoSubmit && form) {
+      form.submit();
+    }
+  }
 
   function updateEmptyMessage() {
     if (emptyMsg) {
@@ -14,28 +22,26 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  function addTag(value, labelText) {
+  function addTag(value, labelText, isInitializing = false) {
     if (selectedValues.has(value)) return;
 
-    // Lógica para opcón "todas" vs individuales
     if (value === "todas") {
-      Array.from(selectedValues).forEach((v) => removeTag(v));
+      Array.from(selectedValues).forEach((v) => removeTag(v, isInitializing));
     } else if (selectedValues.has("todas")) {
-      removeTag("todas");
+      removeTag("todas", isInitializing);
     }
 
     selectedValues.add(value);
 
-    // Ocultar la opción en el select
     const optionToHide = select.querySelector(`option[value="${value}"]`);
     if (optionToHide) optionToHide.hidden = true;
 
     // 1. Crear el elemento visual (Tag)
     const tag = document.createElement("span");
     tag.id = `tag-${value}`;
-    tag.className = "inline-flex items-center gap-1.5 bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1.5 rounded-full cursor-pointer hover:bg-red-100 hover:text-red-800 transition-colors";
-    
-    // Icono SVG
+    tag.className =
+      "inline-flex items-center gap-1.5 bg-blue-100 text-blue-800 text-xs font-semibold px-3 py-1.5 rounded-full cursor-pointer hover:bg-red-100 hover:text-red-800 transition-colors";
+
     tag.innerHTML = `
       <span>${labelText}</span>
       <svg class="w-3.5 h-3.5 opacity-70 hover:opacity-100" fill="currentColor" viewBox="0 0 20 20">
@@ -43,11 +49,10 @@ document.addEventListener("DOMContentLoaded", () => {
       </svg>
     `;
 
-    // Evento de eliminación al hacer clic
     tag.addEventListener("click", () => removeTag(value));
     tagsContainer.appendChild(tag);
 
-    // 2. Crear input oculto para enviarlo por POST
+    // 2. Crear el input oculto
     const hiddenInput = document.createElement("input");
     hiddenInput.type = "hidden";
     hiddenInput.name = "carreras_asociadas";
@@ -56,10 +61,15 @@ document.addEventListener("DOMContentLoaded", () => {
     hiddenInputsContainer.appendChild(hiddenInput);
 
     updateEmptyMessage();
-    select.value = ""; // Reiniciar select
+    select.value = "";
+
+    // Si no estamos en la fase de precarga inicial, disparar el auto-submit
+    if (!isInitializing) {
+      triggerAutoSubmit();
+    }
   }
 
-  function removeTag(value) {
+  function removeTag(value, isInitializing = false) {
     selectedValues.delete(value);
 
     const optionToShow = select.querySelector(`option[value="${value}"]`);
@@ -72,6 +82,10 @@ document.addEventListener("DOMContentLoaded", () => {
     if (inputElem) inputElem.remove();
 
     updateEmptyMessage();
+
+    if (!isInitializing) {
+      triggerAutoSubmit();
+    }
   }
 
   // Escuchar cambio en el select
@@ -80,20 +94,21 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!val) return;
 
     const selectedOption = e.target.options[e.target.selectedIndex];
-    const label = val === "todas" 
-      ? "TODAS LAS CARRERAS" 
-      : (selectedOption.getAttribute("data-nombre") || selectedOption.text);
+    const label =
+      val === "todas"
+        ? "TODAS LAS CARRERAS"
+        : selectedOption.getAttribute("data-nombre") || selectedOption.text;
 
     addTag(val, label);
   });
 
-  // Precargar elementos en modo EDICIÓN
+  // Precargar elementos en modo EDICIÓN o con filtros aplicados (sin auto-submit)
   const preselected = document.querySelectorAll(".preselected-carrera");
   preselected.forEach((el) => {
     const id = el.getAttribute("data-id");
     const nombre = el.getAttribute("data-nombre");
     if (id && nombre) {
-      addTag(id, nombre);
+      addTag(id, nombre, true); // true indica que es inicialización
     }
   });
 });

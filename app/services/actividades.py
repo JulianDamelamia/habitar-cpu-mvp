@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Optional
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
@@ -73,9 +74,15 @@ def list_published(
     return actividades
 
 
-def list_all(db: Session) -> list[Actividad]:
+def list_all(db: Session, carreras_ids: list[str] | None = None) -> list[Actividad]:
+    stmt = select(Actividad)
+    if carreras_ids and "todas" not in carreras_ids:
+        ids = [int(cid) for cid in carreras_ids if cid.isdigit()]
+        if ids:
+            stmt = stmt.filter(Actividad.carreras_asociadas.any(Carrera.id.in_(ids)))
+
     return list(
-        db.execute(select(Actividad).order_by(Actividad.fecha_inicio.desc())).scalars().all()
+        db.execute(stmt.order_by(Actividad.fecha_inicio.desc())).scalars().all()
     )
 
 
