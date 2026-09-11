@@ -44,7 +44,6 @@ def create_student(
         nombre=nombre.strip(),
         apellido=apellido.strip(),
         dni=(dni or "").strip() or None,
-        carrera=(carrera or "").strip() or None,
         rol=ROL_ESTUDIANTE,
     )
     db.add(user)

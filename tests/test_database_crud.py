@@ -1,58 +1,49 @@
-import unittest
 from uuid import uuid4
 
+import pytest
 from sqlalchemy import inspect, select
 
 from app.database import SessionLocal, engine
 from app.models.models import User
 
 
-class DatabaseCrudTest(unittest.TestCase):
-    def setUp(self):
-        self.created_users_table = not inspect(engine).has_table(User.__tablename__)
-        User.__table__.create(bind=engine, checkfirst=True)
-        self.session = SessionLocal()
-        self.email = f"test-{uuid4().hex}@example.com"
-        self.user_id = None
+@pytest.fixture
+def database_session():
+    created_users_table = not inspect(engine).has_table(User.__tablename__)
+    User.__table__.create(bind=engine, checkfirst=True)
+    session = SessionLocal()
 
-    def tearDown(self):
-        self.session.rollback()
-        if self.user_id is not None:
-            user = self.session.get(User, self.user_id)
-            if user is not None:
-                self.session.delete(user)
-                self.session.commit()
-        self.session.close()
-        if self.created_users_table:
+    try:
+        yield session
+    finally:
+        session.rollback()
+        session.close()
+        if created_users_table:
             User.__table__.drop(bind=engine, checkfirst=True)
 
-    def test_user_crud(self):
-        user = User(
-            email=self.email,
-            pw_hash="test-hash",
-            nombre="Usuario",
-            apellido="De Prueba",
-        )
-        self.session.add(user)
-        self.session.commit()
-        self.user_id = user.id
 
-        created = self.session.get(User, self.user_id)
-        self.assertIsNotNone(created)
-        self.assertEqual(created.email, self.email)
+def test_user_crud(database_session):
+    email = f"test-{uuid4().hex}@example.com"
+    user = User(
+        email=email,
+        pw_hash="test-hash",
+        nombre="Usuario",
+        apellido="De Prueba",
+    )
+    database_session.add(user)
+    database_session.commit()
 
-        created.nombre = "Usuario Actualizado"
-        self.session.commit()
+    created = database_session.get(User, user.id)
+    assert created is not None
+    assert created.email == email
 
-        updated = self.session.scalar(select(User).where(User.id == self.user_id))
-        self.assertIsNotNone(updated)
-        self.assertEqual(updated.nombre, "Usuario Actualizado")
+    created.nombre = "Usuario Actualizado"
+    database_session.commit()
 
-        self.session.delete(updated)
-        self.session.commit()
-        self.assertIsNone(self.session.get(User, self.user_id))
-        self.user_id = None
+    updated = database_session.scalar(select(User).where(User.id == user.id))
+    assert updated is not None
+    assert updated.nombre == "Usuario Actualizado"
 
-
-if __name__ == "__main__":
-    unittest.main()
+    database_session.delete(updated)
+    database_session.commit()
+    assert database_session.get(User, user.id) is None
