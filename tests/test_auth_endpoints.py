@@ -80,7 +80,17 @@ def test_protected_endpoint_without_login_redirects_to_login(db_session):
 
 
 def test_home_error_page_links_to_login(auth_client, monkeypatch):
-    client, _ = auth_client
+    _, user = auth_client
+    client = TestClient(
+        app,
+        follow_redirects=False,
+        raise_server_exceptions=False,
+    )
+    login_response = client.post(
+        "/login",
+        data={"email": user.email, "password": "habitar123"},
+    )
+    assert login_response.status_code == 303
 
     def fail_to_load_activities(*args, **kwargs):
         raise RuntimeError("database unavailable")
@@ -92,6 +102,7 @@ def test_home_error_page_links_to_login(auth_client, monkeypatch):
     )
 
     response = client.get("/home")
+    client.close()
 
     assert response.status_code == 500
     assert 'href="/login"' in response.text

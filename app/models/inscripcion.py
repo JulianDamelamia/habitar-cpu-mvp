@@ -6,7 +6,9 @@ from sqlalchemy import Boolean, DateTime, ForeignKey, String, UniqueConstraint, 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+from app.models.actividad import Actividad
 from app.models.enums import INSCRIPCION_ALTA
+from app.models.user import User
 
 
 class Inscripcion(Base):

@@ -4,7 +4,9 @@ from sqlalchemy import ForeignKey, Integer, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+from app.models.actividad import Actividad
 from app.models.associations import actividad_carrera, user_carrera
+from app.models.user import User
 
 
 class Carrera(Base):

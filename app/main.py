@@ -12,7 +12,7 @@ from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from starlette.middleware.sessions import SessionMiddleware
 
 from app.config import settings
-from app.database import Base, SessionLocal, engine, migrate_schema
+from app.database import Base, SessionLocal, engine
 from app.models import (
     ROL_COORDINACION,
     ROL_DIRECTOR,
@@ -43,7 +43,6 @@ def _init_database(attempts: int = 5, delay: float = 2.0) -> None:
     for i in range(attempts):
         try:
             Base.metadata.create_all(bind=engine)
-            migrate_schema()
             db = SessionLocal()
             try:
                 seed_all(db)

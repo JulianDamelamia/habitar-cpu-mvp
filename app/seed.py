@@ -161,6 +161,10 @@ def seed_all(db: Session) -> None:
         db, "bruno@alumno.unsam.edu.ar", nombre="Bruno", apellido="Díaz",
         rol=ROL_ESTUDIANTE, legajo="1002", dni="40333444", carreras=[lic_datos, ing_electronica],
     )
+    julian = _get_or_create_user(
+            db, "julian@alumno.unsam.edu.ar", nombre="Julian", apellido="Fraga",
+            rol=ROL_ESTUDIANTE, legajo="666", dni="1234654968", carreras=[lic_datos, ing_electronica],
+        )
     db.flush()
 
     # --- actividades (only seed once) ---
