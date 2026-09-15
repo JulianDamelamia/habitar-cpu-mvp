@@ -10,3 +10,4 @@ venv/
 .playwright-mcp/
 m-*.png
 .vscode/
+TODO.md
