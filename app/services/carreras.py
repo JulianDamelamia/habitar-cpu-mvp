@@ -101,3 +101,6 @@ def resolver_carreras_desde_input(carreras_input: list[str], db: Session) -> lis
         raise ValueError("Una o más carreras especificadas no existen.")
 
     return carreras_encontradas
+
+def get_creditos(carrera:Carrera) -> int:
+    return carrera.creditos_requeridos
