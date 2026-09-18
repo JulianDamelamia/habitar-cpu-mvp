@@ -7,13 +7,12 @@ from app.services.credits import (
 )
 
 
-def test_required_credits_usa_el_maximo_de_las_carreras_del_usuario(
+def test_required_credits_usa_los_creditos_de_la_carrera_del_usuario(
     db_session, user_factory, carrera_factory
 ):
-    carrera_base = carrera_factory("Arquitectura", creditos_requeridos=10)
-    carrera_exigente = carrera_factory("Diseño", creditos_requeridos=12)
+    carrera = carrera_factory("Arquitectura", creditos_requeridos=12)
     estudiante = user_factory()
-    estudiante.carreras.extend([carrera_base, carrera_exigente])
+    estudiante.carrera_id = carrera.id
     db_session.commit()
 
     assert required_credits(db_session, estudiante.id) == 12
@@ -43,8 +42,7 @@ def test_progress_calcula_porcentaje_y_limita_a_cien(
 ):
     estudiante = user_factory()
     carrera = carrera_factory(creditos_requeridos=5)
-    db_session.refresh(estudiante)
-    estudiante.carreras.append(carrera)
+    estudiante.carrera_id = carrera.id
     actividad = actividad_factory(creditos=8)
     db_session.add(Asistencia(actividad_id=actividad.id, user_id=estudiante.id))
     db_session.commit()
@@ -60,8 +58,7 @@ def test_progress_calcula_porcentaje_y_limita_a_cien(
 def test_progress_sin_creditos_acumulados(db_session, user_factory, carrera_factory):
     estudiante = user_factory()
     carrera = carrera_factory(creditos_requeridos=10)
-    db_session.refresh(estudiante)
-    estudiante.carreras.append(carrera)
+    estudiante.carrera_id = carrera.id
     db_session.commit()
 
     assert progress(db_session, estudiante.id) == {

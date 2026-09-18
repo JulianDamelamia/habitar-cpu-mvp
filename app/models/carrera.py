@@ -5,8 +5,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 from app.models.actividad import Actividad
-from app.models.associations import actividad_carrera, user_carrera
-from app.models.user import User
+from app.models.associations import actividad_carrera
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from app.models.user import User
 
 
 class Carrera(Base):
@@ -21,10 +23,7 @@ class Carrera(Base):
         secondary=actividad_carrera,
         back_populates="carreras_asociadas",
     )
-    estudiantes: Mapped[list["User"]] = relationship(
-        secondary=user_carrera,
-        back_populates="carreras",
-    )
+    estudiantes: Mapped[list["User"]] = relationship(back_populates="carrera")
 
     def __repr__(self) -> str:
         return f"<Carrera(id={self.id}, nombre='{self.nombre}', tipo_id={self.tipo_id})>"

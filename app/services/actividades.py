@@ -14,7 +14,7 @@ from app.models import (
     INSCRIPCION_ALTA,
     Carrera
 )
-from .carreras import resolver_carreras_desde_input
+from .carreras import get_carreras_desde_dropdown
 
 def get(db: Session, actividad_id: int) -> Actividad | None:
     return db.get(Actividad, actividad_id)

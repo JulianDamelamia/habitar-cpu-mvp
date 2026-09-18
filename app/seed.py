@@ -76,8 +76,8 @@ def _get_or_create_user(db: Session, email: str, **fields) -> User:
     if rol is None:
         raise ValueError(f"Debe asignarse un rol al usuario asociado a {email}")
 
-    carreras = fields.get("carreras", [])
-    if rol == ROL_ESTUDIANTE and not carreras:
+    carrera = fields.get("carrera_id", None)
+    if rol == ROL_ESTUDIANTE and not carrera:
         raise ValueError(f"Debe asignarse una o más carreras al usuario asociado a {email} por ser de tipo Estudiante")
 
     user = User(email=email, pw_hash=hash_password(DEMO_PASSWORD), **fields)
@@ -155,15 +155,15 @@ def seed_all(db: Session) -> None:
 
     ana = _get_or_create_user(
         db, "ana@alumno.unsam.edu.ar", nombre="Ana", apellido="Pérez",
-        rol=ROL_ESTUDIANTE, legajo="1001", dni="40111222", carreras=[lic_datos],
+        rol=ROL_ESTUDIANTE, legajo="1001", dni="40111222", carrera_id=lic_datos.id,
     )
     bruno = _get_or_create_user(
         db, "bruno@alumno.unsam.edu.ar", nombre="Bruno", apellido="Díaz",
-        rol=ROL_ESTUDIANTE, legajo="1002", dni="40333444", carreras=[lic_datos, ing_electronica],
+        rol=ROL_ESTUDIANTE, legajo="1002", dni="40333444", carrera_id=ing_electronica.id,
     )
     julian = _get_or_create_user(
             db, "julian@alumno.unsam.edu.ar", nombre="Julian", apellido="Fraga",
-            rol=ROL_ESTUDIANTE, legajo="666", dni="1234654968", carreras=[lic_datos, ing_electronica],
+            rol=ROL_ESTUDIANTE, legajo="666", dni="1234654968", carrera_id=lic_datos.id,
         )
     db.flush()
 

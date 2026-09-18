@@ -2,7 +2,7 @@ from typing import Optional
 from sqlalchemy.orm import Session,contains_eager
 from app.models import Carrera, TipoCarrera
 
-def obtener_y_validar_tipo_id(
+def _obtener_y_validar_tipo_id(
     db: Session, 
     tipo: Optional[str] = None, 
     tipo_id: Optional[int] = None
@@ -43,7 +43,7 @@ def obtener_y_validar_tipo_id(
 
     return tipo_obj.id
         
-def add_carrera(
+def add(
     db: Session,
     nombre: str,
     creditos_requeridos: int,
@@ -57,7 +57,7 @@ def add_carrera(
     if creditos_requeridos <= 0:
         raise ValueError("Los créditos requeridos deben ser mayores que cero.")
 
-    tipo_id_validado = obtener_y_validar_tipo_id(db, tipo=tipo, tipo_id=tipo_id)
+    tipo_id_validado = _obtener_y_validar_tipo_id(db, tipo=tipo, tipo_id=tipo_id)
     nueva_carrera = Carrera(
         nombre=nombre,
         tipo_id=tipo_id_validado,
@@ -70,17 +70,29 @@ def add_carrera(
     
     return nueva_carrera
 
-def get_carreras(db: Session) -> list[Carrera]:
-    return (db.query(Carrera)
-        .join(Carrera.tipo)
-        .options(contains_eager(Carrera.tipo))
-        .order_by(
-            TipoCarrera.nombre.asc(),  
-            Carrera.nombre.asc()
-        )
-        .all())
+def update(
+    db: Session,
+    carrera: Carrera,
+    nombre: str,
+    creditos_requeridos: int,
+    tipo: Optional[str] = None,
+    tipo_id: Optional[int] = None,
+) -> Carrera:
+    """Actualiza los datos de una carrera existente."""
+    if creditos_requeridos <= 0:
+        raise ValueError("Los créditos requeridos deben ser mayores que cero.")
 
-def resolver_carreras_desde_input(carreras_input: list[str], db: Session) -> list[Carrera]:
+    tipo_id_validado = _obtener_y_validar_tipo_id(db, tipo=tipo, tipo_id=tipo_id)
+
+    carrera.nombre = nombre.strip()
+    carrera.creditos_requeridos = creditos_requeridos
+    carrera.tipo_id = tipo_id_validado
+
+    db.commit()
+    db.refresh(carrera)
+
+    return carrera
+def get_carreras_desde_dropdown(carreras_input: list[str], db: Session) -> list[Carrera]:
     """
     Convierte la entrada enviada por un Form (ej: ["1", "3"] o ["todas"]) 
     en una lista de instancias del modelo Carrera de SQLAlchemy.
@@ -102,5 +114,15 @@ def resolver_carreras_desde_input(carreras_input: list[str], db: Session) -> lis
 
     return carreras_encontradas
 
-def get_creditos(carrera:Carrera) -> int:
-    return carrera.creditos_requeridos
+def get_carreras(db: Session) -> list[Carrera]:
+    return (db.query(Carrera)
+        .join(Carrera.tipo)
+        .options(contains_eager(Carrera.tipo))
+        .order_by(
+            TipoCarrera.nombre.asc(),  
+            Carrera.nombre.asc()
+        )
+        .all())
+
+def get_by_id(db: Session, carrera_id: int) -> Carrera | None:
+    return db.query(Carrera).filter(Carrera.id == carrera_id).first()

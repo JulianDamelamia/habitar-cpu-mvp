@@ -2,11 +2,13 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, String, func
+from sqlalchemy import DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 from app.database import Base
-from app.models.associations import user_carrera
+from typing import TYPE_CHECKING, Optional
+if TYPE_CHECKING:
+    from app.models.carrera import Carrera
 from app.models.enums import ROL_ESTUDIANTE
 
 
@@ -20,10 +22,15 @@ class User(Base):
     nombre: Mapped[str] = mapped_column(String(120), default="")
     apellido: Mapped[str] = mapped_column(String(120), default="")
     dni: Mapped[str | None] = mapped_column(String(20))
-    carreras: Mapped[list["Carrera"]] = relationship(
-        secondary=user_carrera,
-        back_populates="estudiantes",
+
+    carrera_id: Mapped[int | None] = mapped_column(
+        Integer, ForeignKey("carreras.id", ondelete="SET NULL"), nullable=True, index=True
     )
+    # Relación Muchos a Uno (1 estudiante -> 1 carrera)
+    carrera: Mapped[Optional["Carrera"]] = relationship(
+        back_populates="estudiantes"
+    )
+
     rol: Mapped[str] = mapped_column(String(20), default=ROL_ESTUDIANTE, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
@@ -32,12 +39,7 @@ class User(Base):
         name = f"{self.nombre} {self.apellido}".strip()
         return name or self.email
 
-    @property
-    def carreras_ids(self) -> list[int] | None:
-        if self.rol == ROL_ESTUDIANTE:
-            return [carrera.id for carrera in self.carreras]
-        return None
 
-    @validates("carreras")
+    @validates("carrera")
     def validate_carreras(self, key, carrera):
         return carrera

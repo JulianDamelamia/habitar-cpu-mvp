@@ -103,7 +103,7 @@ def crear(
         inicio, fin = _parse_dates(fecha_inicio, fecha_fin)
     except ValueError:
         return RedirectResponse(url="/admin?err=Fechas inválidas: revisá inicio y fin.", status_code=303)
-    carreras_asociadas_list = services.carreras.resolver_carreras_desde_input(carreras_asociadas, db)      
+    carreras_asociadas_list = services.carreras.get_carreras_desde_dropdown(carreras_asociadas, db)      
     services.actividades.create(
         db,
         titulo=titulo.strip(), descripcion=descripcion.strip(), tipo=tipo,
@@ -152,7 +152,7 @@ def actualizar(
         return RedirectResponse(url="/admin?err=Fechas inválidas: revisá inicio y fin.", status_code=303)
     was_published = a.estado == ESTADO_PUBLICADA
     fecha_cambio = a.fecha_inicio != inicio
-    carreras_asociadas_list = services.carreras.resolver_carreras_desde_input(carreras_asociadas, db)  
+    carreras_asociadas_list = services.carreras.get_carreras_desde_dropdown(carreras_asociadas, db)  
     services.actividades.update(
         db, a,
         titulo=titulo.strip(), descripcion=descripcion.strip(), tipo=tipo,

@@ -4,15 +4,14 @@ from __future__ import annotations
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.models import Actividad, Asistencia, Carrera
-from app.models.associations import user_carrera
+from app.models import Actividad, Asistencia, Carrera, User
 
 
 def required_credits(db: Session, user_id: int) -> int:
     required = (
-        db.query(func.max(Carrera.creditos_requeridos))
-        .join(user_carrera, user_carrera.c.carrera_id == Carrera.id)
-        .filter(user_carrera.c.user_id == user_id)
+        db.query(Carrera.creditos_requeridos)
+        .join(User, User.carrera_id == Carrera.id)
+        .filter(User.id == user_id)
         .scalar()
     )
     return int(required or 0)
