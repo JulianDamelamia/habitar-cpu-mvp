@@ -40,7 +40,7 @@ def cupo_info(db: Session, actividad: Actividad) -> dict:
 def list_published(
     db: Session,
     *,
-    carreras_ids: list[int] | None = None,
+    carrera_id: list[int] | None = None,
     tipo: str | None = None,
     fecha: str | None = None,
     min_creditos: int | None = None,
@@ -50,13 +50,13 @@ def list_published(
     #si no es estudiante, carreras_ids es None
 
     #caso estudiante no tiene asignada ninguna carrera, early return
-    if carreras_ids is not None and len(carreras_ids) == 0: 
+    if carrera_id is None: 
         return []
 
     stmt = select(Actividad).where(Actividad.estado == ESTADO_PUBLICADA)
 
-    if carreras_ids:
-        stmt = stmt.where(Actividad.carreras_asociadas.any(Carrera.id.in_(carreras_ids)))
+    if carrera_id:
+        stmt = stmt.where(Actividad.carreras_asociadas.any(Carrera.id == carrera_id))
     if tipo:
         stmt = stmt.where(Actividad.tipo == tipo)
     if min_creditos:

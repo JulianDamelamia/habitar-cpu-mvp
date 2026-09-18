@@ -27,7 +27,7 @@ def list_actividades(
     min_cred = int(min_creditos) if min_creditos.isdigit() else None
     items = services.actividades.list_published(
         db,
-        carreras_ids = user.carreras_ids,
+        carrera_id = user.carrera_id,
         tipo=tipo or None,
         fecha=fecha or None,
         min_creditos=min_cred,
