@@ -2,7 +2,7 @@ from typing import Optional
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session,contains_eager
 from app.models import Carrera, TipoCarrera, User
-from app.models.enums import ROL_ESTUDIANTE
+from app.models.enums import ESTADO_BORRADOR, ROL_ESTUDIANTE
 
 def _obtener_y_validar_tipo_id(
     db: Session, 
@@ -189,3 +189,22 @@ def get_cantidad_inscriptos_por_carrera(db: Session, carrera_id: int) -> int:
     )
 
     return db.execute(stmt).scalar_one()
+
+
+def eliminar(db: Session, carrera: Carrera) -> int:
+    cantidad_inscriptos = get_cantidad_inscriptos_por_carrera(db, carrera.id)
+    if cantidad_inscriptos:
+        raise ValueError(
+            f"no se puede eliminar la carrera porque tiene {cantidad_inscriptos} "
+            "cantidad de inscriptos. Borre o rematricule los usuarios primero"
+        )
+
+    actividades = list(carrera.actividades)
+    for actividad in actividades:
+        actividad.carreras_asociadas.remove(carrera)
+        if not actividad.carreras_asociadas:
+            actividad.estado = ESTADO_BORRADOR
+
+    db.delete(carrera)
+    db.commit()
+    return len(actividades)

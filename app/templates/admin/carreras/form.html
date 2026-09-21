@@ -39,5 +39,44 @@
       <a href="/admin/carreras" class="text-slate-500 px-3 py-2 hover:underline">Cancelar</a>
     </div>
   </form>
+
+  {% if carrera %}
+    <div class="mt-8 border-t border-slate-200 pt-5">
+      <button type="button" id="mostrar-eliminacion" class="text-rose-600 hover:underline text-sm">
+        Eliminar carrera
+      </button>
+      <div id="eliminacion-panel" class="hidden mt-3 rounded-lg border border-rose-200 bg-rose-50 p-4">
+        <p class="text-sm text-rose-800 mb-3">Ingresá tu contraseña para continuar con la eliminación.</p>
+        <form method="post" action="/admin/carreras/{{ carrera.id }}/verificar-eliminacion" class="flex flex-wrap gap-2">
+          <input name="password" type="password" required autocomplete="current-password" class="border rounded-lg px-3 py-2">
+          <button type="submit" class="bg-rose-600 hover:bg-rose-700 text-white rounded-lg px-4 py-2 text-sm font-medium">Verificar contraseña</button>
+        </form>
+      </div>
+    </div>
+
+    {% if request.query_params.get('confirmar_eliminacion') == '1' %}
+      <div id="confirmacion-eliminacion" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-4" role="dialog" aria-modal="true">
+        <div class="bg-white rounded-xl shadow-xl p-6 max-w-md w-full">
+          <h2 class="text-lg font-bold mb-2">Confirmar eliminación</h2>
+          <p class="text-sm text-slate-600 mb-4">Esta acción eliminará la carrera y la quitará de las actividades asociadas.</p>
+          <form method="post" action="/admin/carreras/{{ carrera.id }}/eliminar" class="flex justify-end gap-2">
+            <input type="hidden" name="confirmar" value="eliminar">
+            <a href="/admin/carreras/{{ carrera.id }}/editar" class="text-slate-500 px-3 py-2 hover:underline">Volver</a>
+            <button type="submit" class="bg-rose-600 hover:bg-rose-700 text-white rounded-lg px-4 py-2 font-medium">Confirmar eliminación</button>
+          </form>
+        </div>
+      </div>
+    {% endif %}
+  {% endif %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const botonEliminacion = document.getElementById('mostrar-eliminacion');
+  const panelEliminacion = document.getElementById('eliminacion-panel');
+  if (botonEliminacion && panelEliminacion) {
+    botonEliminacion.addEventListener('click', () => panelEliminacion.classList.toggle('hidden'));
+  }
+</script>
 {% endblock %}

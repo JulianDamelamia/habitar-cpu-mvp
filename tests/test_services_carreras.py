@@ -1,12 +1,13 @@
 import pytest
 
-from app.models import Carrera
+from app.models import Carrera, ESTADO_BORRADOR
 from app.services.carreras import (
     add,
     get_carreras,
     _obtener_y_validar_tipo_id,
     get_carreras_desde_dropdown,
     update,
+    eliminar,
 )
 
 
@@ -86,6 +87,31 @@ def test_update_rechaza_combinacion_duplicada_sin_distinguir_mayusculas(db_sessi
 
     with pytest.raises(ValueError, match="ya existe"):
         update(db_session, otra, " ARQUITECTURA ", creditos_requeridos=18, tipo_id=1)
+
+
+def test_eliminar_desvincula_actividad_y_la_pasa_a_borrador(
+    db_session, carrera_factory, actividad_factory
+):
+    carrera = carrera_factory(nombre="Arquitectura")
+    actividad = actividad_factory(carreras=[carrera])
+
+    eliminar(db_session, carrera)
+
+    assert db_session.get(Carrera, carrera.id) is None
+    assert actividad.carreras_asociadas == []
+    assert actividad.estado == ESTADO_BORRADOR
+
+
+def test_eliminar_rechaza_carreras_con_inscriptos(db_session, carrera_factory, user_factory):
+    carrera = carrera_factory(nombre="Arquitectura")
+    estudiante = user_factory()
+    estudiante.carrera_id = carrera.id
+    db_session.commit()
+
+    with pytest.raises(ValueError, match="no se puede eliminar.*1"):
+        eliminar(db_session, carrera)
+
+    assert db_session.get(Carrera, carrera.id) is not None
 
 
 def test_add_rechaza_creditos_requeridos_invalidos(db_session):

@@ -229,3 +229,69 @@ def actualizar(
         url="/admin/carreras?msg=Carrera actualizada.",
         status_code=303,
     )
+
+
+@router.post("/admin/carreras/{carrera_id}/verificar-eliminacion")
+def verificar_eliminacion(
+    request: Request,
+    carrera_id: int,
+    password: str = Form(...),
+    user: User = Depends(ADMIN),
+    db: Session = Depends(get_db),
+) -> Response:
+    carrera = services.carreras.get_by_id(db, carrera_id)
+    if carrera is None:
+        return RedirectResponse(
+            url="/admin/carreras?err=Carrera no encontrada.", status_code=303
+        )
+    if not verify_password(password, user.pw_hash):
+        return RedirectResponse(
+            url=f"/admin/carreras/{carrera_id}/editar?err=Contraseña incorrecta.",
+            status_code=303,
+        )
+    cantidad = services.carreras.get_cantidad_inscriptos_por_carrera(db, carrera_id)
+    if cantidad:
+        return RedirectResponse(
+            url=(
+                f"/admin/carreras/{carrera_id}/editar?err=no se puede eliminar "
+                f"la carrera porque tiene {cantidad} cantidad de inscriptos. "
+                "Borre los usuarios primero"
+            ),
+            status_code=303,
+        )
+    request.session["carrera_eliminacion_autorizada"] = carrera_id
+    return RedirectResponse(
+        url=f"/admin/carreras/{carrera_id}/editar?confirmar_eliminacion=1",
+        status_code=303,
+    )
+
+
+@router.post("/admin/carreras/{carrera_id}/eliminar")
+def eliminar_carrera(
+    request: Request,
+    carrera_id: int,
+    confirmar: str = Form(...),
+    user: User = Depends(ADMIN),
+    db: Session = Depends(get_db),
+) -> RedirectResponse:
+    carrera = services.carreras.get_by_id(db, carrera_id)
+    if carrera is None:
+        return RedirectResponse(
+            url="/admin/carreras?err=Carrera no encontrada.", status_code=303
+        )
+    autorizada = request.session.get("carrera_eliminacion_autorizada") == carrera_id
+    request.session.pop("carrera_eliminacion_autorizada", None)
+    if confirmar != "eliminar" or not autorizada:
+        return RedirectResponse(
+            url=f"/admin/carreras/{carrera_id}/editar?err=Confirmación de eliminación inválida.",
+            status_code=303,
+        )
+    try:
+        services.carreras.eliminar(db, carrera)
+    except ValueError as err:
+        return RedirectResponse(
+            url=f"/admin/carreras/{carrera_id}/editar?err={err}", status_code=303
+        )
+    return RedirectResponse(
+        url="/admin/carreras?msg=Carrera eliminada correctamente.", status_code=303
+    )
