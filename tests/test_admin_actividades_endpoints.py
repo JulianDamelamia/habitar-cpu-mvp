@@ -1,4 +1,5 @@
 from urllib.parse import unquote
+from datetime import datetime, timedelta, timezone
 
 import pytest
 from fastapi.testclient import TestClient
@@ -12,6 +13,7 @@ from app.models import (
     Actividad,
 )
 from app.security import hash_password
+from app.routers.admin_actividades import _parse_dates, _parse_duration
 
 
 @pytest.fixture
@@ -53,6 +55,26 @@ def actividad_form_data(docente_id, carrera_id, *, titulo="Actividad nueva"):
         "cupo_max": "20",
         "carreras_asociadas": str(carrera_id),
     }
+
+
+def test_parse_duration_accepts_hh_mm():
+    assert _parse_duration("02:15") == timedelta(hours=2, minutes=15)
+
+
+def test_parse_duration_rejects_invalid_format():
+    with pytest.raises(ValueError, match="HH:MM"):
+        _parse_duration("2:15")
+
+
+def test_parse_dates_rejects_dates_before_today():
+    yesterday = datetime.now(timezone.utc).date() - timedelta(days=1)
+
+    with pytest.raises(ValueError, match="anteriores al día de hoy"):
+        _parse_dates(
+            f"{yesterday.isoformat()}T10:00",
+            duracion="01:00",
+            modo_finalizacion="duracion",
+        )
 
 
 def test_admin_activities_pages_require_coordination_role(db_session, user_factory):

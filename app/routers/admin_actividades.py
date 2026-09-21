@@ -1,7 +1,8 @@
 """E-08 Actividad management (coordination backoffice)."""
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta, timezone
+import re
 from typing import List, Literal
 
 from fastapi import APIRouter, Depends, Form, Query, Request
@@ -34,17 +35,55 @@ router = APIRouter()
 ADMIN = requiere_roles("coordinacion")
 
 def _parse_dt(value: str) -> datetime:
+    if not re.fullmatch(r"20\d{2}-\d{2}-\d{2}T\d{2}:\d{2}", value or ""):
+        raise ValueError("La fecha debe tener formato AAAA-MM-DDTHH:MM.")
     # datetime-local -> naive; store as UTC-aware (wall-clock kept for display).
     return datetime.fromisoformat(value).replace(tzinfo=timezone.utc)
 
 
-def _parse_dates(fecha_inicio: str, fecha_fin: str) -> tuple[datetime, datetime]:
+def _parse_duration(value: str) -> timedelta:
+    if not re.fullmatch(r"\d{2}:\d{2}", value.strip()):
+        raise ValueError("La duración debe tener formato HH:MM.")
+    try:
+        hours_text, minutes_text = value.strip().split(":", 1)
+        hours = int(hours_text)
+        minutes = int(minutes_text)
+    except ValueError:
+        raise ValueError("La duración debe tener formato HH:MM.") from None
+    if hours > 25 or not 0 <= minutes < 60 or hours == 0 and minutes == 0:
+        raise ValueError("La duración debe ser mayor que 00:00 y tener minutos válidos.")
+    return timedelta(hours=hours, minutes=minutes)
+
+
+def _parse_dates(
+    fecha_inicio: str,
+    fecha_fin: str = "",
+    duracion: str = "",
+    modo_finalizacion: str = "duracion",
+) -> tuple[datetime, datetime]:
     """Parse both dates and validate order. Raises ValueError on malformed/invalid input."""
     inicio = _parse_dt(fecha_inicio)
-    fin = _parse_dt(fecha_fin)
+    if modo_finalizacion == "duracion":
+        if duracion:
+            fin = inicio + _parse_duration(duracion)
+        else:
+            # Compatibility with clients that still submit an explicit end date.
+            fin = _parse_dt(fecha_fin)
+    elif modo_finalizacion == "fecha":
+        fin = _parse_dt(fecha_fin)
+    else:
+        raise ValueError("Modo de finalización inválido.")
+    hoy = datetime.now(timezone.utc).date()
+    if inicio.date() < hoy or fin.date() < hoy:
+        raise ValueError("Las fechas no pueden ser anteriores al día de hoy.")
     if fin < inicio:
         raise ValueError("La fecha de fin es anterior al inicio.")
     return inicio, fin
+
+
+def _format_duration(inicio: datetime, fin: datetime) -> str:
+    total_minutes = max(0, int((fin - inicio).total_seconds() // 60))
+    return f"{total_minutes // 60:02d}:{total_minutes % 60:02d}"
 
 
 def _docentes(db: Session) -> list[User]:
@@ -79,7 +118,9 @@ def nueva(request: Request, user: User = Depends(ADMIN), db: Session = Depends(g
     return render(
         request, "admin/form.html", user=user, db=db,
         a=None, docentes=_docentes(db), tipos=[TIPO_PRESENCIAL, TIPO_VIRTUAL],
-        lista_carreras=services.carreras.get_carreras(db)
+        lista_carreras=services.carreras.get_carreras(db),
+        duracion_inicial="01:00",
+        fecha_hoy=date.today().isoformat(),
     )
 
 
@@ -90,7 +131,9 @@ def crear(
     descripcion: str = Form(""),
     tipo: str = Form(TIPO_PRESENCIAL),
     fecha_inicio: str = Form(...),
-    fecha_fin: str = Form(...),
+    fecha_fin: str = Form(""),
+    duracion: str = Form(""),
+    modo_finalizacion: str = Form("duracion"),
     lugar: str = Form(""),
     docente_id: str = Form(""),
     creditos: int = Form(1),
@@ -100,7 +143,7 @@ def crear(
     db: Session = Depends(get_db),
 ):
     try:
-        inicio, fin = _parse_dates(fecha_inicio, fecha_fin)
+        inicio, fin = _parse_dates(fecha_inicio, fecha_fin, duracion, modo_finalizacion)
     except ValueError:
         return RedirectResponse(url="/admin?err=Fechas inválidas: revisá inicio y fin.", status_code=303)
     carreras_asociadas_list = services.carreras.get_carreras_desde_dropdown(carreras_asociadas, db)      
@@ -122,7 +165,9 @@ def editar(request: Request, actividad_id: int, user: User = Depends(ADMIN), db:
     return render(
         request, "admin/form.html", user=user, db=db,
         a=a, docentes=_docentes(db), tipos=[TIPO_PRESENCIAL, TIPO_VIRTUAL],
-        lista_carreras = services.carreras.get_carreras(db)
+        lista_carreras=services.carreras.get_carreras(db),
+        duracion_inicial=_format_duration(a.fecha_inicio, a.fecha_fin),
+        fecha_hoy=date.today().isoformat(),
     )
 
 
@@ -134,7 +179,9 @@ def actualizar(
     descripcion: str = Form(""),
     tipo: str = Form(TIPO_PRESENCIAL),
     fecha_inicio: str = Form(...),
-    fecha_fin: str = Form(...),
+    fecha_fin: str = Form(""),
+    duracion: str = Form(""),
+    modo_finalizacion: str = Form("duracion"),
     lugar: str = Form(""),
     docente_id: str = Form(""),
     creditos: int = Form(1),
@@ -147,7 +194,7 @@ def actualizar(
     if a is None:
         return RedirectResponse(url="/admin?err=Actividad no encontrada.", status_code=303)
     try:
-        inicio, fin = _parse_dates(fecha_inicio, fecha_fin)
+        inicio, fin = _parse_dates(fecha_inicio, fecha_fin, duracion, modo_finalizacion)
     except ValueError:
         return RedirectResponse(url="/admin?err=Fechas inválidas: revisá inicio y fin.", status_code=303)
     was_published = a.estado == ESTADO_PUBLICADA

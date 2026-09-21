@@ -4,7 +4,7 @@
 <a href="/admin" class="text-sm text-indigo-600 hover:underline inline-flex items-center gap-1"><i data-lucide="arrow-left" class="w-4 h-4"></i> Panel</a>
 <div class="bg-white rounded-2xl shadow p-8 mt-3 max-w-2xl">
   <h1 class="text-2xl font-bold mb-5">{{ 'Editar actividad' if a else 'Nueva actividad' }}</h1>
-  <form method="post" action="{{ ('/admin/actividades/' ~ a.id) if a else '/admin/actividades' }}" class="space-y-4">
+  <form method="post" novalidate action="{{ ('/admin/actividades/' ~ a.id) if a else '/admin/actividades' }}" class="space-y-4">
     <div>
       <label class="block text-sm font-medium mb-1">Título</label>
       <input name="titulo" value="{{ a.titulo if a else '' }}" required class="w-full border rounded-lg px-3 py-2">
@@ -63,10 +63,31 @@
         </select>
       </div>
     </div>
-    <div class="grid sm:grid-cols-2 gap-3">
-      <div><label class="block text-sm font-medium mb-1">Inicio</label><input type="datetime-local" name="fecha_inicio" value="{{ a.fecha_inicio|fmt_input if a else '' }}" required class="w-full border rounded-lg px-3 py-2"></div>
-      <div><label class="block text-sm font-medium mb-1">Fin</label><input type="datetime-local" name="fecha_fin" value="{{ a.fecha_fin|fmt_input if a else '' }}" required class="w-full border rounded-lg px-3 py-2"></div>
+    <div class="grid sm:grid-cols-2 gap-3 items-end">
+      <div>
+        <label for="fecha_inicio" class="block text-sm font-medium mb-1">Inicio</label>
+        <input id="fecha_inicio" type="datetime-local" name="fecha_inicio" min="{{ fecha_hoy }}T00:00" step="any" list="horarios-15-minutos" value="{{ a.fecha_inicio|fmt_input if a else '' }}" required class="w-full border rounded-lg px-3 py-2">
+      </div>
+      <div>
+        <div class="flex items-end justify-between gap-3 mb-1">
+          <label id="finalizacion-label" for="duracion" class="block text-sm font-medium">Finalización</label>
+          <div class="inline-flex rounded-lg bg-slate-100 p-0.5" role="group" aria-label="Modo de finalización">
+          <label class="cursor-pointer">
+            <input type="radio" name="modo_finalizacion" value="duracion" class="peer sr-only" checked>
+            <span class="block rounded-md px-2.5 py-1 text-xs font-medium text-slate-600 peer-checked:bg-white peer-checked:text-indigo-700 peer-checked:shadow-sm">Duración</span>
+          </label>
+          <label class="cursor-pointer">
+            <input type="radio" name="modo_finalizacion" value="fecha" class="peer sr-only">
+            <span class="block rounded-md px-2.5 py-1 text-xs font-medium text-slate-600 peer-checked:bg-white peer-checked:text-indigo-700 peer-checked:shadow-sm">Fecha</span>
+          </label>
+        </div>
+        </div>
+        <input id="duracion" type="text" name="duracion" inputmode="numeric" pattern="[0-9]{2}:[0-5][0-9]" placeholder="HH:MM" value="{{ duracion_inicial }}" required class="w-full border rounded-lg px-3 py-2">
+        <input id="fecha_fin" type="datetime-local" name="fecha_fin" min="{{ fecha_hoy }}T00:00" step="any" list="horarios-15-minutos" value="{{ a.fecha_fin|fmt_input if a else '' }}" class="hidden w-full border rounded-lg px-3 py-2">
+      </div>
     </div>
+    <datalist id="horarios-15-minutos"></datalist>
+    <p id="fecha-error" class="hidden rounded-lg bg-rose-50 px-3 py-2 text-sm text-rose-700" role="alert"></p>
     <div>
       <label class="block text-sm font-medium mb-1">Lugar</label>
       <input name="lugar" value="{{ a.lugar if a else '' }}" class="w-full border rounded-lg px-3 py-2">
@@ -76,9 +97,115 @@
       <div><label class="block text-sm font-medium mb-1">Cupo máximo</label><input type="number" name="cupo_max" min="1" value="{{ a.cupo_max if a else 30 }}" required class="w-full border rounded-lg px-3 py-2"></div>
     </div>
     <div class="flex gap-2 pt-2">
-      <button class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-6 py-2 font-medium">Guardar</button>
+      <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-6 py-2 font-medium">Guardar</button>
       <a href="/admin" class="text-slate-500 px-3 py-2 hover:underline">Cancelar</a>
     </div>
   </form>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  const modosFinalizacion = document.querySelectorAll('input[name="modo_finalizacion"]');
+  const duracionInput = document.getElementById('duracion');
+  const fechaFinInput = document.getElementById('fecha_fin');
+  const finalizacionLabel = document.getElementById('finalizacion-label');
+  const fechaError = document.getElementById('fecha-error');
+  const formulario = document.querySelector('form');
+  const fechaInputs = [document.getElementById('fecha_inicio'), fechaFinInput];
+  const fechaHoy = '{{ fecha_hoy }}';
+  const horariosSugeridos = document.getElementById('horarios-15-minutos');
+
+  function actualizarHorariosSugeridos(input) {
+    const fecha = input.value.slice(0, 10) || fechaHoy;
+    horariosSugeridos.replaceChildren();
+    for (let hora = 0; hora < 24; hora += 1) {
+      for (let minuto = 0; minuto < 60; minuto += 15) {
+        const opcion = document.createElement('option');
+        opcion.value = `${fecha}T${String(hora).padStart(2, '0')}:${String(minuto).padStart(2, '0')}`;
+        horariosSugeridos.appendChild(opcion);
+      }
+    }
+  }
+
+  function fechaValida(valor) {
+    if (!/^20\d{2}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(valor)) return false;
+    const [fecha, hora] = valor.split('T');
+    const [anio, mes, dia] = fecha.split('-').map(Number);
+    const [horas, minutos] = hora.split(':').map(Number);
+    const fechaReal = new Date(Date.UTC(anio, mes - 1, dia));
+    return mes >= 1 && mes <= 12 && dia >= 1 && dia <= 31 &&
+      fechaReal.getUTCFullYear() === anio && fechaReal.getUTCMonth() === mes - 1 &&
+      fechaReal.getUTCDate() === dia && horas >= 0 && horas <= 23 &&
+      minutos >= 0 && minutos <= 59;
+  }
+
+  function validarFecha(evento) {
+    const input = evento.target;
+    if (input.disabled || !input.value) {
+      input.setCustomValidity('');
+      actualizarMensajeFecha();
+      return;
+    }
+    if (!fechaValida(input.value)) {
+      input.setCustomValidity('Ingresá una fecha y hora válida.');
+    } else if (input.value.slice(0, 10) < fechaHoy) {
+      input.setCustomValidity('La fecha no puede ser anterior a la actual.');
+    } else {
+      input.setCustomValidity('');
+    }
+    actualizarMensajeFecha();
+  }
+
+  function actualizarMensajeFecha() {
+    const inputInvalido = fechaInputs.find((input) => {
+      if (input.disabled || !input.value) return false;
+      return !fechaValida(input.value) || input.value.slice(0, 10) < fechaHoy;
+    });
+    if (!inputInvalido) {
+      fechaError.textContent = '';
+      fechaError.classList.add('hidden');
+      return;
+    }
+    fechaError.textContent = !fechaValida(inputInvalido.value)
+      ? 'Ingresá una fecha y hora válida.'
+      : 'La fecha no puede ser anterior a la actual.';
+    fechaError.classList.remove('hidden');
+  }
+
+  duracionInput.addEventListener('input', () => {
+    duracionInput.value = duracionInput.value.replace(/[^0-9:]/g, '').slice(0, 5);
+  });
+  fechaInputs.forEach((input) => {
+    input.addEventListener('input', validarFecha);
+    input.addEventListener('focus', () => actualizarHorariosSugeridos(input));
+  });
+
+  function actualizarModoFinalizacion() {
+    const modoSeleccionado = document.querySelector('input[name="modo_finalizacion"]:checked').value;
+    const usaDuracion = modoSeleccionado === 'duracion';
+    duracionInput.classList.toggle('hidden', !usaDuracion);
+    fechaFinInput.classList.toggle('hidden', usaDuracion);
+    duracionInput.disabled = !usaDuracion;
+    fechaFinInput.disabled = usaDuracion;
+    finalizacionLabel.setAttribute('for', usaDuracion ? 'duracion' : 'fecha_fin');
+    actualizarMensajeFecha();
+  }
+
+  modosFinalizacion.forEach((modo) => modo.addEventListener('change', actualizarModoFinalizacion));
+  formulario.addEventListener('submit', (evento) => {
+    fechaInputs.forEach((input) => {
+      if (!input.disabled) validarFecha({ target: input });
+    });
+    if (!duracionInput.disabled && !/^\d{2}:(?:[0-5]\d)$/.test(duracionInput.value)) {
+      duracionInput.setCustomValidity('La duración debe tener formato HH:MM.');
+    } else {
+      duracionInput.setCustomValidity('');
+    }
+    if (!formulario.reportValidity()) evento.preventDefault();
+  });
+  actualizarModoFinalizacion();
+  actualizarHorariosSugeridos(fechaInputs[0]);
+  fechaInputs.forEach((input) => validarFecha({ target: input }));
+</script>
 {% endblock %}
