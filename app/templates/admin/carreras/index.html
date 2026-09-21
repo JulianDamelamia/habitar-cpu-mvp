@@ -6,13 +6,6 @@
   <a href="/admin/carreras/nueva" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2 text-sm font-medium transition-colors">+ Agregar carrera</a>
 </div>
 
-<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-  <div class="bg-white rounded-xl shadow p-4"><p class="text-xs text-slate-400">Total carreras</p><p class="text-2xl font-bold">{{ carreras|length }}</p></div>
-  <div class="bg-white rounded-xl shadow p-4"><p class="text-xs text-slate-400">Total Ingeniería</p><p class="text-2xl font-bold text-indigo-600">{{ total_ingenieria }}</p></div>
-  <div class="bg-white rounded-xl shadow p-4"><p class="text-xs text-slate-400">Total Licenciatura</p><p class="text-2xl font-bold text-emerald-600">{{ total_licenciatura }}</p></div>
-  <div class="bg-white rounded-xl shadow p-4"><p class="text-xs text-slate-400">Total inscriptos</p><p class="text-2xl font-bold text-amber-500">{{ total_inscriptos }}</p></div>
-</div>
-
 <div class="bg-white rounded-2xl shadow p-4 mb-4">
   <form method="get" action="/admin/carreras" class="flex flex-col md:flex-row md:items-end gap-3">
     <div>
@@ -31,6 +24,17 @@
     {% if tipo_seleccionado or nombre_buscado %}
       <a href="/admin/carreras" class="text-xs text-rose-600 hover:text-rose-800 font-medium underline pb-2">Limpiar filtros</a>
     {% endif %}
+    <div class="flex items-center gap-4 md:ml-auto pt-2 md:pt-0">
+      <div>
+        <p class="text-xs text-slate-400">Carreras en vista</p>
+        <p class="text-lg font-bold">{{ carreras|length }}</p>
+      </div>
+      <div>
+        <p class="text-xs text-slate-400">Inscriptos</p>
+        <p class="text-lg font-bold text-indigo-600">{{ total_inscriptos }}</p>
+      </div>
+    </div>
+    
   </form>
 </div>
 
