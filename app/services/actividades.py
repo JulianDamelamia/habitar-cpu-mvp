@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.models import (
     Actividad,
+    ESTADO_BORRADOR,
     ESTADO_PUBLICADA,
     Inscripcion,
     INSCRIPCION_ALTA,
@@ -87,7 +88,9 @@ def list_all(db: Session, carreras_ids: list[str] | None = None) -> list[Activid
 
 
 def create(db: Session, **fields) -> Actividad:
-    # 1. Separar la lógica de carreras antes de instanciar Actividad(**fields)
+    carreras_asociadas = fields.get("carreras_asociadas") or []
+    if not carreras_asociadas:
+        fields["estado"] = ESTADO_BORRADOR
     actividad = Actividad(**fields)
     db.add(actividad)
     db.commit()
@@ -96,6 +99,9 @@ def create(db: Session, **fields) -> Actividad:
 
 
 def update(db: Session, actividad: Actividad, **fields) -> Actividad:
+    carreras_asociadas = fields.get("carreras_asociadas", actividad.carreras_asociadas)
+    if not carreras_asociadas:
+        fields["estado"] = ESTADO_BORRADOR
     for key, value in fields.items():
         setattr(actividad, key, value)
     db.commit()

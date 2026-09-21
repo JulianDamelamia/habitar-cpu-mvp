@@ -145,6 +145,26 @@ def test_create_activity_with_invalid_dates_redirects_with_error(admin_actividad
     assert db_session.query(Actividad).count() == 0
 
 
+def test_activity_without_career_cannot_be_published(admin_actividades_client):
+    client, db_session, docente, _ = admin_actividades_client
+    data = actividad_form_data(docente.id, 0)
+    data.pop("carreras_asociadas")
+
+    create_response = client.post("/admin/actividades", data=data)
+
+    assert create_response.status_code == 303
+    actividad = db_session.query(Actividad).one()
+    assert actividad.estado == ESTADO_BORRADOR
+    assert actividad.carreras_asociadas == []
+
+    publish_response = client.post(f"/admin/actividades/{actividad.id}/publicar")
+
+    assert publish_response.status_code == 303
+    assert "sin carreras asociadas" in unquote(publish_response.headers["location"])
+    db_session.refresh(actividad)
+    assert actividad.estado == ESTADO_BORRADOR
+
+
 def test_missing_activity_endpoints_redirect_with_not_found(admin_actividades_client):
     client, *_ = admin_actividades_client
 

@@ -101,7 +101,13 @@
             <a href="/admin/inscriptos/{{ r.a.id }}" class="text-indigo-600 hover:underline">Inscriptos</a>
             <a href="/docente/actividades/{{ r.a.id }}/asistencia" class="text-indigo-600 hover:underline">Asistencia</a>
             {% if r.a.estado != 'publicada' %}
-              <form method="post" action="/admin/actividades/{{ r.a.id }}/publicar"><button class="text-emerald-600 hover:underline">Publicar</button></form>
+              {% if r.a.carreras_asociadas %}
+                <form method="post" action="/admin/actividades/{{ r.a.id }}/publicar"><button class="text-emerald-600 hover:underline">Publicar</button></form>
+              {% else %}
+                <span class="inline-flex" data-tooltip="No se puede publicar una actividad sin carreras asociadas.">
+                  <button type="button" disabled class="text-slate-400 cursor-not-allowed">Publicar</button>
+                </span>
+              {% endif %}
             {% else %}
               <form method="post" action="/admin/actividades/{{ r.a.id }}/cancelar" onsubmit="return confirm('¿Cancelar esta actividad?')"><button class="text-rose-600 hover:underline">Cancelar</button></form>
             {% endif %}
@@ -122,4 +128,31 @@
     </tbody>
   </table>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  document.querySelectorAll('[data-tooltip]').forEach((trigger) => {
+    let tooltip;
+
+    trigger.addEventListener('mouseenter', () => {
+      tooltip = document.createElement('div');
+      tooltip.setAttribute('role', 'tooltip');
+      tooltip.textContent = trigger.dataset.tooltip;
+      tooltip.className = 'fixed z-50 w-64 rounded-lg bg-slate-900 px-3 py-2 text-center text-xs font-medium text-white shadow-lg';
+      document.body.appendChild(tooltip);
+
+      const triggerBox = trigger.getBoundingClientRect();
+      const tooltipBox = tooltip.getBoundingClientRect();
+      tooltip.style.left = `${triggerBox.left + triggerBox.width / 2}px`;
+      tooltip.style.top = `${Math.max(8, triggerBox.top - tooltipBox.height - 8)}px`;
+      tooltip.style.transform = 'translateX(-50%)';
+    });
+
+    trigger.addEventListener('mouseleave', () => {
+      tooltip?.remove();
+      tooltip = null;
+    });
+  });
+</script>
 {% endblock %}

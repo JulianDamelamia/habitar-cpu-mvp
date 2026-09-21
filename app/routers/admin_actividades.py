@@ -196,6 +196,11 @@ def publicar(request: Request, actividad_id: int, user: User = Depends(ADMIN), d
     a = services.actividades.get(db, actividad_id)
     if a is None:
         return RedirectResponse(url="/admin?err=Actividad no encontrada.", status_code=303)
+    if not a.carreras_asociadas:
+        return RedirectResponse(
+            url="/admin?err=No se puede publicar una actividad sin carreras asociadas.",
+            status_code=303,
+        )
     services.actividades.update(db, a, estado=ESTADO_PUBLICADA)
     return RedirectResponse(url="/admin?msg=Actividad publicada. Ya es visible para los estudiantes.", status_code=303)
 
