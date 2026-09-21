@@ -9,7 +9,7 @@ from starlette.responses import Response
 from app import services
 from app.database import get_db
 from app.models import Carrera, TipoCarrera, User
-from app.security import requiere_roles
+from app.security import requiere_roles, verify_password
 from app.templating import render
 
 router = APIRouter()
@@ -119,7 +119,10 @@ def nueva_carrera(
         user=user,
         db=db,
         carrera=None,
-        tipos=[t.nombre for t in TipoCarrera],
+        tipos=[
+            tipo.nombre
+            for tipo in db.query(TipoCarrera).order_by(TipoCarrera.nombre).all()
+        ],
     )
 
 
@@ -129,9 +132,16 @@ def crear_carrera(
     nombre: str = Form(...),
     tipo: str = Form(...),
     creditos_requeridos: int = Form(...),
+    password: str = Form(...),
     user: User = Depends(ADMIN),
     db: Session = Depends(get_db),
 ) -> RedirectResponse:
+    if not verify_password(password, user.pw_hash):
+        return RedirectResponse(
+            url="/admin/carreras/nueva?err=Contraseña incorrecta.",
+            status_code=303,
+        )
+
     try:
         services.carreras.add(
             db,
@@ -170,7 +180,10 @@ def editar_carrera(
         user=user,
         db=db,
         carrera=carrera,
-        tipos=[t.value for t in TipoCarrera],
+        tipos=[
+            tipo.nombre
+            for tipo in db.query(TipoCarrera).order_by(TipoCarrera.nombre).all()
+        ],
     )
 
 
@@ -181,6 +194,7 @@ def actualizar(
     nombre: str = Form(...),
     tipo: str = Form(...),
     creditos_requeridos: int = Form(...),
+    password: str = Form(...),
     user: User = Depends(ADMIN),
     db: Session = Depends(get_db),
 ) -> RedirectResponse:
@@ -188,6 +202,12 @@ def actualizar(
     if carrera is None:
         return RedirectResponse(
             url="/admin/carreras?err=Carrera no encontrada.",
+            status_code=303,
+        )
+
+    if not verify_password(password, user.pw_hash):
+        return RedirectResponse(
+            url=f"/admin/carreras/{carrera_id}/editar?err=Contraseña incorrecta.",
             status_code=303,
         )
 

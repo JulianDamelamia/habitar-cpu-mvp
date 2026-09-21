@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Editar carrera' if carrera else 'Nueva carrera' }}{% endblock %}
+{% block content %}
+<a href="/admin/carreras" class="text-sm text-indigo-600 hover:underline inline-flex items-center gap-1">
+  <i data-lucide="arrow-left" class="w-4 h-4"></i> Panel de carreras
+</a>
+
+<div class="bg-white rounded-2xl shadow p-8 mt-3 max-w-2xl">
+  <h1 class="text-2xl font-bold mb-5">{{ 'Editar carrera' if carrera else 'Agregar carrera' }}</h1>
+  <form method="post" action="{{ '/admin/carreras/' ~ carrera.id if carrera else '/admin/carreras' }}" class="space-y-4">
+    <div>
+      <label for="nombre" class="block text-sm font-medium mb-1">Nombre de la carrera</label>
+      <input id="nombre" name="nombre" type="text" required maxlength="50" autofocus
+             class="w-full border rounded-lg px-3 py-2"
+             value="{{ carrera.nombre if carrera else request.query_params.get('nombre', '') }}">
+    </div>
+    <div>
+      <label for="tipo" class="block text-sm font-medium mb-1">Tipo</label>
+      <select id="tipo" name="tipo" required class="w-full border rounded-lg px-3 py-2">
+        {% if not carrera %}<option value="" disabled selected>Seleccioná un tipo</option>{% endif %}
+        {% for tipo in tipos %}
+          <option value="{{ tipo }}" {% if carrera and carrera.tipo.nombre == tipo %}selected{% endif %}>{{ tipo }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <label for="creditos_requeridos" class="block text-sm font-medium mb-1">Créditos requeridos</label>
+      <input id="creditos_requeridos" name="creditos_requeridos" type="number" min="1" required
+             class="w-full border rounded-lg px-3 py-2"
+             value="{{ carrera.creditos_requeridos if carrera else request.query_params.get('creditos_requeridos', '') }}">
+    </div>
+    <div>
+      <label for="password" class="block text-sm font-medium mb-1">Contraseña de usuario</label>
+      <input id="password" name="password" type="password" required autocomplete="current-password"
+             class="w-full border rounded-lg px-3 py-2">
+    </div>
+    <div class="flex gap-2 pt-2">
+      <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-6 py-2 font-medium">{{ 'Guardar cambios' if carrera else 'Guardar' }}</button>
+      <a href="/admin/carreras" class="text-slate-500 px-3 py-2 hover:underline">Cancelar</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

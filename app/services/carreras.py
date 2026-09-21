@@ -44,6 +44,27 @@ def _obtener_y_validar_tipo_id(
         )
 
     return tipo_obj.id
+
+
+def _validar_nombre_unico(
+    db: Session,
+    nombre: str,
+    tipo_id: int,
+    carrera_id: int | None = None,
+) -> str:
+    nombre_limpio = nombre.strip()
+    nombre_normalizado = nombre_limpio.casefold()
+    carreras_del_tipo = db.query(Carrera).filter(Carrera.tipo_id == tipo_id).all()
+    if any(
+        carrera.id != carrera_id
+        and carrera.nombre.strip().casefold() == nombre_normalizado
+        for carrera in carreras_del_tipo
+    ):
+        tipo_obj = db.get(TipoCarrera, tipo_id)
+        raise ValueError(
+            f"La carrera '{tipo_obj.nombre} {nombre_limpio}' ya existe."
+        )
+    return nombre_limpio
         
 def add(
     db: Session,
@@ -60,8 +81,10 @@ def add(
         raise ValueError("Los créditos requeridos deben ser mayores que cero.")
 
     tipo_id_validado = _obtener_y_validar_tipo_id(db, tipo=tipo, tipo_id=tipo_id)
+    nombre_limpio = _validar_nombre_unico(db, nombre, tipo_id_validado)
+
     nueva_carrera = Carrera(
-        nombre=nombre,
+        nombre=nombre_limpio,
         tipo_id=tipo_id_validado,
         creditos_requeridos=creditos_requeridos,
     )
@@ -85,8 +108,11 @@ def update(
         raise ValueError("Los créditos requeridos deben ser mayores que cero.")
 
     tipo_id_validado = _obtener_y_validar_tipo_id(db, tipo=tipo, tipo_id=tipo_id)
+    nombre_limpio = _validar_nombre_unico(
+        db, nombre, tipo_id_validado, carrera_id=carrera.id
+    )
 
-    carrera.nombre = nombre.strip()
+    carrera.nombre = nombre_limpio
     carrera.creditos_requeridos = creditos_requeridos
     carrera.tipo_id = tipo_id_validado
 

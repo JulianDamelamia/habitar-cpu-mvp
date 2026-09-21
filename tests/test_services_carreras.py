@@ -6,6 +6,7 @@ from app.services.carreras import (
     get_carreras,
     _obtener_y_validar_tipo_id,
     get_carreras_desde_dropdown,
+    update,
 )
 
 
@@ -59,6 +60,32 @@ def test_add_acepta_tipo_por_nombre(db_session):
 
     assert carrera.tipo_id == 2
     assert carrera.tipo.nombre == "Posgrado"
+
+
+def test_add_rechaza_combinacion_tipo_y_nombre_duplicada_sin_distinguir_mayusculas(
+    db_session,
+):
+    add(db_session, "Arquitectura", creditos_requeridos=12, tipo="Grado")
+
+    with pytest.raises(ValueError, match="ya existe"):
+        add(db_session, " arquitectura ", creditos_requeridos=18, tipo="gRaDo")
+
+
+def test_update_actualiza_atributos_y_permite_conservar_la_misma_carrera(db_session):
+    carrera = add(db_session, "Arquitectura", creditos_requeridos=12, tipo_id=1)
+
+    update(db_session, carrera, " Arquitectura ", creditos_requeridos=18, tipo_id=1)
+
+    assert carrera.nombre == "Arquitectura"
+    assert carrera.creditos_requeridos == 18
+
+
+def test_update_rechaza_combinacion_duplicada_sin_distinguir_mayusculas(db_session):
+    add(db_session, "Arquitectura", creditos_requeridos=12, tipo_id=1)
+    otra = add(db_session, "Diseño", creditos_requeridos=15, tipo_id=1)
+
+    with pytest.raises(ValueError, match="ya existe"):
+        update(db_session, otra, " ARQUITECTURA ", creditos_requeridos=18, tipo_id=1)
 
 
 def test_add_rechaza_creditos_requeridos_invalidos(db_session):
