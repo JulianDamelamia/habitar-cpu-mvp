@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Panel de carreras{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-4">
+  <h1 class="text-2xl font-bold">Panel de carreras</h1>
+  <a href="/admin/carreras/nueva" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2 text-sm font-medium transition-colors">+ Agregar carrera</a>
+</div>
+
+<div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
+  <div class="bg-white rounded-xl shadow p-4"><p class="text-xs text-slate-400">Total carreras</p><p class="text-2xl font-bold">{{ carreras|length }}</p></div>
+  <div class="bg-white rounded-xl shadow p-4"><p class="text-xs text-slate-400">Total Ingeniería</p><p class="text-2xl font-bold text-indigo-600">{{ total_ingenieria }}</p></div>
+  <div class="bg-white rounded-xl shadow p-4"><p class="text-xs text-slate-400">Total Licenciatura</p><p class="text-2xl font-bold text-emerald-600">{{ total_licenciatura }}</p></div>
+  <div class="bg-white rounded-xl shadow p-4"><p class="text-xs text-slate-400">Total inscriptos</p><p class="text-2xl font-bold text-amber-500">{{ total_inscriptos }}</p></div>
+</div>
+
+<div class="bg-white rounded-2xl shadow p-4 mb-4">
+  <form method="get" action="/admin/carreras" class="flex flex-col md:flex-row md:items-end gap-3">
+    <div>
+      <label for="tipo" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Tipo</label>
+      <select id="tipo" name="tipo" class="border border-slate-200 rounded-lg text-sm px-3 py-2 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all min-w-[220px]">
+        <option value="">Todas</option>
+        <option value="Ingeniería" {% if tipo_seleccionado == 'Ingeniería' %}selected{% endif %}>Ingeniería</option>
+        <option value="Licenciatura" {% if tipo_seleccionado == 'Licenciatura' %}selected{% endif %}>Licenciatura</option>
+      </select>
+    </div>
+    <div>
+      <label for="nombre" class="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1">Nombre</label>
+      <input id="nombre" name="nombre" type="text" value="{{ nombre_buscado }}" placeholder="Buscar carrera" class="border border-slate-200 rounded-lg text-sm px-3 py-2 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all min-w-[260px]">
+    </div>
+    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2 text-sm font-medium transition-colors">Filtrar</button>
+    {% if tipo_seleccionado or nombre_buscado %}
+      <a href="/admin/carreras" class="text-xs text-rose-600 hover:text-rose-800 font-medium underline pb-2">Limpiar filtros</a>
+    {% endif %}
+  </form>
+</div>
+
+<div class="bg-white rounded-2xl shadow overflow-x-auto">
+  <table class="w-full text-sm min-w-[640px]">
+    <thead class="bg-slate-100 text-slate-500 text-left">
+      <tr>
+        <th class="px-4 py-3">
+          <a href="{{ urls_orden.nombre }}" class="inline-flex items-center gap-1 hover:text-slate-800">
+            Carrera
+            {% if orden_actual == 'nombre' %}<span aria-label="Orden {{ 'ascendente' if direccion_actual == 'asc' else 'descendente' }}">{% if direccion_actual == 'asc' %}▲{% else %}▼{% endif %}</span>{% endif %}
+          </a>
+        </th>
+        <th class="px-4 py-3">
+          <a href="{{ urls_orden.inscriptos }}" class="inline-flex items-center gap-1 hover:text-slate-800">
+            Inscriptos
+            {% if orden_actual == 'inscriptos' %}<span aria-label="Orden {{ 'ascendente' if direccion_actual == 'asc' else 'descendente' }}">{% if direccion_actual == 'asc' %}▲{% else %}▼{% endif %}</span>{% endif %}
+          </a>
+        </th>
+        <th class="px-4 py-3">
+          <a href="{{ urls_orden.creditos }}" class="inline-flex items-center gap-1 hover:text-slate-800">
+            Créditos
+            {% if orden_actual == 'creditos' %}<span aria-label="Orden {{ 'ascendente' if direccion_actual == 'asc' else 'descendente' }}">{% if direccion_actual == 'asc' %}▲{% else %}▼{% endif %}</span>{% endif %}
+          </a>
+        </th>
+        <th class="text-right px-4 py-3">Acciones</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-slate-100">
+    {% for carrera in carreras %}
+      <tr class="hover:bg-slate-50/50 transition-colors">
+        <td class="px-4 py-3 font-medium">{{ carrera.tipo.nombre }} {{ carrera.nombre }}</td>
+        <td class="px-4 py-3 text-slate-500">{{ inscriptos_por_carrera.get(carrera.id, 0) }}</td>
+        <td class="px-4 py-3 text-slate-500">{{ carrera.creditos_requeridos }}</td>
+        <td class="px-4 py-3 text-right"><a href="/admin/carreras/{{ carrera.id }}/editar" class="text-indigo-600 hover:underline">Editar</a></td>
+      </tr>
+    {% else %}
+      <tr>
+        <td colspan="4" class="px-4 py-8 text-center text-slate-500">No hay carreras que coincidan con los filtros.</td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

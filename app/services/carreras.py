@@ -1,6 +1,8 @@
 from typing import Optional
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session,contains_eager
-from app.models import Carrera, TipoCarrera
+from app.models import Carrera, TipoCarrera, User
+from app.models.enums import ROL_ESTUDIANTE
 
 def _obtener_y_validar_tipo_id(
     db: Session, 
@@ -92,6 +94,7 @@ def update(
     db.refresh(carrera)
 
     return carrera
+
 def get_carreras_desde_dropdown(carreras_input: list[str], db: Session) -> list[Carrera]:
     """
     Convierte la entrada enviada por un Form (ej: ["1", "3"] o ["todas"]) 
@@ -103,7 +106,7 @@ def get_carreras_desde_dropdown(carreras_input: list[str], db: Session) -> list[
     if "todas" in carreras_input:
         return db.query(Carrera).all()
 
-    carreras_ids = [int(c_id) for c_id in carreras_input if c_id.isdigit()]
+    carreras_ids = [int(c_id) for c_id in carreras_input]
     if not carreras_ids:
         return []
 
@@ -125,4 +128,38 @@ def get_carreras(db: Session) -> list[Carrera]:
         .all())
 
 def get_by_id(db: Session, carrera_id: int) -> Carrera | None:
-    return db.query(Carrera).filter(Carrera.id == carrera_id).first()
+    return db.get(Carrera, carrera_id)
+
+def get_cantidad_inscriptos_agrupados(db: Session) -> dict[str, int]:
+    stmt = (
+        select(
+            Carrera.id,
+            Carrera.nombre,
+            Carrera.tipo,
+            func.count(User.id).label("cantidad"),
+        )
+        .outerjoin(
+            User,
+            (User.carrera_id == Carrera.id) &
+            (User.rol == ROL_ESTUDIANTE)
+        )
+        .group_by(Carrera.id, Carrera.nombre, Carrera.tipo)
+    )
+
+    rows = db.execute(stmt).all()
+
+    return {
+        f"{row.tipo.nombre} {row.nombre}": row.cantidad
+        for row in rows
+    }
+
+def get_cantidad_inscriptos_por_carrera(db: Session, carrera_id: int) -> int:
+    stmt = (
+        select(func.count(User.id))
+        .where(
+            User.carrera_id == carrera_id,
+            User.rol == ROL_ESTUDIANTE,
+        )
+    )
+
+    return db.execute(stmt).scalar_one()

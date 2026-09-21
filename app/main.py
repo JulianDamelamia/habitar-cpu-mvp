@@ -20,6 +20,7 @@ from app.models import (
 )
 from app.routers import (
     admin_actividades,
+    admin_carreras,
     admin_enroll,
     analytics,
     asistencia,
@@ -120,6 +121,7 @@ app.include_router(discovery.router)
 app.include_router(inscripcion.router)
 app.include_router(asistencia.router)
 app.include_router(admin_actividades.router)
+app.include_router(admin_carreras.router)
 app.include_router(admin_enroll.router)
 app.include_router(analytics.router)
 app.include_router(faq.router)

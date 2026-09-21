@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from starlette.templating import _TemplateResponse
+from starlette.responses import Response
 
 from app import services
 from app.database import get_db
@@ -21,13 +22,88 @@ def listar_carreras(
     user: User = Depends(ADMIN),
     db: Session = Depends(get_db),
 ) -> _TemplateResponse:
-    carreras_list = services.carreras.get_carreras(db)
+    tipo = request.query_params.get("tipo", "")
+    nombre = request.query_params.get("nombre", "").strip()
+    orden = request.query_params.get("orden", "nombre")
+    direccion = request.query_params.get("direccion", "asc")
+    if orden not in {"nombre", "inscriptos", "creditos"}:
+        orden = "nombre"
+    if direccion not in {"asc", "desc"}:
+        direccion = "asc"
+
+    carreras = services.carreras.get_carreras(db)
+
+    if tipo:
+        carreras = [carrera for carrera in carreras if carrera.tipo.nombre == tipo]
+    if nombre:
+        nombre_normalizado = nombre.casefold()
+        carreras = [
+            carrera
+            for carrera in carreras
+            if nombre_normalizado in carrera.nombre.casefold()
+        ]
+
+    inscriptos_por_carrera = {
+        carrera.id: services.carreras.get_cantidad_inscriptos_por_carrera(
+            db, carrera.id
+        )
+        for carrera in carreras
+    }
+    total_inscriptos = sum(inscriptos_por_carrera.values())
+    total_ingenieria = sum(
+        carrera.tipo.nombre == "Ingeniería" for carrera in carreras
+    )
+    total_licenciatura = sum(
+        carrera.tipo.nombre == "Licenciatura" for carrera in carreras
+    )
+
+    if orden == "nombre":
+        clave_orden = lambda carrera: (
+            f"{carrera.tipo.nombre} {carrera.nombre}".casefold()
+        )
+    elif orden == "inscriptos":
+        clave_orden = lambda carrera: inscriptos_por_carrera.get(carrera.id, 0)
+    else:
+        clave_orden = lambda carrera: carrera.creditos_requeridos
+    carreras.sort(key=clave_orden, reverse=direccion == "desc")
+
+    def url_orden(nuevo_orden: str) -> str:
+        nueva_direccion = (
+            "desc"
+            if orden == nuevo_orden and direccion == "asc"
+            else "asc"
+        )
+        parametros_orden = {
+            "orden": nuevo_orden,
+            "direccion": nueva_direccion,
+        }
+        if tipo:
+            parametros_orden["tipo"] = tipo
+        if nombre:
+            parametros_orden["nombre"] = nombre
+        return str(
+            request.url.include_query_params(**parametros_orden)
+        )
+
     return render(
         request,
         "admin/carreras/index.html",
         user=user,
         db=db,
-        carreras_list=carreras_list,
+        carreras=carreras,
+        inscriptos_por_carrera=inscriptos_por_carrera,
+        total_inscriptos=total_inscriptos,
+        total_ingenieria=total_ingenieria,
+        total_licenciatura=total_licenciatura,
+        tipo_seleccionado=tipo,
+        nombre_buscado=nombre,
+        orden_actual=orden,
+        direccion_actual=direccion,
+        urls_orden={
+            "nombre": url_orden("nombre"),
+            "inscriptos": url_orden("inscriptos"),
+            "creditos": url_orden("creditos"),
+        },
     )
 
 
@@ -81,7 +157,7 @@ def editar_carrera(
     carrera_id: int,
     user: User = Depends(ADMIN),
     db: Session = Depends(get_db),
-) -> RedirectResponse | _TemplateResponse:
+) -> Response:
     carrera = services.carreras.get_by_id(db, carrera_id)
     if carrera is None:
         return RedirectResponse(
