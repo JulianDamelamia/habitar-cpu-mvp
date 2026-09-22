@@ -1,7 +1,7 @@
 """Inscripcion service (E-03). Cupo enforced transactionally with a row lock."""
 from __future__ import annotations
 
-from sqlalchemy import select
+from sqlalchemy import exists, select
 from sqlalchemy.orm import Session
 
 from app.models import (
@@ -11,27 +11,10 @@ from app.models import (
     INSCRIPCION_BAJA,
     INSCRIPCION_ALTA,
 )
-
+from app.services.consultas import asistencia_validada, active_enrollment
 
 class EnrollError(Exception):
     pass
-
-
-def active_enrollment(db: Session, actividad_id: int, user_id: int) -> Inscripcion | None:
-    return (
-        db.query(Inscripcion)
-        .filter(
-            Inscripcion.actividad_id == actividad_id,
-            Inscripcion.user_id == user_id,
-            Inscripcion.estado == INSCRIPCION_ALTA,
-        )
-        .first()
-    )
-
-
-def is_enrolled(db: Session, actividad_id: int, user_id: int) -> bool:
-    return active_enrollment(db, actividad_id, user_id) is not None
-
 
 def inscribir(db: Session, actividad_id: int, user_id: int) -> Actividad:
     """Atomically inscribir a user, respecting cupo. Raises EnrollError on failure."""
@@ -74,6 +57,9 @@ def unenroll(db: Session, actividad_id: int, user_id: int) -> None:
     enr = active_enrollment(db, actividad_id, user_id)
     if not enr:
         raise EnrollError("No estás inscripto en esta actividad.")
+    asistencia = asistencia_validada(db, actividad_id, user_id)
+    if asistencia:
+        raise EnrollError("No podés darte de baja de una actividad ya completada.")
     enr.estado = INSCRIPCION_BAJA
     db.commit()
 

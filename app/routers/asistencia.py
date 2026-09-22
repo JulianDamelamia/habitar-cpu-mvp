@@ -51,7 +51,7 @@ def checkin_submit(
     codigo: str = Form(...),
     user: User = Depends(requiere_roles("estudiante")),
     db: Session = Depends(get_db),
-):
+) -> RedirectResponse:
     try:
         actividad = services.asistencia.check_in(db, codigo, user.id)
     except services.asistencia.AsistenciaError as exc:

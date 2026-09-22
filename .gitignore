@@ -9,9 +9,5 @@ venv/
 .pytest_cache/
 .playwright-mcp/
 m-*.png
-<<<<<<< HEAD
 .vscode/
 TODO.md
-=======
-.vscode/
->>>>>>> main

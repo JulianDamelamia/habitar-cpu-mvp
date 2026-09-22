@@ -4,7 +4,7 @@ from __future__ import annotations
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import select
+from sqlalchemy import exists, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -12,11 +12,10 @@ from app.models import (
     Actividad,
     Asistencia,
     SesionAsistencia,
-    ESTADO_PUBLICADA,
     ROL_ESTUDIANTE,
     User,
 )
-from app.services.inscripcion import is_enrolled
+from app.services.consultas import is_enrolled
 
 TOKEN_TTL_SECONDS = 90
 
@@ -113,13 +112,12 @@ def check_in(db: Session, token: str, user_id: int) -> Actividad:
         # Concurrent double-scan: the unique constraint already recorded it.
         db.rollback()
         raise AsistenciaError("Tu asistencia ya fue registrada.")
-    return db.get(Actividad, sess.actividad_id)
+    return db.get(Actividad, sess.actividad_id) # type: ignore
 
 
 def present_user_ids(db: Session, actividad_id: int) -> set[int]:
     rows = db.query(Asistencia.user_id).filter(Asistencia.actividad_id == actividad_id).all()
     return {r[0] for r in rows}
-
 
 def mark_present_manual(db: Session, actividad_id: int, user_id: int, validated_by: int) -> None:
     """Admin/docente manual override (E-09 supervision).
