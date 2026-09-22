@@ -69,7 +69,7 @@ def _parse_dates(
         else:
             # Compatibility with clients that still submit an explicit end date.
             fin = _parse_dt(fecha_fin)
-    elif modo_finalizacion == "fecha":
+    elif modo_finalizacion == "fecha_fin":
         fin = _parse_dt(fecha_fin)
     else:
         raise ValueError("Modo de finalización inválido.")
@@ -141,7 +141,7 @@ def crear(
     carreras_asociadas: list[str] = Form([]),
     user: User = Depends(ADMIN),
     db: Session = Depends(get_db),
-):
+) -> RedirectResponse:
     try:
         inicio, fin = _parse_dates(fecha_inicio, fecha_fin, duracion, modo_finalizacion)
     except ValueError:
@@ -189,7 +189,7 @@ def actualizar(
     user: User = Depends(ADMIN),
     db: Session = Depends(get_db),
     carreras_asociadas: list[str] = Form([])
-):
+) -> RedirectResponse:
     a = services.actividades.get(db, actividad_id)
     if a is None:
         return RedirectResponse(url="/admin?err=Actividad no encontrada.", status_code=303)
@@ -253,7 +253,7 @@ def publicar(request: Request, actividad_id: int, user: User = Depends(ADMIN), d
 
 
 @router.post("/admin/actividades/{actividad_id}/cancelar")
-def cancelar(request: Request, actividad_id: int, user: User = Depends(ADMIN), db: Session = Depends(get_db)):
+def cancelar(request: Request, actividad_id: int, user: User = Depends(ADMIN), db: Session = Depends(get_db)) -> RedirectResponse:
     a = services.actividades.get(db, actividad_id)
     if a is None:
         return RedirectResponse(url="/admin?err=Actividad no encontrada.", status_code=303)
