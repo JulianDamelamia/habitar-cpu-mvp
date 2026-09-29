@@ -87,8 +87,6 @@ def perfil_update(
     request: Request,
     nombre: str = Form(...),
     apellido: str = Form(...),
-    dni: int = Form(...),
-    carrera: str = Form(""),
     user: User = Depends(current_user_required),
     db: Session = Depends(get_db),
 ):
@@ -100,7 +98,5 @@ def perfil_update(
         )
     user.nombre = nombre.strip()
     user.apellido = apellido.strip()
-    user.dni = dni
-    user.carrera = carrera.strip() or None #type:ignore
     db.commit()
     return RedirectResponse(url="/perfil?msg=Perfil actualizado.", status_code=303)
