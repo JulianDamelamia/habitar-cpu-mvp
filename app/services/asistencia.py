@@ -15,7 +15,7 @@ from app.models import (
     ROL_ESTUDIANTE,
     User,
 )
-from app.services.consultas import is_enrolled
+from app.services.consultas_comunes import is_enrolled
 
 TOKEN_TTL_SECONDS = 90
 

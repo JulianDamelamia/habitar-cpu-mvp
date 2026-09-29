@@ -62,7 +62,7 @@ def _validar_nombre_unico(
     ):
         tipo_obj = db.get(TipoCarrera, tipo_id)
         raise ValueError(
-            f"La carrera '{tipo_obj.nombre} {nombre_limpio}' ya existe."
+            f"La carrera '{tipo_obj.nombre} {nombre_limpio}' ya existe." #type:ignore
         )
     return nombre_limpio
         

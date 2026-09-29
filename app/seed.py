@@ -23,7 +23,6 @@ from app.models import (
     TIPO_VIRTUAL,
     TipoCarrera,
     User,
-    #ValidLegajo,
 )
 from app.security import hash_password, verify_password
 
@@ -107,10 +106,7 @@ def seed_all(db: Session) -> None:
                 creditos_requeridos=creditos_requeridos,
             ))
 
-    # --- SIU legajos (mock) ---
-    # if db.query(ValidLegajo).count() == 0:
-    #     for legajo, nombre in LEGAJOS:
-    #         db.add(ValidLegajo(legajo=legajo, nombre=nombre))
+
 
     # --- FAQ ---
     if db.query(Faq).count() == 0:

@@ -80,11 +80,6 @@ def export_xlsx(actividad_id: int, user: User = Depends(ADMIN), db: Session = De
         headers={"Content-Disposition": f"attachment; filename=inscriptos_{actividad_id}.xlsx"},
     )
 
-#deprecar
-# @router.get("/admin/legajos")
-# def legajos_page(request: Request, user: User = Depends(ADMIN), db: Session = Depends(get_db)):
-#     total = db.query(ValidLegajo).count()
-#     return render(request, "admin/legajos.html", user=user, db=db, total=total)
 
 async def _leer_tabla_usuarios(archivo:UploadFile)-> pd.DataFrame:
     raw = await archivo.read()
@@ -92,35 +87,41 @@ async def _leer_tabla_usuarios(archivo:UploadFile)-> pd.DataFrame:
         df = pd.read_excel(io.BytesIO(raw))
     df = pd.read_csv(io.BytesIO(raw))
     return df
-
+COLUMNAS_ESPERADAS = {'dni', 'email', 'nombre', 'apellido', 'carrera'}
 def _validar_datos_usuarios(df:pd.DataFrame) -> None:
     """Validación síncrona de columnas y formatos."""
     cols = {str(c).lower().strip() for c in df.columns}
-    if "dni" not in cols or "email" not in cols:
-        raise ValueError("El archivo debe contener las columnas 'dni' y 'email'.")
+    if cols != COLUMNAS_ESPERADAS:
+        faltantes = COLUMNAS_ESPERADAS - cols
+        raise ValueError(f"El archivo debe contener las columnas {faltantes}.")
     
-def _agregar_usuarios(df: pd.DataFrame, db: Session = Depends(get_db)) -> int:
-    cols = {c.lower().strip(): c for c in df.columns}
-    contador:int = 0
-    seen: set[str] = set()  # dedupe within the file (autoflush=False -> db.get won't see pending inserts)
-    for _, row in df.iterrows():
-        dni = str(row[cols["dni"]]).strip()
-        if not dni or dni.lower() == "nan":
-            continue
-        if "." in dni:  # pandas may read ints as floats
-            dni = dni.split(".")[0]
-        if dni in seen:
-            continue
-        seen.add(dni)
-        nombre = str(row[cols["nombre"]]).strip() if "nombre" in cols else None
-        apellido = str(row[cols["apellido"]]).strip() if "apellido" in cols else None
+# def _agregar_usuarios(df: pd.DataFrame, db: Session = Depends(get_db)) -> int:
+#     cols = {c.lower().strip(): c for c in df.columns}
+#     contador:int = 0
+#     seen: set[str] = set()  # dedupe within the file (autoflush=False -> db.get won't see pending inserts)
+#     for _, row in df.iterrows():
+#         dni = str(row[cols["dni"]]).strip()
+#         if not dni or dni.lower() == "nan":
+#             continue
+#         if "." in dni:  # pandas may read ints as floats
+#             dni = dni.split(".")[0]
+#         if dni in seen:
+#             continue
+#         seen.add(dni)
+#         nombre = str(row[cols["nombre"]]).strip() if "nombre" in cols else None
+#         apellido = str(row[cols["apellido"]]).strip() if "apellido" in cols else None
 
-        if db.get(User, dni) is None:
-            contrasena_temporal = dni
-            #db.add(User(**params))
-            contador += 1
-    return contador
-       
+#         if db.get(User, dni) is None:
+#             contrasena_temporal = dni
+#             db.add(User(**params))
+#             contador += 1
+#     return contador
+
+@router.get("/admin/crear_usuarios")
+def crear_usuarios(request: Request, user: User = Depends(ADMIN), db: Session = Depends(get_db)):
+    return render(request, "admin/crear_usuarios.html", user=user, db=db)
+
+@router.post("/admin/crear_usuarios/import")       
 async def generacion_usuarios(
     request: Request,
     archivo: UploadFile = File(...),
@@ -130,16 +131,30 @@ async def generacion_usuarios(
     try:
         df = await _leer_tabla_usuarios(archivo)
         _validar_datos_usuarios(df)
-        usuarios_agregados:int = _agregar_usuarios(df)
+        retorno = services.identity.procesar_carga_masiva(db=db, df=df)
+        cant_usuarios_creados = retorno['creados']
+        errores = retorno['errores']
+        if errores:
+            return render(
+                request, 
+                "admin/crear_usuarios.html", 
+                user=user, 
+                db=db, 
+                errores=errores, 
+                err=f"Se detectaron {len(errores)} filas con errores. Por favor corregilas y reintentá.",
+                status_code=400
+            )
+            
     except ValueError as e:
-        return RedirectResponse(url=f"/admin/legajos?err={e}", status_code=303)
-    except IntegrityError:
-        db.rollback()
-        return RedirectResponse(url="/admin/legajos?err=Algunos legajos ya existían. Reintentá.", status_code=303)
-    except Exception:  # noqa: BLE001
-        return RedirectResponse(url="/admin/legajos?err=No se pudo leer el archivo. Debe ser CSV o XLSX.", status_code=303)
-        
-    return RedirectResponse(url=f"/admin/legajos?msg=Importados {usuarios_agregados} legajos nuevos.", status_code=303)
+        return render(
+            request, 
+            "admin/crear_usuarios.html", 
+            user=user, 
+            db=db, 
+            err=str(e), 
+            status_code=400
+        )
+    return RedirectResponse(url=f"/admin/crear_usuarios?msg=Creados {cant_usuarios_creados} usuarios nuevos.", status_code=303)
     
 
 # @router.post("/admin/legajos/import")

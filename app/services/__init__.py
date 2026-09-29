@@ -5,7 +5,7 @@ from app.services import carreras
 from app.services import credits
 from app.services import identity
 from app.services import inscripcion
-from app.services import consultas
+from app.services import consultas_comunes
 
 __all__ = [
     "actividades",
@@ -15,5 +15,5 @@ __all__ = [
     "credits",
     "identity",
     "inscripcion",
-    "consultas"
+    "consultas_comunes"
 ]

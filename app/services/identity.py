@@ -7,6 +7,7 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.models import ROL_ESTUDIANTE, User#, ValidLegajo
+from app.models.carrera import Carrera
 from app.security import hash_password, verify_password
 
 
@@ -105,15 +106,57 @@ def validar_dni(dni, existentes, seen_dnis_in_file):
         return"El DNI está duplicado dentro del mismo archivo"
     return None
 
+from app.services.consultas_comunes import get_carreras
+from rapidfuzz import process, fuzz
+class CarreraMatcher:
+    def __init__(self, carreras: list[Carrera]):
+        self.carreras = carreras
+        self.choices: dict[str, Carrera] = {}
+
+        # Generamos combinaciones posibles para mejorar las coincidencias
+        for c in carreras:
+            tipo_nombre = c.tipo.nombre if c.tipo else ""
+            
+            # Opción 1: "Ingeniería Ambiental"
+            combinada_1 = f"{tipo_nombre} {c.nombre}".strip().lower()
+            # Opción 2: "Ambiental" (por si no ponen el tipo)
+            combinada_2 = c.nombre.strip().lower()
+
+            self.choices[combinada_1] = c
+            self.choices[combinada_2] = c
+
+    def resolver_id_carrera(self, carrera_texto: str, score_corte: float = 65.0) -> int | None:
+        """
+        Retorna el ID de la carrera si la similitud supera el score_corte.
+        De lo contrario, retorna None.
+        """
+        if not carrera_texto or not str(carrera_texto).strip():
+            return None
+
+        texto_limpio = str(carrera_texto).strip().lower()
+
+        # WRatio maneja diferencias de orden, minúsculas/mayúsculas y substrings
+        resultado = process.extractOne(
+            texto_limpio,
+            self.choices.keys(),
+            scorer=fuzz.WRatio
+        )
+
+        if resultado:
+            coincidencia, score, _ = resultado
+            if score >= score_corte:
+                return self.choices[coincidencia].id
+
+        return None
+
 def procesar_carga_masiva(
     db: Session, 
     df: pd.DataFrame, 
-    carrera_id: int,
 ) -> dict[str, list]:
     
     # Clean up inicial de strings
     df['email_clean'] = df['email'].astype(str).str.lower().str.strip()
-    df['dni'] = pd.to_numeric(df['dni'], errors='coerce').astype('Int64')
+    df['dni_clean'] = pd.to_numeric(df['dni'], errors='coerce').astype('Int64')
 
     archivo_emails = set(df['email_clean'].dropna())
     archivo_dnis = set(df['dni_clean'].dropna())
@@ -127,13 +170,17 @@ def procesar_carga_masiva(
     # Sets para detectar duplicados dentro del mismo archivo
     seen_emails_in_file = set()
     seen_dnis_in_file = set()
+    
+    #inicializo matcher
+    lista_de_carreras = get_carreras(db)
+    matcher = CarreraMatcher(lista_de_carreras)
 
     for idx, row in df.iterrows():
         email = row['email_clean']
         dni = row['dni_clean']
         nombre = str(row.get('nombre', '')).strip()
         apellido = str(row.get('apellido', '')).strip()
-
+        carrera_id = matcher.resolver_id_carrera(row['carrera'])
         row_errors = []
         errores_email = validar_email(email, existentes, seen_emails_in_file)
         if errores_email is not None:
@@ -154,7 +201,7 @@ def procesar_carga_masiva(
         # Crear la entidad User
         user = User(
             email=email,
-            pw_hash=hash_password(dni),
+            pw_hash=hash_password(str(dni)),
             nombre=nombre,
             apellido=apellido,
             dni=int(dni),

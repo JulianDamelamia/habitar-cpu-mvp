@@ -11,7 +11,7 @@ from app.models import (
     INSCRIPCION_BAJA,
     INSCRIPCION_ALTA,
 )
-from app.services.consultas import asistencia_validada, active_enrollment
+from app.services.consultas_comunes import asistencia_validada, active_enrollment
 
 class EnrollError(Exception):
     pass

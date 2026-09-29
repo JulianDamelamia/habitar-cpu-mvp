@@ -10,7 +10,9 @@
       <div><label class="bg-slate-50 rounded-lg p-3">Apellido</label><input name="apellido" value="{{ user.apellido }}" required class="w-full border rounded-lg px-3 py-2"></div>
       <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">Email</dt><dd class="font-medium">{{ user.email }}</dd></div>
       <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">DNI</dt><dd class="font-medium">{{ user.dni }}</dd></div>
-      <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">Carrera</dt><dd class="font-medium">{{ user.carrera.tipo.nombre }} {{ user.carrera.nombre }}</dd></div>
+      {% if user.carrera != None%}
+        <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">Carrera</dt><dd class="font-medium">{{ user.carrera.tipo.nombre}} {{ user.carrera.nombre}}</dd></div>
+      {% endif %}
     </dl>
     <button class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-5 py-2 font-medium">Guardar</button>
   </form>

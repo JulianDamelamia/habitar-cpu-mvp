@@ -6,7 +6,7 @@ from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import ROL_ESTUDIANTE, User
+from app.models import User
 from app.security import (
     current_user_required,
     login_user,
@@ -76,12 +76,9 @@ def logout(request: Request):
 
 @router.get("/perfil")
 def perfil(request: Request, user: User = Depends(current_user_required), db: Session = Depends(get_db)):
-    # Student services.identity comes from the SIU, so it is read-only; staff accounts are
-    # internal and can edit their own profile.
-    # editable = user.rol != ROL_ESTUDIANTE
     return render(request, "auth/perfil.html", user=user, db=db)
 
-#TODO:rework tema carrera y validar dni como entero en vez de float
+
 @router.post("/perfil")
 def perfil_update(
     request: Request,
@@ -90,12 +87,7 @@ def perfil_update(
     user: User = Depends(current_user_required),
     db: Session = Depends(get_db),
 ):
-    # if user.rol == ROL_ESTUDIANTE:
-    #     # Services.identity data is sourced from the SIU; students cannot edit it here.
-    #     return RedirectResponse(
-    #         url="/perfil?err=Tus datos provienen del SIU Guaraní y no se editan desde la plataforma.",
-    #         status_code=303,
-    #     )
+
     user.nombre = nombre.strip()
     user.apellido = apellido.strip()
     db.commit()

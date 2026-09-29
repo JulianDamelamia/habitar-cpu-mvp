@@ -56,8 +56,8 @@ def actividad_detail(
         return RedirectResponse(url="/actividades?err=La actividad no está disponible.", status_code=303)
 
     cupo = services.actividades.cupo_info(db, actividad)
-    enrolled = services.consultas.is_enrolled(db, actividad_id, user.id)
-    asistencia_validada = services.consultas.asistencia_validada(db, actividad_id, user.id)
+    enrolled = services.consultas_comunes.is_enrolled(db, actividad_id, user.id)
+    asistencia_validada = services.consultas_comunes.asistencia_validada(db, actividad_id, user.id)
     return render(
         request, "student/detalle.html", user=user, db=db,
         a=actividad, cupo=cupo, enrolled=enrolled, asistencia_validada=asistencia_validada
