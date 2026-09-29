@@ -3,14 +3,8 @@
 {% block content %}
 <div class="max-w-md mx-auto mt-8 bg-white rounded-2xl shadow p-8">
   <h1 class="text-2xl font-bold mb-1">Crear cuenta</h1>
-  <p class="text-slate-500 mb-6 text-sm">Verificamos tu legajo contra el padrón UNSAM (SIU Guaraní).</p>
   {% if error %}<div class="mb-4 rounded-lg bg-rose-100 border border-rose-300 text-rose-800 px-4 py-2 text-sm">{{ error }}</div>{% endif %}
   <form method="post" action="/signup" class="space-y-4">
-    <div>
-      <label class="block text-sm font-medium mb-1">Legajo UNSAM</label>
-      <input name="legajo" value="{{ legajo or '' }}" required class="w-full border rounded-lg px-3 py-2" placeholder="Ej: 1001">
-      <p class="text-xs text-slate-400 mt-1">Para la demo, probá con 1003-1008.</p>
-    </div>
     <div class="grid grid-cols-2 gap-3">
       <div><label class="block text-sm font-medium mb-1">Nombre</label><input name="nombre" value="{{ nombre or '' }}" required class="w-full border rounded-lg px-3 py-2"></div>
       <div><label class="block text-sm font-medium mb-1">Apellido</label><input name="apellido" value="{{ apellido or '' }}" required class="w-full border rounded-lg px-3 py-2"></div>

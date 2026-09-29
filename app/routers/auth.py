@@ -45,24 +45,24 @@ def signup_form(request: Request):
 @router.post("/signup")
 def signup_submit(
     request: Request,
-    legajo: str = Form(...),
     email: str = Form(...),
     password: str = Form(...),
     nombre: str = Form(...),
     apellido: str = Form(...),
-    dni: str = Form(""),
+    dni: int = Form(...),
     carrera: str = Form(""),
     db: Session = Depends(get_db),
 ):
+    carrera_id = services.carreras.get_carreras_desde_dropdown(carreras_input=[carrera], db=db)[0].id
     try:
         user = services.identity.create_student(
-            db, legajo=legajo, email=email, password=password,
-            nombre=nombre, apellido=apellido, dni=dni, carrera=carrera,
+            db,email=email, password=password,
+            nombre=nombre, apellido=apellido, dni=dni, carrera_id=carrera_id,
         )
     except services.identity.SignupError as exc:
         return render(
             request, "auth/signup.html", error=str(exc),
-            legajo=legajo, email=email, nombre=nombre, apellido=apellido, dni=dni, carrera=carrera,
+            email=email, nombre=nombre, apellido=apellido, dni=dni, carrera=carrera,
         )
     login_user(request, user)
     return RedirectResponse(url="/home?msg=¡Cuenta creada! Bienvenido/a al Módulo Habitar.", status_code=303)
@@ -81,13 +81,13 @@ def perfil(request: Request, user: User = Depends(current_user_required), db: Se
     editable = user.rol != ROL_ESTUDIANTE
     return render(request, "auth/perfil.html", user=user, db=db, editable=editable)
 
-
+#TODO:rework tema carrera y validar dni como entero en vez de float
 @router.post("/perfil")
 def perfil_update(
     request: Request,
     nombre: str = Form(...),
     apellido: str = Form(...),
-    dni: str = Form(""),
+    dni: int = Form(...),
     carrera: str = Form(""),
     user: User = Depends(current_user_required),
     db: Session = Depends(get_db),
@@ -100,7 +100,7 @@ def perfil_update(
         )
     user.nombre = nombre.strip()
     user.apellido = apellido.strip()
-    user.dni = dni.strip() or None
-    user.carrera = carrera.strip() or None
+    user.dni = dni
+    user.carrera = carrera.strip() or None #type:ignore
     db.commit()
     return RedirectResponse(url="/perfil?msg=Perfil actualizado.", status_code=303)

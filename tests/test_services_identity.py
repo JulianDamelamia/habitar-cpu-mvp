@@ -1,45 +1,18 @@
 import pytest
 
-from app.models import ROL_ESTUDIANTE, User, ValidLegajo
+from app.models import ROL_ESTUDIANTE, User#, ValidLegajo
+from app.models.carrera import Carrera
 from app.security import hash_password
 from app.services.identity import (
     SignupError,
     authenticate,
     create_student,
     email_taken,
-    legajo_is_valid,
+
 )
 
 
-def test_legajo_is_valid_recorta_espacios(db_session):
-    db_session.add(ValidLegajo(legajo="1234", nombre="Estudiante"))
-    db_session.commit()
 
-    assert legajo_is_valid(db_session, " 1234 ")
-    assert not legajo_is_valid(db_session, "9999")
-
-
-def test_create_student_normaliza_datos_y_persiste(db_session):
-    db_session.add(ValidLegajo(legajo="1234", nombre="Estudiante"))
-    db_session.commit()
-
-    user = create_student(
-        db_session,
-        legajo=" 1234 ",
-        email="  ALUMNO@EXAMPLE.COM ",
-        password="secret",
-        nombre="  Ana ",
-        apellido=" Pérez ",
-        dni=" 30123456 ",
-        carrera="Arquitectura",
-    )
-
-    assert user.email == "alumno@example.com"
-    assert user.nombre == "Ana"
-    assert user.apellido == "Pérez"
-    assert user.dni == "30123456"
-    assert user.rol == ROL_ESTUDIANTE
-    assert db_session.get(User, user.id) == user
 
 
 @pytest.mark.parametrize(

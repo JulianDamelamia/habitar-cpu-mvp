@@ -23,7 +23,7 @@ from app.models import (
     TIPO_VIRTUAL,
     TipoCarrera,
     User,
-    ValidLegajo,
+    #ValidLegajo,
 )
 from app.security import hash_password, verify_password
 
@@ -108,9 +108,9 @@ def seed_all(db: Session) -> None:
             ))
 
     # --- SIU legajos (mock) ---
-    if db.query(ValidLegajo).count() == 0:
-        for legajo, nombre in LEGAJOS:
-            db.add(ValidLegajo(legajo=legajo, nombre=nombre))
+    # if db.query(ValidLegajo).count() == 0:
+    #     for legajo, nombre in LEGAJOS:
+    #         db.add(ValidLegajo(legajo=legajo, nombre=nombre))
 
     # --- FAQ ---
     if db.query(Faq).count() == 0:
@@ -130,15 +130,15 @@ def seed_all(db: Session) -> None:
     # --- users ---
     coord = _get_or_create_user(
         db, "coordinacion@unsam.edu.ar", nombre="Laura", apellido="Rasia",
-        rol=ROL_COORDINACION, legajo=None,
+        rol=ROL_COORDINACION,dni="1111"
     )
     docente = _get_or_create_user(
         db, "docente@unsam.edu.ar", nombre="Pablo", apellido="Méndez",
-        rol=ROL_DOCENTE, legajo=None,
+        rol=ROL_DOCENTE,dni="2222"
     )
     _get_or_create_user(
         db, "director@unsam.edu.ar", nombre="Marcela", apellido="Vega",
-        rol=ROL_DIRECTOR, legajo=None,
+        rol=ROL_DIRECTOR, dni="4444"
     )
 
     lic_datos = db.query(Carrera).filter(Carrera.nombre == 'Ciencia de Datos').first()
@@ -155,15 +155,15 @@ def seed_all(db: Session) -> None:
 
     ana = _get_or_create_user(
         db, "ana@alumno.unsam.edu.ar", nombre="Ana", apellido="Pérez",
-        rol=ROL_ESTUDIANTE, legajo="1001", dni="40111222", carrera_id=lic_datos.id,
+        rol=ROL_ESTUDIANTE,dni="40111222", carrera_id=lic_datos.id,#type: ignore
     )
     bruno = _get_or_create_user(
         db, "bruno@alumno.unsam.edu.ar", nombre="Bruno", apellido="Díaz",
-        rol=ROL_ESTUDIANTE, legajo="1002", dni="40333444", carrera_id=ing_electronica.id,
+        rol=ROL_ESTUDIANTE,dni="40333444", carrera_id=ing_electronica.id,#type: ignore
     )
     julian = _get_or_create_user(
             db, "julian@alumno.unsam.edu.ar", nombre="Julian", apellido="Fraga",
-            rol=ROL_ESTUDIANTE, legajo="666", dni="1234654968", carrera_id=lic_datos.id,
+            rol=ROL_ESTUDIANTE, dni="1234654968", carrera_id=lic_datos.id,#type: ignore
         )
     db.flush()
 

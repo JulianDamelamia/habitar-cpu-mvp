@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import io
+from typing import List
 
 import pandas as pd
 from fastapi import APIRouter, Depends, File, Request, UploadFile
@@ -10,7 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import User, ValidLegajo
+from app.models import User#, ValidLegajo
 from app.security import requiere_roles
 from app import services 
 
@@ -25,7 +26,7 @@ def _inscriptos_dataframe(db: Session, actividad_id: int) -> pd.DataFrame:
     present = services.asistencia.present_user_ids(db, actividad_id)
     data = [
         {
-            "legajo": e.user.legajo or "",
+            "dni": e.user.dni,
             "apellido": e.user.apellido,
             "nombre": e.user.nombre,
             "email": e.user.email,
@@ -33,7 +34,7 @@ def _inscriptos_dataframe(db: Session, actividad_id: int) -> pd.DataFrame:
         }
         for e in inscriptos
     ]
-    return pd.DataFrame(data, columns=["legajo", "apellido", "nombre", "email", "asistio"])
+    return pd.DataFrame(data, columns=["dni", "apellido", "nombre", "email", "asistio"])
 
 
 @router.get("/admin/inscriptos")
@@ -79,52 +80,107 @@ def export_xlsx(actividad_id: int, user: User = Depends(ADMIN), db: Session = De
         headers={"Content-Disposition": f"attachment; filename=inscriptos_{actividad_id}.xlsx"},
     )
 
+#deprecar
+# @router.get("/admin/legajos")
+# def legajos_page(request: Request, user: User = Depends(ADMIN), db: Session = Depends(get_db)):
+#     total = db.query(ValidLegajo).count()
+#     return render(request, "admin/legajos.html", user=user, db=db, total=total)
 
-@router.get("/admin/legajos")
-def legajos_page(request: Request, user: User = Depends(ADMIN), db: Session = Depends(get_db)):
-    total = db.query(ValidLegajo).count()
-    return render(request, "admin/legajos.html", user=user, db=db, total=total)
+async def _leer_tabla_usuarios(archivo:UploadFile)-> pd.DataFrame:
+    raw = await archivo.read()
+    if archivo.filename.lower().endswith(".xlsx"): # type: ignore
+        df = pd.read_excel(io.BytesIO(raw))
+    df = pd.read_csv(io.BytesIO(raw))
+    return df
 
+def _validar_datos_usuarios(df:pd.DataFrame) -> None:
+    """Validación síncrona de columnas y formatos."""
+    cols = {str(c).lower().strip() for c in df.columns}
+    if "dni" not in cols or "email" not in cols:
+        raise ValueError("El archivo debe contener las columnas 'dni' y 'email'.")
+    
+def _agregar_usuarios(df: pd.DataFrame, db: Session = Depends(get_db)) -> int:
+    cols = {c.lower().strip(): c for c in df.columns}
+    contador:int = 0
+    seen: set[str] = set()  # dedupe within the file (autoflush=False -> db.get won't see pending inserts)
+    for _, row in df.iterrows():
+        dni = str(row[cols["dni"]]).strip()
+        if not dni or dni.lower() == "nan":
+            continue
+        if "." in dni:  # pandas may read ints as floats
+            dni = dni.split(".")[0]
+        if dni in seen:
+            continue
+        seen.add(dni)
+        nombre = str(row[cols["nombre"]]).strip() if "nombre" in cols else None
+        apellido = str(row[cols["apellido"]]).strip() if "apellido" in cols else None
 
-@router.post("/admin/legajos/import")
-async def legajos_import(
+        if db.get(User, dni) is None:
+            contrasena_temporal = dni
+            #db.add(User(**params))
+            contador += 1
+    return contador
+       
+async def generacion_usuarios(
     request: Request,
     archivo: UploadFile = File(...),
     user: User = Depends(ADMIN),
-    db: Session = Depends(get_db),
+    db: Session = Depends(get_db)
 ):
-    raw = await archivo.read()
     try:
-        if archivo.filename.lower().endswith(".xlsx"): # type: ignore
-            df = pd.read_excel(io.BytesIO(raw))
-        else:
-            df = pd.read_csv(io.BytesIO(raw))
-    except Exception:  # noqa: BLE001
-        return RedirectResponse(url="/admin/legajos?err=No se pudo leer el archivo. Debe ser CSV o XLSX.", status_code=303)
-
-    cols = {c.lower().strip(): c for c in df.columns}
-    if "legajo" not in cols:
-        return RedirectResponse(url="/admin/legajos?err=El archivo debe tener una columna 'legajo'.", status_code=303)
-
-    added = 0
-    seen: set[str] = set()  # dedupe within the file (autoflush=False -> db.get won't see pending inserts)
-    for _, row in df.iterrows():
-        legajo = str(row[cols["legajo"]]).strip()
-        if not legajo or legajo.lower() == "nan":
-            continue
-        if "." in legajo:  # pandas may read ints as floats
-            legajo = legajo.split(".")[0]
-        if legajo in seen:
-            continue
-        seen.add(legajo)
-        nombre = str(row[cols["nombre"]]).strip() if "nombre" in cols else None
-        if db.get(ValidLegajo, legajo) is None:
-            db.add(ValidLegajo(legajo=legajo, nombre=nombre))
-            added += 1
-    try:
-        db.commit()
+        df = await _leer_tabla_usuarios(archivo)
+        _validar_datos_usuarios(df)
+        usuarios_agregados:int = _agregar_usuarios(df)
+    except ValueError as e:
+        return RedirectResponse(url=f"/admin/legajos?err={e}", status_code=303)
     except IntegrityError:
-        # Concurrent import added an overlapping legajo; nothing is corrupted.
         db.rollback()
         return RedirectResponse(url="/admin/legajos?err=Algunos legajos ya existían. Reintentá.", status_code=303)
-    return RedirectResponse(url=f"/admin/legajos?msg=Importados {added} legajos nuevos.", status_code=303)
+    except Exception:  # noqa: BLE001
+        return RedirectResponse(url="/admin/legajos?err=No se pudo leer el archivo. Debe ser CSV o XLSX.", status_code=303)
+        
+    return RedirectResponse(url=f"/admin/legajos?msg=Importados {usuarios_agregados} legajos nuevos.", status_code=303)
+    
+
+# @router.post("/admin/legajos/import")
+# async def legajos_import(
+#     request: Request,
+#     archivo: UploadFile = File(...),
+#     user: User = Depends(ADMIN),
+#     db: Session = Depends(get_db),
+# ):
+#     raw = await archivo.read()
+#     try:
+#         if archivo.filename.lower().endswith(".xlsx"): # type: ignore
+#             df = pd.read_excel(io.BytesIO(raw))
+#         else:
+#             df = pd.read_csv(io.BytesIO(raw))
+#     except Exception:  # noqa: BLE001
+#         return RedirectResponse(url="/admin/legajos?err=No se pudo leer el archivo. Debe ser CSV o XLSX.", status_code=303)
+
+#     cols = {c.lower().strip(): c for c in df.columns}
+#     if "legajo" not in cols:
+#         return RedirectResponse(url="/admin/legajos?err=El archivo debe tener una columna 'legajo'.", status_code=303)
+
+#     added = 0
+#     seen: set[str] = set()  # dedupe within the file (autoflush=False -> db.get won't see pending inserts)
+#     for _, row in df.iterrows():
+#         legajo = str(row[cols["legajo"]]).strip()
+#         if not legajo or legajo.lower() == "nan":
+#             continue
+#         if "." in legajo:  # pandas may read ints as floats
+#             legajo = legajo.split(".")[0]
+#         if legajo in seen:
+#             continue
+#         seen.add(legajo)
+#         nombre = str(row[cols["nombre"]]).strip() if "nombre" in cols else None
+#         if db.get(ValidLegajo, legajo) is None:
+#             db.add(ValidLegajo(legajo=legajo, nombre=nombre))
+#             added += 1
+#     try:
+#         db.commit()
+#     except IntegrityError:
+#         # Concurrent import added an overlapping legajo; nothing is corrupted.
+#         db.rollback()
+#         return RedirectResponse(url="/admin/legajos?err=Algunos legajos ya existían. Reintentá.", status_code=303)
+#     return RedirectResponse(url=f"/admin/legajos?msg=Importados {added} legajos nuevos.", status_code=303)

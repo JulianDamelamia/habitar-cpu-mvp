@@ -6,7 +6,6 @@
 
   {% if editable %}
   <div class="text-sm text-slate-500 mb-4">
-    <span class="mr-4">Legajo: <b class="text-slate-700">{{ user.legajo or 'Sin dato' }}</b></span>
     <span>Email: <b class="text-slate-700">{{ user.email }}</b></span>
   </div>
   <form method="post" action="/perfil" class="space-y-4">
@@ -15,20 +14,19 @@
       <div><label class="block text-sm font-medium mb-1">Apellido</label><input name="apellido" value="{{ user.apellido }}" required class="w-full border rounded-lg px-3 py-2"></div>
     </div>
     <div class="grid grid-cols-2 gap-3">
-      <div><label class="block text-sm font-medium mb-1">DNI</label><input name="dni" value="{{ user.dni or '' }}" class="w-full border rounded-lg px-3 py-2"></div>
-      <div><label class="block text-sm font-medium mb-1">Carrera</label><input name="carrera" value="{{ user.carrera or '' }}" class="w-full border rounded-lg px-3 py-2"></div>
+      <div><label class="block text-sm font-medium mb-1">DNI</label><input name="dni" value="{{ user.dni}}" class="w-full border rounded-lg px-3 py-2"></div>
+      <div><label class="block text-sm font-medium mb-1">Carrera</label><input name="carrera" value="{{ user.carrera.tipo.nombre }} {{ user.carrera.nombre }}" class="w-full border rounded-lg px-3 py-2"></div>
     </div>
     <button class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-5 py-2 font-medium">Guardar</button>
   </form>
 
   {% else %}
   <dl class="grid sm:grid-cols-2 gap-3 text-sm">
-    <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">Legajo</dt><dd class="font-medium">{{ user.legajo or 'Sin dato' }}</dd></div>
-    <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">Email</dt><dd class="font-medium">{{ user.email }}</dd></div>
     <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">Nombre</dt><dd class="font-medium">{{ user.nombre or 'Sin dato' }}</dd></div>
     <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">Apellido</dt><dd class="font-medium">{{ user.apellido or 'Sin dato' }}</dd></div>
-    <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">DNI</dt><dd class="font-medium">{{ user.dni or 'Sin dato' }}</dd></div>
-    <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">Carrera</dt><dd class="font-medium">{{ user.carrera or 'Sin dato' }}</dd></div>
+    <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">Email</dt><dd class="font-medium">{{ user.email }}</dd></div>
+    <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">DNI</dt><dd class="font-medium">{{ user.dni }}</dd></div>
+    <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">Carrera</dt><dd class="font-medium">{{ user.carrera.tipo.nombre }} {{ user.carrera.nombre }}</dd></div>
   </dl>
   <p class="text-xs text-slate-400 mt-4 flex items-center gap-1">
     <i data-lucide="lock" class="w-3.5 h-3.5"></i>

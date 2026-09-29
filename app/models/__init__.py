@@ -9,7 +9,7 @@ from .sesion_asistencia import SesionAsistencia
 from .survey_response import SurveyResponse
 from .tipo_carrera import TipoCarrera
 from .user import User
-from .valid_legajo import ValidLegajo
+#from .valid_legajo import ValidLegajo
 
 __all__ = [
 	"Actividad",
@@ -22,5 +22,5 @@ __all__ = [
 	"SurveyResponse",
 	"TipoCarrera",
 	"User",
-	"ValidLegajo",
+#	"ValidLegajo",
 ]
