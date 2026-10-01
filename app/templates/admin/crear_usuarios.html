@@ -2,29 +2,13 @@
 {% block title %}Importar Usuarios{% endblock %}
 
 {% block content %}
-<a href="/admin/crear_usuarios" class="text-sm text-indigo-600 hover:underline inline-flex items-center gap-1">
+<a href="/admin/inscriptos" class="text-sm text-indigo-600 hover:underline inline-flex items-center gap-1">
   <i data-lucide="arrow-left" class="w-4 h-4"></i> Inscriptos
 </a>
 
 <div class="bg-white rounded-2xl shadow p-8 mt-3 {% if errores %}max-w-4xl{% else %}max-w-lg{% endif %} transition-all">
 
   <p class="text-sm text-slate-500 mb-6">Carga masiva de estudiantes desde un archivo de hoja de cálculo.</p>
-
-  <!-- Mensaje de éxito (si viene por query param ?msg=...) -->
-  {% if msg %}
-  <div class="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-2">
-    <i data-lucide="check-circle" class="w-5 h-5 text-emerald-600 shrink-0"></i>
-    <span>{{ msg }}</span>
-  </div>
-  {% endif %}
-
-  <!-- Mensaje general de error -->
-  {% if err %}
-  <div class="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center gap-2">
-    <i data-lucide="alert-circle" class="w-5 h-5 text-rose-600 shrink-0"></i>
-    <span>{{ err }}</span>
-  </div>
-  {% endif %}
 
   <!-- Formulario de importación -->
   <form method="post" action="/admin/crear_usuarios/import" enctype="multipart/form-data" class="space-y-4 mb-8">

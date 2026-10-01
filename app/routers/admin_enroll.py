@@ -5,7 +5,7 @@ import io
 from typing import List
 
 import pandas as pd
-from fastapi import APIRouter, Depends, File, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Request, UploadFile,BackgroundTasks
 from fastapi.responses import RedirectResponse, Response
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -95,27 +95,6 @@ def _validar_datos_usuarios(df:pd.DataFrame) -> None:
         faltantes = COLUMNAS_ESPERADAS - cols
         raise ValueError(f"El archivo debe contener las columnas {faltantes}.")
     
-# def _agregar_usuarios(df: pd.DataFrame, db: Session = Depends(get_db)) -> int:
-#     cols = {c.lower().strip(): c for c in df.columns}
-#     contador:int = 0
-#     seen: set[str] = set()  # dedupe within the file (autoflush=False -> db.get won't see pending inserts)
-#     for _, row in df.iterrows():
-#         dni = str(row[cols["dni"]]).strip()
-#         if not dni or dni.lower() == "nan":
-#             continue
-#         if "." in dni:  # pandas may read ints as floats
-#             dni = dni.split(".")[0]
-#         if dni in seen:
-#             continue
-#         seen.add(dni)
-#         nombre = str(row[cols["nombre"]]).strip() if "nombre" in cols else None
-#         apellido = str(row[cols["apellido"]]).strip() if "apellido" in cols else None
-
-#         if db.get(User, dni) is None:
-#             contrasena_temporal = dni
-#             db.add(User(**params))
-#             contador += 1
-#     return contador
 
 @router.get("/admin/crear_usuarios")
 def crear_usuarios(request: Request, user: User = Depends(ADMIN), db: Session = Depends(get_db)):
@@ -124,16 +103,18 @@ def crear_usuarios(request: Request, user: User = Depends(ADMIN), db: Session = 
 @router.post("/admin/crear_usuarios/import")       
 async def generacion_usuarios(
     request: Request,
+    background_tasks: BackgroundTasks,
     archivo: UploadFile = File(...),
     user: User = Depends(ADMIN),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     try:
         df = await _leer_tabla_usuarios(archivo)
         _validar_datos_usuarios(df)
         retorno = services.identity.procesar_carga_masiva(db=db, df=df)
-        cant_usuarios_creados = retorno['creados']
-        errores = retorno['errores']
+        usuarios_creados = retorno.get('usuarios_creados',[])
+        cant_usuarios_creados = len(usuarios_creados)
+        errores = retorno.get('errores',[])
         if errores:
             return render(
                 request, 
@@ -144,7 +125,19 @@ async def generacion_usuarios(
                 err=f"Se detectaron {len(errores)} filas con errores. Por favor corregilas y reintentá.",
                 status_code=400
             )
-            
+        if usuarios_creados:
+            background_tasks.add_task(
+                services.mailing.enviar_mail_verificacion,
+                datos_mails = [
+                    {
+                        "email": u.email,
+                        "nombre": u.nombre,
+                        "apellido": u.nombre
+                    } 
+                    for u in usuarios_creados
+                ]
+            )
+
     except ValueError as e:
         return render(
             request, 

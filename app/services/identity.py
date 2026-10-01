@@ -216,6 +216,7 @@ def procesar_carga_masiva(
         db.commit()
 
     return {
-        "creados": len(usuarios_a_crear),#type:ignore
-        "errores": errores
+        "usuarios_creados": usuarios_a_crear,#type:ignore
+        "errores": errores,
+        
     }
