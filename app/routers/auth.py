@@ -49,7 +49,6 @@ def signup_submit(
     password: str = Form(...),
     nombre: str = Form(...),
     apellido: str = Form(...),
-    dni: int = Form(...),
     carrera: str = Form(""),
     db: Session = Depends(get_db),
 ):
@@ -57,12 +56,12 @@ def signup_submit(
     try:
         user = services.identity.create_student(
             db,email=email, password=password,
-            nombre=nombre, apellido=apellido, dni=dni, carrera_id=carrera_id,
+            nombre=nombre, apellido=apellido, carrera_id=carrera_id,
         )
     except services.identity.SignupError as exc:
         return render(
             request, "auth/signup.html", error=str(exc),
-            email=email, nombre=nombre, apellido=apellido, dni=dni, carrera=carrera,
+            email=email, nombre=nombre, apellido=apellido, carrera=carrera,
         )
     login_user(request, user)
     return RedirectResponse(url="/home?msg=¡Cuenta creada! Bienvenido/a al Módulo Habitar.", status_code=303)

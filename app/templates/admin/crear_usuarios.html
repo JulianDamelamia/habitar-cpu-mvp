@@ -16,7 +16,7 @@
       <label class="block text-sm font-medium mb-1 text-slate-700">Archivo CSV o XLSX</label>
       <input type="file" name="archivo" accept=".csv,.xlsx" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
       <p class="text-xs text-slate-400 mt-1">
-        Columnas esperadas: <code>email</code>, <code>dni</code>, <code>carrera</code>, <code>nombre</code>, <code>apellido</code>.
+        Columnas esperadas: <code>email</code>, <code>carrera</code>, <code>nombre</code>, <code>apellido</code>.
       </p>
     </div>
     <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-5 py-2 text-sm font-medium transition-colors inline-flex items-center gap-2">
@@ -38,7 +38,6 @@
           <tr>
             <th class="px-4 py-3 w-16 text-center">Fila</th>
             <th class="px-4 py-3">Email</th>
-            <th class="px-4 py-3">DNI</th>
             <th class="px-4 py-3">Detalle del error</th>
           </tr>
         </thead>
@@ -52,9 +51,7 @@
             <td class="px-4 py-3 font-mono text-xs text-slate-800">
               {{ e.email if e.email else '-' }}
             </td>
-            <td class="px-4 py-3 font-mono text-xs text-slate-800">
-              {{ e.dni if e.dni is not none else '-' }}
-            </td>
+            
             <td class="px-4 py-3">
               <ul class="list-disc list-inside text-rose-600 text-xs space-y-0.5">
                 {% for err_msg in e.errores %}

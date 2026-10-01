@@ -1,4 +1,4 @@
-nombre,apellido,email,dni,carrera
-julian,fraga dos 2,asdasdadasd@pepe.unsam.ar,8432,ciencia de datos
-julian,fraga ingeniero 2,asdas@pepe.unsam.ar,45412,ingenieria electronica
-julian,fraga doctor 2,doceqhasdtor@pepe.unsam.ar,00000,fisica medica
+nombre,apellido,email
+julian,fraga dos 2,asdasdadasd@pepe.unsam.ar
+julian,fraga ingeniero 2,asdas@pepe.unsam.ar
+julian,fraga doctor 2,doceqhasdtor@pepe.unsam.ar

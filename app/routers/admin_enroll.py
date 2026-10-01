@@ -26,7 +26,6 @@ def _inscriptos_dataframe(db: Session, actividad_id: int) -> pd.DataFrame:
     present = services.asistencia.present_user_ids(db, actividad_id)
     data = [
         {
-            "dni": e.user.dni,
             "apellido": e.user.apellido,
             "nombre": e.user.nombre,
             "email": e.user.email,
@@ -34,7 +33,7 @@ def _inscriptos_dataframe(db: Session, actividad_id: int) -> pd.DataFrame:
         }
         for e in inscriptos
     ]
-    return pd.DataFrame(data, columns=["dni", "apellido", "nombre", "email", "asistio"])
+    return pd.DataFrame(data, columns=["apellido", "nombre", "email", "asistio"])
 
 
 @router.get("/admin/inscriptos")
@@ -87,7 +86,8 @@ async def _leer_tabla_usuarios(archivo:UploadFile)-> pd.DataFrame:
         df = pd.read_excel(io.BytesIO(raw))
     df = pd.read_csv(io.BytesIO(raw))
     return df
-COLUMNAS_ESPERADAS = {'dni', 'email', 'nombre', 'apellido', 'carrera'}
+
+COLUMNAS_ESPERADAS = {'email', 'nombre', 'apellido'}
 def _validar_datos_usuarios(df:pd.DataFrame) -> None:
     """Validación síncrona de columnas y formatos."""
     cols = {str(c).lower().strip() for c in df.columns}
@@ -115,6 +115,8 @@ async def generacion_usuarios(
         usuarios_creados = retorno.get('usuarios_creados',[])
         cant_usuarios_creados = len(usuarios_creados)
         errores = retorno.get('errores',[])
+        notificaciones_mail = retorno.get('notificaciones_mail', [])
+
         if errores:
             return render(
                 request, 
@@ -126,16 +128,10 @@ async def generacion_usuarios(
                 status_code=400
             )
         if usuarios_creados:
+            # mailing
             background_tasks.add_task(
                 services.mailing.enviar_mail_verificacion,
-                datos_mails = [
-                    {
-                        "email": u.email,
-                        "nombre": u.nombre,
-                        "apellido": u.nombre
-                    } 
-                    for u in usuarios_creados
-                ]
+                contenido = notificaciones_mail
             )
 
     except ValueError as e:

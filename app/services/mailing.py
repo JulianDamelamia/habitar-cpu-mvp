@@ -2,7 +2,7 @@
 from app.models.user import User
 
 
-def enviar_mail_verificacion(datos_mails:list[dict]) -> None:
+def enviar_mail_verificacion(contenido:list[dict]) -> None:
 
-    for usuario in datos_mails:
-        print(f'Mail de mentira enviado a {usuario['nombre']} {usuario['apellido']} al correo {usuario['email']}')
+    for usuario in contenido:
+        print(f'Hola {usuario['nombre']} {usuario['apellido']},\ningresá a habitardigital.com con tu dirección de correo {usuario['email']} y contraseña {usuario['password_temporal']}')

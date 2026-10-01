@@ -15,11 +15,10 @@
 
 <div class="bg-white rounded-2xl shadow overflow-x-auto">
   <table class="w-full text-sm min-w-[640px]">
-    <thead class="bg-slate-100 text-slate-500 text-left"><tr><th class="px-4 py-3">DNI</th><th>Estudiante</th><th>Email</th><th>Asistencia</th><th></th></tr></thead>
+    <thead class="bg-slate-100 text-slate-500 text-left"><tr><th>Estudiante</th><th>Email</th><th>Asistencia</th><th></th></tr></thead>
     <tbody>
     {% for e in inscriptos %}
       <tr class="border-t">
-        <td class="px-4 py-3">{{ e.user.dni or 'Sin dato' }}</td>
         <td class="font-medium">{{ e.user.nombre_completo }}</td>
         <td class="text-slate-500">{{ e.user.email }}</td>
         <td>
