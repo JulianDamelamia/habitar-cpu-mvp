@@ -7,7 +7,7 @@ from datetime import datetime, timedelta, timezone
 from apscheduler.schedulers.background import BackgroundScheduler
 
 from app.database import SessionLocal
-from app.email_util import send_email
+from app.services.mailing import send_email
 from app.models import (
     Actividad,
     ESTADO_PUBLICADA,

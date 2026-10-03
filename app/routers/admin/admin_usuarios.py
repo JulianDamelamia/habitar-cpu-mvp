@@ -43,7 +43,7 @@ async def generacion_usuarios(
         if usuarios_creados:
             # mailing
             background_tasks.add_task(
-                services.mailing.enviar_mail_verificacion,
+                services.mailing.enviar_mails_verificacion,
                 contenido = notificaciones_mail
             )
 

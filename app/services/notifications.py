@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from sqlalchemy.orm import Session
 
-from app.email_util import send_email
+from app.services.mailing import send_email
 from app.models import Notification, User
 
 
