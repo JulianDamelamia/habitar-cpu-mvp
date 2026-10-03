@@ -6,7 +6,7 @@ from fastapi import Depends, Request
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import User
+from app.models import User, ROL_COORDINACION
 
 
 # ---- Passwords ---------------------------------------------------------------
@@ -60,3 +60,5 @@ def requiere_roles(*roles: str):
         return user
 
     return dependency
+
+REQUIERE_ADMIN = requiere_roles(ROL_COORDINACION)

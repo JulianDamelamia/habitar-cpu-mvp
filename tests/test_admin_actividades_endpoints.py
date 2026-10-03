@@ -1,5 +1,5 @@
-from urllib.parse import unquote
 from datetime import datetime, timedelta, timezone
+from urllib.parse import parse_qs, urlsplit
 
 import pytest
 from fastapi.testclient import TestClient
@@ -13,7 +13,8 @@ from app.models import (
     Actividad,
 )
 from app.security import hash_password
-from app.routers.admin_actividades import _parse_dates, _parse_duration
+from app.routers.admin.admin_actividades import parse_intervalo_tiempo
+from app.services.parsing import parse_duracion
 
 
 @pytest.fixture
@@ -57,20 +58,24 @@ def actividad_form_data(docente_id, carrera_id, *, titulo="Actividad nueva"):
     }
 
 
-def test_parse_duration_accepts_hh_mm():
-    assert _parse_duration("02:15") == timedelta(hours=2, minutes=15)
+def redirect_query(response, name):
+    return parse_qs(urlsplit(response.headers["location"]).query).get(name, [""])[0]
 
 
-def test_parse_duration_rejects_invalid_format():
+def testparse_duracion_accepts_hh_mm():
+    assert parse_duracion("02:15") == timedelta(hours=2, minutes=15)
+
+
+def testparse_duracion_rejects_invalid_format():
     with pytest.raises(ValueError, match="HH:MM"):
-        _parse_duration("2:15")
+        parse_duracion("2:15")
 
 
 def test_parse_dates_rejects_dates_before_today():
     yesterday = datetime.now(timezone.utc).date() - timedelta(days=1)
 
     with pytest.raises(ValueError, match="anteriores al día de hoy"):
-        _parse_dates(
+        parse_intervalo_tiempo(
             f"{yesterday.isoformat()}T10:00",
             duracion="01:00",
             modo_finalizacion="duracion",
@@ -92,7 +97,7 @@ def test_admin_activities_pages_require_coordination_role(db_session, user_facto
             "/login",
             data={"email": student.email, "password": "student-password"},
         )
-        response = client.get("/admin")
+        response = client.get("/admin/actividades")
         client.close()
     finally:
         app.dependency_overrides.pop(get_db, None)
@@ -113,7 +118,7 @@ def test_admin_activities_crud_lifecycle(admin_actividades_client):
         data=actividad_form_data(docente.id, carrera.id),
     )
     assert create_response.status_code == 303
-    assert unquote(create_response.headers["location"]).startswith("/admin?msg=Actividad creada")
+    assert redirect_query(create_response, "msg").startswith("Actividad creada")
 
     actividad = db_session.query(Actividad).one()
     assert actividad.titulo == "Actividad nueva"
@@ -133,7 +138,7 @@ def test_admin_activities_crud_lifecycle(admin_actividades_client):
         data=update_data,
     )
     assert update_response.status_code == 303
-    assert unquote(update_response.headers["location"]).startswith("/admin?msg=Actividad actualizada")
+    assert redirect_query(update_response, "msg").startswith("Actividad actualizada")
     db_session.refresh(actividad)
     assert actividad.titulo == "Actividad actualizada"
     assert actividad.creditos == 5
@@ -144,13 +149,13 @@ def test_admin_activities_crud_lifecycle(admin_actividades_client):
 
     publish_response = client.post(f"/admin/actividades/{actividad.id}/publicar")
     assert publish_response.status_code == 303
-    assert unquote(publish_response.headers["location"]).startswith("/admin?msg=Actividad publicada")
+    assert redirect_query(publish_response, "msg").startswith("Actividad publicada")
     db_session.refresh(actividad)
     assert actividad.estado == ESTADO_PUBLICADA
 
     cancel_response = client.post(f"/admin/actividades/{actividad.id}/cancelar")
     assert cancel_response.status_code == 303
-    assert unquote(cancel_response.headers["location"]).startswith("/admin?msg=Actividad cancelada")
+    assert redirect_query(cancel_response, "msg").startswith("Actividad cancelada")
     db_session.refresh(actividad)
     assert actividad.estado == ESTADO_CANCELADA
 
@@ -163,7 +168,7 @@ def test_create_activity_with_invalid_dates_redirects_with_error(admin_actividad
     response = client.post("/admin/actividades", data=data)
 
     assert response.status_code == 303
-    assert unquote(response.headers["location"]).startswith("/admin?err=Fechas inválidas")
+    assert redirect_query(response, "err").startswith("Fechas inválidas")
     assert db_session.query(Actividad).count() == 0
 
 
@@ -182,7 +187,7 @@ def test_activity_without_career_cannot_be_published(admin_actividades_client):
     publish_response = client.post(f"/admin/actividades/{actividad.id}/publicar")
 
     assert publish_response.status_code == 303
-    assert "sin carreras asociadas" in unquote(publish_response.headers["location"])
+    assert "sin carreras asociadas" in redirect_query(publish_response, "err")
     db_session.refresh(actividad)
     assert actividad.estado == ESTADO_BORRADOR
 
@@ -198,4 +203,4 @@ def test_missing_activity_endpoints_redirect_with_not_found(admin_actividades_cl
     ]:
         response = method(path)
         assert response.status_code == 303
-        assert "Actividad no encontrada" in unquote(response.headers["location"])
+        assert "Actividad no encontrada" in redirect_query(response, "err")

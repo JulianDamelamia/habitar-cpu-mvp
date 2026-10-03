@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Form, Request
-from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -13,7 +12,7 @@ from app.security import (
     logout_user,
 )
 from app import services
-from app.templating import render
+from app.templating import redirect_to, render
 
 router = APIRouter()
 
@@ -34,7 +33,7 @@ def login_submit(
     if not user:
         return render(request, "auth/login.html", error="Email o contraseña incorrectos.", email=email)
     login_user(request, user)
-    return RedirectResponse(url="/", status_code=303)
+    return redirect_to(request, "root")
 
 
 @router.get("/signup")
@@ -64,13 +63,16 @@ def signup_submit(
             email=email, nombre=nombre, apellido=apellido, carrera=carrera,
         )
     login_user(request, user)
-    return RedirectResponse(url="/home?msg=¡Cuenta creada! Bienvenido/a al Módulo Habitar.", status_code=303)
+    return redirect_to(
+        request, "home",
+        query_params={"msg": "¡Cuenta creada! Bienvenido/a al Módulo Habitar."},
+    )
 
 
 @router.get("/logout")
 def logout(request: Request):
     logout_user(request)
-    return RedirectResponse(url="/login", status_code=303)
+    return redirect_to(request, "login_form")
 
 
 @router.get("/perfil")
@@ -90,4 +92,7 @@ def perfil_update(
     user.nombre = nombre.strip()
     user.apellido = apellido.strip()
     db.commit()
-    return RedirectResponse(url="/perfil?msg=Perfil actualizado.", status_code=303)
+    return redirect_to(
+        request, "perfil",
+        query_params={"msg": "Perfil actualizado."},
+    )

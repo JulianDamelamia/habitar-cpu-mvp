@@ -1,13 +1,13 @@
 {% extends "base.html" %}
 {% block title %}{{ 'Editar carrera' if carrera else 'Nueva carrera' }}{% endblock %}
 {% block content %}
-<a href="/admin/carreras" class="text-sm text-indigo-600 hover:underline inline-flex items-center gap-1">
+<a href="{{ url_for('listar_carreras').path }}" class="text-sm text-indigo-600 hover:underline inline-flex items-center gap-1">
   <i data-lucide="arrow-left" class="w-4 h-4"></i> Panel de carreras
 </a>
 
 <div class="bg-white rounded-2xl shadow p-8 mt-3 max-w-2xl">
   <h1 class="text-2xl font-bold mb-5">{{ 'Editar carrera' if carrera else 'Agregar carrera' }}</h1>
-  <form method="post" action="{{ '/admin/carreras/' ~ carrera.id if carrera else '/admin/carreras' }}" class="space-y-4">
+  <form method="post" action="{{ url_for('actualizar_carrera', carrera_id=carrera.id).path if carrera else url_for('crear_carrera').path }}" class="space-y-4">
     <div>
       <label for="nombre" class="block text-sm font-medium mb-1">Nombre de la carrera</label>
       <input id="nombre" name="nombre" type="text" required maxlength="50" autofocus
@@ -36,7 +36,7 @@
     </div>
     <div class="flex gap-2 pt-2">
       <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-6 py-2 font-medium">{{ 'Guardar cambios' if carrera else 'Guardar' }}</button>
-      <a href="/admin/carreras" class="text-slate-500 px-3 py-2 hover:underline">Cancelar</a>
+      <a href="{{ url_for('listar_carreras').path }}" class="text-slate-500 px-3 py-2 hover:underline">Cancelar</a>
     </div>
   </form>
 
@@ -47,7 +47,7 @@
       </button>
       <div id="eliminacion-panel" class="hidden mt-3 rounded-lg border border-rose-200 bg-rose-50 p-4">
         <p class="text-sm text-rose-800 mb-3">Ingresá tu contraseña para continuar con la eliminación.</p>
-        <form method="post" action="/admin/carreras/{{ carrera.id }}/verificar-eliminacion" class="flex flex-wrap gap-2">
+        <form method="post" action="{{ url_for('verificar_eliminacion', carrera_id=carrera.id).path }}" class="flex flex-wrap gap-2">
           <input name="password" type="password" required autocomplete="current-password" class="border rounded-lg px-3 py-2">
           <button type="submit" class="bg-rose-600 hover:bg-rose-700 text-white rounded-lg px-4 py-2 text-sm font-medium">Verificar contraseña</button>
         </form>
@@ -59,9 +59,9 @@
         <div class="bg-white rounded-xl shadow-xl p-6 max-w-md w-full">
           <h2 class="text-lg font-bold mb-2">Confirmar eliminación</h2>
           <p class="text-sm text-slate-600 mb-4">Esta acción eliminará la carrera y la quitará de las actividades asociadas.</p>
-          <form method="post" action="/admin/carreras/{{ carrera.id }}/eliminar" class="flex justify-end gap-2">
+          <form method="post" action="{{ url_for('eliminar_carrera', carrera_id=carrera.id).path }}" class="flex justify-end gap-2">
             <input type="hidden" name="confirmar" value="eliminar">
-            <a href="/admin/carreras/{{ carrera.id }}/editar" class="text-slate-500 px-3 py-2 hover:underline">Volver</a>
+            <a href="{{ url_for('editar_carrera', carrera_id=carrera.id).path }}" class="text-slate-500 px-3 py-2 hover:underline">Volver</a>
             <button type="submit" class="bg-rose-600 hover:bg-rose-700 text-white rounded-lg px-4 py-2 font-medium">Confirmar eliminación</button>
           </form>
         </div>

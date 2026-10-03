@@ -7,7 +7,7 @@
   {% if answered %}
     <div class="mb-4 rounded-lg bg-slate-100 px-4 py-2 text-sm text-slate-600">Ya respondiste (<i data-lucide="star" class="inline-block w-4 h-4 align-[-3px]"></i> {{ answered.rating }}). Podés actualizar tu respuesta.</div>
   {% endif %}
-  <form method="post" action="/actividades/{{ a.id }}/encuesta" class="space-y-4">
+  <form method="post" action="{{ url_for('survey_submit', actividad_id=a.id).path }}" class="space-y-4">
     <div>
       <label class="block text-sm font-medium mb-2">Tu valoración</label>
       <div class="flex gap-2" id="stars">
@@ -25,7 +25,7 @@
     </div>
     <div class="flex gap-2">
       <button class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-5 py-2 font-medium">Enviar</button>
-      <a href="/home" class="text-slate-500 px-3 py-2 text-sm hover:underline">Omitir</a>
+      <a href="{{ url_for('home').path }}" class="text-slate-500 px-3 py-2 text-sm hover:underline">Omitir</a>
     </div>
   </form>
 </div>

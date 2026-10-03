@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 from starlette.templating import _TemplateResponse
 
@@ -10,7 +9,7 @@ from app.database import get_db
 from app.models import TIPO_PRESENCIAL, TIPO_VIRTUAL, User
 from app.security import current_user_required
 from app import services
-from app.templating import render
+from app.templating import redirect_to, render
 
 router = APIRouter()
 
@@ -53,7 +52,10 @@ def actividad_detail(
 ):
     actividad = services.actividades.get(db, actividad_id)
     if actividad is None or actividad.estado != "publicada":
-        return RedirectResponse(url="/actividades?err=La actividad no está disponible.", status_code=303)
+        return redirect_to(
+            request, "list_actividades",
+            query_params={"err": "La actividad no está disponible."},
+        )
 
     cupo = services.actividades.cupo_info(db, actividad)
     enrolled = services.consultas_comunes.is_enrolled(db, actividad_id, user.id)

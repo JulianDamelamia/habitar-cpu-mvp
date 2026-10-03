@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 {% block title %}Inscriptos - {{ a.titulo }}{% endblock %}
 {% block content %}
-<a href="/admin/inscriptos" class="text-sm text-indigo-600 hover:underline inline-flex items-center gap-1"><i data-lucide="arrow-left" class="w-4 h-4"></i> Inscriptos</a>
+<a href="{{ url_for('inscriptos_index').path }}" class="text-sm text-indigo-600 hover:underline inline-flex items-center gap-1"><i data-lucide="arrow-left" class="w-4 h-4"></i> Inscriptos</a>
 <div class="flex items-center justify-between mt-2 mb-4 flex-wrap gap-3">
   <div>
     <h1 class="text-2xl font-bold">{{ a.titulo }}</h1>
     <p class="text-slate-500 text-sm"><i data-lucide="calendar" class="inline-block w-4 h-4 align-[-3px]"></i> {{ a.fecha_inicio|fmt_dt }}, {{ inscriptos|length }} inscriptos</p>
   </div>
   <div class="flex gap-2">
-    <a href="/admin/inscriptos/{{ a.id }}/export.csv" class="border rounded-lg px-3 py-2 text-sm hover:bg-slate-50 inline-flex items-center gap-1"><i data-lucide="download" class="w-4 h-4"></i> CSV</a>
-    <a href="/admin/inscriptos/{{ a.id }}/export.xlsx" class="border rounded-lg px-3 py-2 text-sm hover:bg-slate-50 inline-flex items-center gap-1"><i data-lucide="download" class="w-4 h-4"></i> Excel</a>
+    <a href="{{ url_for('export_csv', actividad_id=a.id).path }}" class="border rounded-lg px-3 py-2 text-sm hover:bg-slate-50 inline-flex items-center gap-1"><i data-lucide="download" class="w-4 h-4"></i> CSV</a>
+    <a href="{{ url_for('export_xlsx', actividad_id=a.id).path }}" class="border rounded-lg px-3 py-2 text-sm hover:bg-slate-50 inline-flex items-center gap-1"><i data-lucide="download" class="w-4 h-4"></i> Excel</a>
   </div>
 </div>
 
@@ -27,7 +27,7 @@
         </td>
         <td class="px-4 py-3 text-right">
           {% if e.user_id not in present %}
-          <form method="post" action="/docente/actividades/{{ a.id }}/marcar/{{ e.user_id }}"><button class="text-xs border rounded-lg px-2 py-1 hover:bg-slate-50">Validar asistencia</button></form>
+          <form method="post" action="{{ url_for('docente_mark', actividad_id=a.id, student_id=e.user_id).path }}"><button class="text-xs border rounded-lg px-2 py-1 hover:bg-slate-50">Validar asistencia</button></form>
           {% endif %}
         </td>
       </tr>

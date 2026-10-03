@@ -5,7 +5,7 @@
   <h1 class="text-2xl font-bold mb-1 flex items-center gap-2"><i data-lucide="graduation-cap" class="w-6 h-6"></i> {{ app_name }}</h1>
   <p class="text-slate-500 mb-6 text-sm">Plataforma del Módulo Habitar, CPU UNSAM</p>
   {% if error %}<div class="mb-4 rounded-lg bg-rose-100 border border-rose-300 text-rose-800 px-4 py-2 text-sm">{{ error }}</div>{% endif %}
-  <form method="post" action="/login" class="space-y-4">
+  <form method="post" action="{{ url_for('login_submit').path }}" class="space-y-4">
     <div>
       <label class="block text-sm font-medium mb-1">Email</label>
       <input name="email" type="email" value="{{ email or '' }}" required class="w-full border rounded-lg px-3 py-2" placeholder="tu@email.com">
@@ -16,7 +16,7 @@
     </div>
     <button class="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg py-2 font-medium">Ingresar</button>
   </form>
-  <p class="mt-5 text-sm text-slate-600">¿Sos ingresante nuevo? <a href="/signup" class="text-indigo-600 hover:underline">Creá tu cuenta</a></p>
+  <p class="mt-5 text-sm text-slate-600">¿Sos ingresante nuevo? <a href="{{ url_for('signup_form').path }}" class="text-indigo-600 hover:underline">Creá tu cuenta</a></p>
   <div class="mt-6 border-t pt-4 text-xs text-slate-400">
     <p class="font-medium text-slate-500 mb-1">Cuentas demo (contraseña: <code>habitar123</code>)</p>
     <p>Estudiante: ana@alumno.unsam.edu.ar</p>

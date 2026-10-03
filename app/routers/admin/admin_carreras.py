@@ -8,18 +8,16 @@ from starlette.responses import Response
 
 from app import services
 from app.database import get_db
-from app.models import Carrera, TipoCarrera, User
-from app.security import requiere_roles, verify_password
-from app.templating import render
+from app.models import TipoCarrera, User
+from app.security import REQUIERE_ADMIN, verify_password
+from app.templating import redirect_to, render
 
 router = APIRouter()
-ADMIN = requiere_roles("coordinacion")
 
-
-@router.get("/admin/carreras")
+@router.get("")
 def listar_carreras(
     request: Request,
-    user: User = Depends(ADMIN),
+    user: User = Depends(REQUIERE_ADMIN),
     db: Session = Depends(get_db),
 ) -> _TemplateResponse:
     tipo = request.query_params.get("tipo", "")
@@ -107,10 +105,10 @@ def listar_carreras(
     )
 
 
-@router.get("/admin/carreras/nueva")
+@router.get("/nueva")
 def nueva_carrera(
     request: Request,
-    user: User = Depends(ADMIN),
+    user: User = Depends(REQUIERE_ADMIN),
     db: Session = Depends(get_db),
 ) -> _TemplateResponse:
     return render(
@@ -126,20 +124,20 @@ def nueva_carrera(
     )
 
 
-@router.post("/admin/carreras")
+@router.post("")
 def crear_carrera(
     request: Request,
     nombre: str = Form(...),
     tipo: str = Form(...),
     creditos_requeridos: int = Form(...),
     password: str = Form(...),
-    user: User = Depends(ADMIN),
+    user: User = Depends(REQUIERE_ADMIN),
     db: Session = Depends(get_db),
 ) -> RedirectResponse:
     if not verify_password(password, user.pw_hash):
-        return RedirectResponse(
-            url="/admin/carreras/nueva?err=Contraseña incorrecta.",
-            status_code=303,
+        return redirect_to(
+            request, "nueva_carrera",
+            query_params={"err": "Contraseña incorrecta."},
         )
 
     try:
@@ -150,29 +148,29 @@ def crear_carrera(
             tipo=tipo,
         )
     except ValueError as err:
-        return RedirectResponse(
-            url=f"/admin/carreras/nueva?err={err}",
-            status_code=303,
+        return redirect_to(
+            request, "nueva_carrera",
+            query_params={"err": str(err)},
         )
 
-    return RedirectResponse(
-        url="/admin/carreras?msg=Carrera creada correctamente.",
-        status_code=303,
+    return redirect_to(
+        request, "listar_carreras",
+        query_params={"msg": "Carrera creada correctamente."},
     )
 
 
-@router.get("/admin/carreras/{carrera_id}/editar")
+@router.get("/{carrera_id}/editar")
 def editar_carrera(
     request: Request,
     carrera_id: int,
-    user: User = Depends(ADMIN),
+    user: User = Depends(REQUIERE_ADMIN),
     db: Session = Depends(get_db),
 ) -> Response:
     carrera = services.carreras.get_by_id(db, carrera_id)
     if carrera is None:
-        return RedirectResponse(
-            url="/admin/carreras?err=Carrera no encontrada.",
-            status_code=303,
+        return redirect_to(
+            request, "listar_carreras",
+            query_params={"err": "Carrera no encontrada."},
         )
     return render(
         request,
@@ -187,7 +185,7 @@ def editar_carrera(
     )
 
 
-@router.post("/admin/carreras/{carrera_id}")
+@router.post("/{carrera_id}", name="actualizar_carrera")
 def actualizar(
     request: Request,
     carrera_id: int,
@@ -195,20 +193,20 @@ def actualizar(
     tipo: str = Form(...),
     creditos_requeridos: int = Form(...),
     password: str = Form(...),
-    user: User = Depends(ADMIN),
+    user: User = Depends(REQUIERE_ADMIN),
     db: Session = Depends(get_db),
 ) -> RedirectResponse:
     carrera = services.carreras.get_by_id(db, carrera_id)
     if carrera is None:
-        return RedirectResponse(
-            url="/admin/carreras?err=Carrera no encontrada.",
-            status_code=303,
+        return redirect_to(
+            request, "listar_carreras",
+            query_params={"err": "Carrera no encontrada."},
         )
 
     if not verify_password(password, user.pw_hash):
-        return RedirectResponse(
-            url=f"/admin/carreras/{carrera_id}/editar?err=Contraseña incorrecta.",
-            status_code=303,
+        return redirect_to(
+            request, "editar_carrera", carrera_id=carrera_id,
+            query_params={"err": "Contraseña incorrecta."},
         )
 
     try:
@@ -220,78 +218,83 @@ def actualizar(
             tipo=tipo,
         )
     except ValueError as err:
-        return RedirectResponse(
-            url=f"/admin/carreras/{carrera_id}/editar?err={err}",
-            status_code=303,
+        return redirect_to(
+            request, "editar_carrera", carrera_id=carrera_id,
+            query_params={"err": str(err)},
         )
 
-    return RedirectResponse(
-        url="/admin/carreras?msg=Carrera actualizada.",
-        status_code=303,
+    return redirect_to(
+        request, "listar_carreras",
+        query_params={"msg": "Carrera actualizada."},
     )
 
 
-@router.post("/admin/carreras/{carrera_id}/verificar-eliminacion")
+@router.post("/{carrera_id}/verificar-eliminacion")
 def verificar_eliminacion(
     request: Request,
     carrera_id: int,
     password: str = Form(...),
-    user: User = Depends(ADMIN),
+    user: User = Depends(REQUIERE_ADMIN),
     db: Session = Depends(get_db),
 ) -> Response:
     carrera = services.carreras.get_by_id(db, carrera_id)
     if carrera is None:
-        return RedirectResponse(
-            url="/admin/carreras?err=Carrera no encontrada.", status_code=303
+        return redirect_to(
+            request, "listar_carreras",
+            query_params={"err": "Carrera no encontrada."},
         )
     if not verify_password(password, user.pw_hash):
-        return RedirectResponse(
-            url=f"/admin/carreras/{carrera_id}/editar?err=Contraseña incorrecta.",
-            status_code=303,
+        return redirect_to(
+            request, "editar_carrera", carrera_id=carrera_id,
+            query_params={"err": "Contraseña incorrecta."},
         )
     cantidad = services.carreras.get_cantidad_inscriptos_por_carrera(db, carrera_id)
     if cantidad:
-        return RedirectResponse(
-            url=(
-                f"/admin/carreras/{carrera_id}/editar?err=no se puede eliminar "
-                f"la carrera porque tiene {cantidad} cantidad de inscriptos. "
-                "Borre los usuarios primero"
-            ),
-            status_code=303,
+        return redirect_to(
+            request, "editar_carrera", carrera_id=carrera_id,
+            query_params={
+                "err": (
+                    "no se puede eliminar la carrera porque tiene "
+                    f"{cantidad} cantidad de inscriptos. Borre los usuarios primero"
+                )
+            },
         )
     request.session["carrera_eliminacion_autorizada"] = carrera_id
-    return RedirectResponse(
-        url=f"/admin/carreras/{carrera_id}/editar?confirmar_eliminacion=1",
-        status_code=303,
+    return redirect_to(
+        request, "editar_carrera", carrera_id=carrera_id,
+        query_params={"confirmar_eliminacion": "1"},
     )
 
 
-@router.post("/admin/carreras/{carrera_id}/eliminar")
+@router.post("/{carrera_id}/eliminar")
 def eliminar_carrera(
     request: Request,
     carrera_id: int,
     confirmar: str = Form(...),
-    user: User = Depends(ADMIN),
+    user: User = Depends(REQUIERE_ADMIN),
     db: Session = Depends(get_db),
 ) -> RedirectResponse:
     carrera = services.carreras.get_by_id(db, carrera_id)
     if carrera is None:
-        return RedirectResponse(
-            url="/admin/carreras?err=Carrera no encontrada.", status_code=303
+        return redirect_to(
+            request, "listar_carreras",
+            query_params={"err": "Carrera no encontrada."},
         )
     autorizada = request.session.get("carrera_eliminacion_autorizada") == carrera_id
     request.session.pop("carrera_eliminacion_autorizada", None)
     if confirmar != "eliminar" or not autorizada:
-        return RedirectResponse(
-            url=f"/admin/carreras/{carrera_id}/editar?err=Confirmación de eliminación inválida.",
-            status_code=303,
+        return redirect_to(
+            request, "editar_carrera", carrera_id=carrera_id,
+            query_params={"err": "Confirmación de eliminación inválida."},
         )
     try:
         services.carreras.eliminar(db, carrera)
     except ValueError as err:
-        return RedirectResponse(
-            url=f"/admin/carreras/{carrera_id}/editar?err={err}", status_code=303
+        return redirect_to(
+            request, "editar_carrera", carrera_id=carrera_id,
+            query_params={"err": str(err)},
         )
-    return RedirectResponse(
-        url="/admin/carreras?msg=Carrera eliminada correctamente.", status_code=303
+    return redirect_to(
+        request, "listar_carreras",
+        query_params={"msg": "Carrera eliminada correctamente."},
     )

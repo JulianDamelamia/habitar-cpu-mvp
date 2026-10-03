@@ -2,10 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
-from urllib.parse import quote
-
 from fastapi import APIRouter, Depends, Request
-from fastapi.responses import RedirectResponse
 from sqlalchemy.orm import Session
 
 from app.database import get_db
@@ -13,7 +10,7 @@ from app.models import Notification, User
 from app.services.notifications import notify
 from app.security import current_user_required, requiere_roles
 from app import services
-from app.templating import render
+from app.templating import redirect_to, render
 
 router = APIRouter()
 
@@ -32,7 +29,10 @@ def inscribir(
     try:
         actividad = services.inscripcion.inscribir(db, actividad_id, user.id)
     except services.inscripcion.EnrollError as exc:
-        return RedirectResponse(url=f"/actividades/{actividad_id}?err={quote(str(exc))}", status_code=303)
+        return redirect_to(
+            request, "actividad_detail", actividad_id=actividad_id,
+            query_params={"err": str(exc)},
+        )
     # Inscripcion is already durably committed by inscribir(); the confirmation
     # notification is best-effort and must not fail the (successful) inscription.
     try:
@@ -44,7 +44,10 @@ def inscribir(
         db.commit()
     except Exception:  # noqa: BLE001
         db.rollback()
-    return RedirectResponse(url=f"/actividades/{actividad_id}?msg=¡Inscripción confirmada! Te enviamos un mail.", status_code=303)
+    return redirect_to(
+        request, "actividad_detail", actividad_id=actividad_id,
+        query_params={"msg": "¡Inscripción confirmada! Te enviamos un mail."},
+    )
 
 
 @router.post("/actividades/{actividad_id}/baja")
@@ -57,8 +60,14 @@ def baja(
     try:
         services.inscripcion.unenroll(db, actividad_id, user.id)
     except services.inscripcion.EnrollError as exc:
-        return RedirectResponse(url=f"/actividades/{actividad_id}?err={quote(str(exc))}", status_code=303)
-    return RedirectResponse(url=f"/actividades/{actividad_id}?msg=Te diste de baja. Liberaste tu cupo.", status_code=303)
+        return redirect_to(
+            request, "actividad_detail", actividad_id=actividad_id,
+            query_params={"err": str(exc)},
+        )
+    return redirect_to(
+        request, "actividad_detail", actividad_id=actividad_id,
+        query_params={"msg": "Te diste de baja. Liberaste tu cupo."},
+    )
 
 
 @router.get("/home")

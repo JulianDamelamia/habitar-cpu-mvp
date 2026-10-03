@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}Asistencia - {{ a.titulo }}{% endblock %}
 {% block content %}
-<a href="/docente" class="text-sm text-indigo-600 hover:underline inline-flex items-center gap-1"><i data-lucide="arrow-left" class="w-4 h-4"></i> Mis actividades</a>
+<a href="{{ url_for('docente_home').path }}" class="text-sm text-indigo-600 hover:underline inline-flex items-center gap-1"><i data-lucide="arrow-left" class="w-4 h-4"></i> Mis actividades</a>
 <h1 class="text-2xl font-bold mt-2 mb-1">{{ a.titulo }}</h1>
 <p class="text-slate-500 mb-5 text-sm"><i data-lucide="calendar" class="inline-block w-4 h-4 align-[-3px]"></i> {{ a.fecha_inicio|fmt_dt }}, <i data-lucide="map-pin" class="inline-block w-4 h-4 align-[-3px]"></i> {{ a.lugar }}</p>
 
@@ -24,7 +24,7 @@
         {% if e.user_id in present %}
           <span class="text-emerald-600 text-sm font-medium inline-flex items-center gap-1"><i data-lucide="check" class="w-4 h-4"></i> Presente</span>
         {% else %}
-          <form method="post" action="/docente/actividades/{{ a.id }}/marcar/{{ e.user_id }}">
+          <form method="post" action="{{ url_for('docente_mark', actividad_id=a.id, student_id=e.user_id).path }}">
             <button class="text-xs border rounded-lg px-2 py-1 hover:bg-slate-50">Marcar presente</button>
           </form>
         {% endif %}

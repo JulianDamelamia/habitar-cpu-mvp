@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% block title %}{{ a.titulo }}{% endblock %}
 {% block content %}
-<a href="/actividades" class="text-sm text-indigo-600 hover:underline inline-flex items-center gap-1"><i data-lucide="arrow-left" class="w-4 h-4"></i> Volver a actividades</a>
+<a href="{{ url_for('list_actividades').path }}" class="text-sm text-indigo-600 hover:underline inline-flex items-center gap-1"><i data-lucide="arrow-left" class="w-4 h-4"></i> Volver a actividades</a>
 <div class="bg-white rounded-2xl shadow p-8 mt-3">
   <div class="flex items-center gap-2 mb-2">
     <h1 class="text-2xl font-bold">{{ a.titulo }}</h1>
@@ -22,7 +22,7 @@
       <div class="flex items-center gap-3">
         <span class="text-emerald-600 font-medium inline-flex items-center gap-1"><i data-lucide="check" class="w-4 h-4"></i> Estás inscripto/a</span>
         {% if not asistencia_validada %}
-          <form method="post" action="/actividades/{{ a.id }}/baja">
+          <form method="post" action="{{ url_for('baja', actividad_id=a.id).path }}">
             <button class="border border-rose-300 text-rose-600 hover:bg-rose-50 rounded-lg px-4 py-2 text-sm">Darme de baja</button>
           </form>
         {% else %}
@@ -33,7 +33,7 @@
     {% elif cupo.full %}
       <span class="text-rose-500 font-medium">No quedan cupos disponibles.</span>
     {% else %}
-      <form method="post" action="/actividades/{{ a.id }}/inscribir">
+      <form method="post" action="{{ url_for('inscribir', actividad_id=a.id).path }}">
         <button class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-6 py-2.5 font-medium">Inscribirme</button>
       </form>
     {% endif %}

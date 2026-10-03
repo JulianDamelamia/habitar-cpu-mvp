@@ -3,7 +3,7 @@
 {% block content %}
 <h1 class="text-2xl font-bold mb-4">Actividades disponibles</h1>
 
-<form method="get" action="/actividades" class="bg-white rounded-xl shadow p-4 mb-6 grid sm:grid-cols-5 gap-3 items-end">
+<form method="get" action="{{ url_for('list_actividades').path }}" class="bg-white rounded-xl shadow p-4 mb-6 grid sm:grid-cols-5 gap-3 items-end">
   <div>
     <label class="block text-xs font-medium mb-1">Tipo</label>
     <select name="tipo" class="w-full border rounded-lg px-2 py-2">
@@ -24,7 +24,7 @@
   </label>
   <div class="flex gap-2">
     <button class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2 text-sm">Filtrar</button>
-    <a href="/actividades" class="text-slate-500 px-2 py-2 text-sm hover:underline">Limpiar</a>
+    <a href="{{ url_for('list_actividades').path }}" class="text-slate-500 px-2 py-2 text-sm hover:underline">Limpiar</a>
   </div>
 </form>
 
@@ -46,7 +46,7 @@
     <div class="flex items-center gap-2">
       {% if r.enrolled %}<span class="text-emerald-600 text-sm font-medium inline-flex items-center gap-1"><i data-lucide="check" class="w-4 h-4"></i> Inscripto</span>{% endif %}
       {% if r.cupo.full and not r.enrolled %}<span class="text-rose-500 text-sm">Sin cupo</span>{% endif %}
-      <a href="/actividades/{{ r.a.id }}" class="bg-slate-800 hover:bg-slate-700 text-white rounded-lg px-4 py-2 text-sm">Ver detalle</a>
+      <a href="{{ url_for('actividad_detail', actividad_id=r.a.id).path }}" class="bg-slate-800 hover:bg-slate-700 text-white rounded-lg px-4 py-2 text-sm">Ver detalle</a>
     </div>
   </div>
   {% endfor %}

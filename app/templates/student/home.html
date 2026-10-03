@@ -24,11 +24,11 @@
 <div class="bg-white rounded-2xl shadow p-6 mb-6">
   <h2 class="font-semibold text-lg mb-3">Mis próximas actividades</h2>
   {% if not proximas %}
-    <p class="text-slate-500 text-sm">No tenés actividades próximas. <a href="/actividades" class="text-indigo-600 hover:underline">Explorá la oferta</a>.</p>
+    <p class="text-slate-500 text-sm">No tenés actividades próximas. <a href="{{ url_for('list_actividades').path }}" class="text-indigo-600 hover:underline">Explorá la oferta</a>.</p>
   {% else %}
     <div class="space-y-2">
       {% for a in proximas %}
-      <a href="/actividades/{{ a.id }}" class="flex items-center justify-between border rounded-lg px-4 py-3 hover:bg-slate-50">
+      <a href="{{ url_for('actividad_detail', actividad_id=a.id).path }}" class="flex items-center justify-between border rounded-lg px-4 py-3 hover:bg-slate-50">
         <div>
           <p class="font-medium">{{ a.titulo }}</p>
           <p class="text-sm text-slate-500"><i data-lucide="calendar" class="inline-block w-4 h-4 align-[-3px]"></i> {{ a.fecha_inicio|fmt_dt }}, <i data-lucide="map-pin" class="inline-block w-4 h-4 align-[-3px]"></i> {{ a.lugar }}</p>

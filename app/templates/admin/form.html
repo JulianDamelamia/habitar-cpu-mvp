@@ -2,7 +2,7 @@
 {% block title %}{{ 'Editar' if a else 'Nueva' }} actividad{% endblock %}
 
 {% block content %}
-<a href="/admin" class="text-sm text-indigo-600 hover:underline inline-flex items-center gap-1">
+<a href="{{ url_for('panel').path }}" class="text-sm text-indigo-600 hover:underline inline-flex items-center gap-1">
   <i data-lucide="arrow-left" class="w-4 h-4"></i> Panel
 </a>
 
@@ -14,7 +14,7 @@
   <form
     method="post"
     novalidate
-    action="{{ ('/admin/actividades/' ~ a.id) if a else '/admin/actividades' }}"
+    action="{{ url_for('actualizar_actividad', actividad_id=a.id).path if a else url_for('crear').path }}"
     class="space-y-4"
   >
 
@@ -270,7 +270,7 @@
       </button>
 
       <a
-        href="/admin"
+        href="{{ url_for('panel').path }}"
         class="text-slate-500 px-3 py-2 hover:underline"
       >
         Cancelar

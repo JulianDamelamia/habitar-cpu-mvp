@@ -6,7 +6,6 @@ import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Request
-from fastapi.responses import RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from sqlalchemy.exc import IntegrityError, SQLAlchemyError
 from starlette.middleware.sessions import SessionMiddleware
@@ -18,21 +17,13 @@ from app.models import (
     ROL_DIRECTOR,
     ROL_DOCENTE,
 )
-from app.routers import (
-    admin_actividades,
-    admin_carreras,
-    admin_enroll,
-    analytics,
-    asistencia,
-    auth,
-    discovery,
-    faq,
-    inscripcion,
-)
+from app.routers import main_router
+# from app.routers.admin import admin_actividades, admin_carreras, admin_enroll
+
 from app.scheduler import start_scheduler
 from app.security import NotAuthenticated, NotAuthorized, get_current_user
 from app.seed import seed_all
-from app.templating import render
+from app.templating import redirect_to, render
 
 logging.basicConfig(level=logging.INFO)
 log = logging.getLogger("habitar.startup")
@@ -87,7 +78,7 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 # ---- Auth control-flow -> friendly redirects -------------------------------
 @app.exception_handler(NotAuthenticated)
 async def _not_authenticated(request: Request, _exc: NotAuthenticated):
-    return RedirectResponse(url="/login", status_code=303)
+    return redirect_to(request, "login_form")
 
 
 @app.exception_handler(NotAuthorized)
@@ -116,15 +107,7 @@ async def _unhandled(request: Request, exc: Exception):
 
 
 # ---- Routers ----------------------------------------------------------------
-app.include_router(auth.router)
-app.include_router(discovery.router)
-app.include_router(inscripcion.router)
-app.include_router(asistencia.router)
-app.include_router(admin_actividades.router)
-app.include_router(admin_carreras.router)
-app.include_router(admin_enroll.router)
-app.include_router(analytics.router)
-app.include_router(faq.router)
+app.include_router(main_router)
 
 
 @app.get("/healthz")
@@ -140,14 +123,14 @@ async def root(request: Request):
     finally:
         db.close()
     if user is None:
-        return RedirectResponse(url="/login", status_code=303)
+        return redirect_to(request, "login_form")
     if user.rol == ROL_COORDINACION:
-        return RedirectResponse(url="/admin", status_code=303)
+        return redirect_to(request, "panel")
     if user.rol == ROL_DOCENTE:
-        return RedirectResponse(url="/docente", status_code=303)
+        return redirect_to(request, "docente_home")
     if user.rol == ROL_DIRECTOR:
-        return RedirectResponse(url="/analytics", status_code=303)
-    return RedirectResponse(url="/home", status_code=303)
+        return redirect_to(request, "dashboard")
+    return redirect_to(request, "home")
 
 if __name__ == "__main__":
     import uvicorn

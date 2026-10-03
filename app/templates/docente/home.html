@@ -12,7 +12,7 @@
       <p class="font-semibold">{{ a.titulo }}</p>
       <p class="text-sm text-slate-500"><i data-lucide="calendar" class="inline-block w-4 h-4 align-[-3px]"></i> {{ a.fecha_inicio|fmt_dt }}, <i data-lucide="map-pin" class="inline-block w-4 h-4 align-[-3px]"></i> {{ a.lugar }}</p>
     </div>
-    <a href="/docente/actividades/{{ a.id }}/asistencia" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2 text-sm">Tomar asistencia</a>
+    <a href="{{ url_for('docente_asistencia', actividad_id=a.id).path }}" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2 text-sm">Tomar asistencia</a>
   </div>
   {% endfor %}
 </div>

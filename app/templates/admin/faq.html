@@ -5,7 +5,7 @@
 
 <div class="bg-white rounded-2xl shadow p-6 mb-6 max-w-2xl">
   <h2 class="font-semibold mb-3">Agregar pregunta</h2>
-  <form method="post" action="/admin/faq" class="space-y-3">
+  <form method="post" action="{{ url_for('faq_add').path }}" class="space-y-3">
     <input name="pregunta" required placeholder="Pregunta" class="w-full border rounded-lg px-3 py-2">
     <textarea name="respuesta" required rows="2" placeholder="Respuesta" class="w-full border rounded-lg px-3 py-2"></textarea>
     <div class="flex items-center gap-2">
@@ -22,7 +22,7 @@
       <p class="font-medium">{{ f.pregunta }}</p>
       <p class="text-slate-600 text-sm mt-1">{{ f.respuesta }}</p>
     </div>
-    <form method="post" action="/admin/faq/{{ f.id }}/delete" onsubmit="return confirm('¿Eliminar esta pregunta?')">
+    <form method="post" action="{{ url_for('faq_delete', faq_id=f.id).path }}" onsubmit="return confirm('¿Eliminar esta pregunta?')">
       <button class="text-rose-600 text-sm hover:underline">Eliminar</button>
     </form>
   </div>

@@ -11,7 +11,7 @@
     <p id="scan-status" class="text-xs text-slate-400 mt-2"></p>
   </div>
 
-  <form method="post" action="/checkin" class="bg-white rounded-2xl shadow p-5">
+  <form method="post" action="{{ url_for('checkin_submit').path }}" class="bg-white rounded-2xl shadow p-5">
     <label class="block text-sm font-medium mb-1">Código de 6 dígitos</label>
     <div class="flex gap-2">
       <input id="codigo" name="codigo" inputmode="numeric" pattern="[0-9]*" required class="flex-1 border rounded-lg px-3 py-2 text-lg tracking-widest text-center" placeholder="000000">

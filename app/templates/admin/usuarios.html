@@ -2,7 +2,7 @@
 {% block title %}Importar Usuarios{% endblock %}
 
 {% block content %}
-<a href="/admin/inscriptos" class="text-sm text-indigo-600 hover:underline inline-flex items-center gap-1">
+<a href="{{ url_for('inscriptos_index').path }}" class="text-sm text-indigo-600 hover:underline inline-flex items-center gap-1">
   <i data-lucide="arrow-left" class="w-4 h-4"></i> Inscriptos
 </a>
 
@@ -11,7 +11,7 @@
   <p class="text-sm text-slate-500 mb-6">Carga masiva de estudiantes desde un archivo de hoja de cálculo.</p>
 
   <!-- Formulario de importación -->
-  <form method="post" action="/admin/crear_usuarios/import" enctype="multipart/form-data" class="space-y-4 mb-8">
+  <form method="post" action="{{ url_for('generacion_usuarios').path }}" enctype="multipart/form-data" class="space-y-4 mb-8">
     <div>
       <label class="block text-sm font-medium mb-1 text-slate-700">Archivo CSV o XLSX</label>
       <input type="file" name="archivo" accept=".csv,.xlsx" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">

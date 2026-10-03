@@ -11,30 +11,30 @@
   {% if user %}
   <header class="bg-slate-900 text-white">
     <nav class="max-w-5xl mx-auto px-4 py-3 flex items-center gap-4 flex-wrap">
-      <a href="/" class="font-semibold text-lg flex items-center gap-2"><i data-lucide="graduation-cap" class="w-5 h-5"></i> {{ app_name }}</a>
+      <a href="{{ url_for('root').path }}" class="font-semibold text-lg flex items-center gap-2"><i data-lucide="graduation-cap" class="w-5 h-5"></i> {{ app_name }}</a>
       <div class="flex-1"></div>
       {% if user.rol == 'estudiante' %}
-        <a href="/home" class="hover:underline">Inicio</a>
-        <a href="/actividades" class="hover:underline">Actividades</a>
-        <a href="/checkin" class="hover:underline">Registrar asistencia</a>
-        <a href="/faq" class="hover:underline">Ayuda</a>
+        <a href="{{ url_for('home').path }}" class="hover:underline">Inicio</a>
+        <a href="{{ url_for('list_actividades').path }}" class="hover:underline">Actividades</a>
+        <a href="{{ url_for('checkin_page').path }}" class="hover:underline">Registrar asistencia</a>
+        <a href="{{ url_for('faq_list').path }}" class="hover:underline">Ayuda</a>
       {% elif user.rol == 'coordinacion' %}
-        <a href="/admin" class="hover:underline">Actividades</a>
-        <a href="/admin/inscriptos" class="hover:underline">Inscriptos</a>
-        <a href="/analytics" class="hover:underline">Analítica</a>
-        <a href="/admin/faq" class="hover:underline">FAQ</a>
-        <a href="/admin/carreras" class="hover:underline">Carreras</a>
+        <a href="{{ url_for('panel').path }}" class="hover:underline">Actividades</a>
+        <a href="{{ url_for('inscriptos_index').path }}" class="hover:underline">Inscriptos</a>
+        <a href="{{ url_for('dashboard').path }}" class="hover:underline">Analítica</a>
+        <a href="{{ url_for('faq_admin').path }}" class="hover:underline">FAQ</a>
+        <a href="{{ url_for('listar_carreras').path }}" class="hover:underline">Carreras</a>
       {% elif user.rol == 'docente' %}
-        <a href="/docente" class="hover:underline">Mis actividades</a>
+        <a href="{{ url_for('docente_home').path }}" class="hover:underline">Mis actividades</a>
       {% elif user.rol == 'director' %}
-        <a href="/analytics" class="hover:underline">Analítica</a>
+        <a href="{{ url_for('dashboard').path }}" class="hover:underline">Analítica</a>
       {% endif %}
-      <a href="/notificaciones" class="relative hover:underline">
+      <a href="{{ url_for('notificaciones').path }}" class="relative hover:underline">
         Avisos
         {% if unread %}<span class="absolute -top-2 -right-3 bg-rose-500 text-xs rounded-full px-1.5">{{ unread }}</span>{% endif %}
       </a>
-      <a href="/perfil" class="text-slate-300 hover:text-white text-sm">{{ user.nombre_completo }}</a>
-      <a href="/logout" class="bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded text-sm">Salir</a>
+      <a href="{{ url_for('perfil').path }}" class="text-slate-300 hover:text-white text-sm">{{ user.nombre_completo }}</a>
+      <a href="{{ url_for('logout').path }}" class="bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded text-sm">Salir</a>
     </nav>
   </header>
   {% endif %}
@@ -61,7 +61,7 @@
     Módulo Habitar, CPU - ECyT UNSAM, Grupo 10
   </footer>
   <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
-  <script src="{{ url_for('static', path='/selector_carreras.js') }}"></script>
+  <script src="{{ url_for('static', path='/selector_carreras.js').path }}"></script>
   {% block scripts %}{% endblock %}
   <script>if (window.lucide) lucide.createIcons();</script>
 </body>

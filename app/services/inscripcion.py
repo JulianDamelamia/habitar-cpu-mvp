@@ -1,6 +1,9 @@
 """Inscripcion service (E-03). Cupo enforced transactionally with a row lock."""
 from __future__ import annotations
+import io
 
+from fastapi import UploadFile
+import pandas as pd
 from sqlalchemy import exists, select
 from sqlalchemy.orm import Session
 
@@ -85,3 +88,19 @@ def inscriptos(db: Session, actividad_id: int) -> list[Inscripcion]:
         .filter(Inscripcion.actividad_id == actividad_id, Inscripcion.estado == INSCRIPCION_ALTA)
         .all()
     )
+
+async def leer_tabla_usuarios(archivo:UploadFile)-> pd.DataFrame:
+    raw = await archivo.read()
+    if archivo.filename.lower().endswith(".xlsx"): # type: ignore
+        df = pd.read_excel(io.BytesIO(raw))
+    df = pd.read_csv(io.BytesIO(raw))
+    return df
+
+COLUMNAS_ESPERADAS = {'email', 'nombre', 'apellido'}
+def validar_datos_usuarios(df:pd.DataFrame) -> None:
+    """Validación síncrona de columnas y formatos."""
+    cols = {str(c).lower().strip() for c in df.columns}
+    if cols != COLUMNAS_ESPERADAS:
+        faltantes = COLUMNAS_ESPERADAS - cols
+        raise ValueError(f"El archivo debe contener las columnas {faltantes}.")
+    

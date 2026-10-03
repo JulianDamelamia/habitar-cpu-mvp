@@ -4,7 +4,6 @@ from __future__ import annotations
 import base64
 import io
 from datetime import datetime, timezone
-from urllib.parse import quote
 
 import qrcode
 from fastapi import APIRouter, Depends, Form, Request
@@ -23,7 +22,7 @@ from app.models import (
 )
 from app.security import current_user_required, requiere_roles
 from app import services
-from app.templating import render
+from app.templating import redirect_to, render
 
 router = APIRouter()
 
@@ -31,7 +30,7 @@ router = APIRouter()
 def _qr_data_uri(text: str) -> str:
     img = qrcode.make(text)
     buf = io.BytesIO()
-    img.save(buf, format="PNG")
+    img.save(buf, format="PNG") # type: ignore
     return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
 
 
@@ -55,10 +54,15 @@ def checkin_submit(
     try:
         actividad = services.asistencia.check_in(db, codigo, user.id)
     except services.asistencia.AsistenciaError as exc:
-        return RedirectResponse(url=f"/checkin?err={quote(str(exc))}", status_code=303)
-    return RedirectResponse(
-        url=f"/actividades/{actividad.id}/encuesta?msg=¡Asistencia registrada! Sumaste {actividad.creditos} créditos.",
-        status_code=303,
+        return redirect_to(
+            request, "checkin_page",
+            query_params={"err": str(exc)},
+        )
+    return redirect_to(
+        request, "survey_form", actividad_id=actividad.id,
+        query_params={
+            "msg": f"¡Asistencia registrada! Sumaste {actividad.creditos} créditos."
+        },
     )
 
 
@@ -72,14 +76,17 @@ def survey_form(
 ):
     actividad = db.get(Actividad, actividad_id)
     if actividad is None:
-        return RedirectResponse(url="/home", status_code=303)
+        return redirect_to(request, "home")
     attended = (
         db.query(Asistencia)
         .filter(Asistencia.actividad_id == actividad_id, Asistencia.user_id == user.id)
         .first()
     )
     if not attended:
-        return RedirectResponse(url="/home?err=Solo podés responder la encuesta de actividades a las que asististe.", status_code=303)
+        return redirect_to(
+            request, "home",
+            query_params={"err": "Solo podés responder la encuesta de actividades a las que asististe."},
+        )
     answered = (
         db.query(SurveyResponse)
         .filter(SurveyResponse.actividad_id == actividad_id, SurveyResponse.user_id == user.id)
@@ -103,7 +110,10 @@ def survey_submit(
         .first()
     )
     if not attended:
-        return RedirectResponse(url="/home?err=No podés responder esta encuesta.", status_code=303)
+        return redirect_to(
+            request, "home",
+            query_params={"err": "No podés responder esta encuesta."},
+        )
     existing = (
         db.query(SurveyResponse)
         .filter(SurveyResponse.actividad_id == actividad_id, SurveyResponse.user_id == user.id)
@@ -131,7 +141,10 @@ def survey_submit(
                 row.rating = rating
                 row.comment = comment_val
                 db.commit()
-    return RedirectResponse(url="/home?msg=¡Gracias por tu opinión!", status_code=303)
+    return redirect_to(
+        request, "home",
+        query_params={"msg": "¡Gracias por tu opinión!"},
+    )
 
 
 # ---- Docente asistencia session ---------------------------------------------
@@ -157,7 +170,10 @@ def docente_asistencia(
 ):
     actividad = db.get(Actividad, actividad_id)
     if actividad is None or not _can_manage(actividad, user):
-        return RedirectResponse(url="/docente?err=Actividad no encontrada.", status_code=303)
+        return redirect_to(
+            request, "docente_home",
+            query_params={"err": "Actividad no encontrada."},
+        )
     inscriptos = services.inscripcion.inscriptos(db, actividad_id)
     present = services.asistencia.present_user_ids(db, actividad_id)
     return render(
@@ -192,9 +208,18 @@ def docente_mark(
 ):
     actividad = db.get(Actividad, actividad_id)
     if actividad is None or not _can_manage(actividad, user):
-        return RedirectResponse(url="/docente?err=Actividad no encontrada.", status_code=303)
+        return redirect_to(
+            request, "docente_home",
+            query_params={"err": "Actividad no encontrada."},
+        )
     try:
         services.asistencia.mark_present_manual(db, actividad_id, student_id, user.id)
     except services.asistencia.AsistenciaError as exc:
-        return RedirectResponse(url=f"/docente/actividades/{actividad_id}/asistencia?err={quote(str(exc))}", status_code=303)
-    return RedirectResponse(url=f"/docente/actividades/{actividad_id}/asistencia?msg=Asistencia registrada.", status_code=303)
+        return redirect_to(
+            request, "docente_asistencia", actividad_id=actividad_id,
+            query_params={"err": str(exc)},
+        )
+    return redirect_to(
+        request, "docente_asistencia", actividad_id=actividad_id,
+        query_params={"msg": "Asistencia registrada."},
+    )

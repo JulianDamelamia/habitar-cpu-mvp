@@ -13,7 +13,7 @@ from app.templating import render
 router = APIRouter()
 
 
-@router.get("/analytics")
+@router.get("")
 def dashboard(
     request: Request,
     user: User = Depends(requiere_roles("director", "coordinacion")),
