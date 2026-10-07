@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import User, ROL_COORDINACION
+from app.models.enums import ROL_ESTUDIANTE
 
 
 # ---- Passwords ---------------------------------------------------------------
@@ -46,10 +47,30 @@ class NotAuthorized(Exception):
     """Raised when the user lacks the required rol -> 403."""
 
 
-def current_user_required(request: Request, db: Session = Depends(get_db)) -> User:
+class CarreraPendienteException(Exception):
+    pass
+
+
+def current_user_required_base(request: Request, db: Session = Depends(get_db)) -> User:
     user = get_current_user(request, db)
     if user is None:
         raise NotAuthenticated()
+    return user
+
+
+# Require students to complete onboarding before using protected routes.
+def current_user_required(request: Request, db: Session = Depends(get_db)) -> User:
+    user = current_user_required_base(request, db)
+
+    if user.rol == ROL_ESTUDIANTE and (
+        user.carrera_id is None or user.debe_cambiar_pw
+    ):
+        path_seleccion = request.url_for("seleccionar_carrera_form").path
+        path_logout = request.url_for("logout").path
+
+        if request.url.path not in [path_seleccion, path_logout]:
+            raise CarreraPendienteException()
+
     return user
 
 

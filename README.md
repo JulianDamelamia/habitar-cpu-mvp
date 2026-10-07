@@ -27,7 +27,7 @@ Alta de estudiante nuevo: usar un legajo del padrón demo (`1003`-`1008`, `2001`
 ## Funcionalidad (10 épicas, profundidad MVP)
 | Épica | Implementado |
 |---|---|
-| E-01 Autenticación y perfil | Signup con verificación de legajo (SIU mock), login, roles, perfil |
+| E-01 Autenticación y perfil | Signup con verificación de legajo (SIU mock), login, onboarding inicial (contraseña y carrera), roles, perfil |
 | E-02 Descubrimiento | Listado + filtros (fecha/tipo/créditos/cupo), detalle |
 | E-03 Inscripción | Inscripción 1-click, **control de cupo transaccional**, baja, confirmación mail+in-app |
 | E-04 Recordatorios | "Mis próximas actividades", recordatorio 24 h por mail, FAQ editable |
@@ -57,6 +57,8 @@ uvicorn app.main:app --reload
 # http://localhost:8000
 ```
 Al iniciar crea las tablas (`create_all`) y siembra datos demo de forma idempotente.
+Para actualizar una base existente, ejecutá `alembic upgrade head` antes de desplegar;
+`create_all` no agrega columnas a tablas ya creadas.
 
 ## Deploy en Render (blueprint)
 1. Push de este repo a GitHub.
@@ -87,7 +89,7 @@ app/
 - **SIU Guaraní** → simulador: tabla `valid_legajos` sembrada (único punto de swap en `services/identity.py`).
 - **Redis Pub/Sub** → notificaciones in-app + mail (tabla `notifications`).
 - **Dash/Plotly** → Chart.js renderizado en el servidor.
-- **Migraciones** → `Base.metadata.create_all` al iniciar (single service).
+- **Migraciones** → `Base.metadata.create_all` al iniciar; Alembic aplica cambios a bases existentes.
 
 ## Notas de seguridad para producción
 - Contraseñas con **bcrypt**, sesiones en cookie firmada, acceso por rol.

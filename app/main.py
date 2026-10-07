@@ -16,12 +16,13 @@ from app.models import (
     ROL_COORDINACION,
     ROL_DIRECTOR,
     ROL_DOCENTE,
+    ROL_ESTUDIANTE,
 )
 from app.routers import main_router
 # from app.routers.admin import admin_actividades, admin_carreras, admin_enroll
 
 from app.scheduler import start_scheduler
-from app.security import NotAuthenticated, NotAuthorized, get_current_user
+from app.security import NotAuthenticated, NotAuthorized,CarreraPendienteException, get_current_user
 from app.seed import seed_all
 from app.templating import redirect_to, render
 
@@ -76,6 +77,11 @@ app.mount("/static", StaticFiles(directory="app/static"), name="static")
 
 
 # ---- Auth control-flow -> friendly redirects -------------------------------
+@app.exception_handler(CarreraPendienteException)
+async def carrera_pendiente_exception_handler(request: Request, exc: CarreraPendienteException):
+    # Usas tu helper pasando el nombre del endpoint (ej. "seleccionar_carrera_form")
+    return redirect_to(request, "seleccionar_carrera_form")
+
 @app.exception_handler(NotAuthenticated)
 async def _not_authenticated(request: Request, _exc: NotAuthenticated):
     return redirect_to(request, "login_form")
@@ -124,6 +130,10 @@ async def root(request: Request):
         db.close()
     if user is None:
         return redirect_to(request, "login_form")
+    if user.rol == ROL_ESTUDIANTE and (
+        user.carrera_id is None or user.debe_cambiar_pw
+    ):
+        return redirect_to(request, "seleccionar_carrera_form")
     if user.rol == ROL_COORDINACION:
         return redirect_to(request, "panel")
     if user.rol == ROL_DOCENTE:

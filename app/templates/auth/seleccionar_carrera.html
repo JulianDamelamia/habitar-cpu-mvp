@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Completar registro - {{ app_name }}{% endblock %}
+{% block content %}
+<div class="max-w-lg mx-auto mt-8 bg-white rounded-2xl shadow p-8">
+  <h1 class="text-2xl font-bold mb-2">Completar registro</h1>
+  <p class="text-slate-600 mb-6">Crea una contraseña nueva y selecciona tu carrera para continuar.</p>
+  {% if error %}
+  <div role="alert" class="mb-4 rounded-lg bg-rose-100 border border-rose-300 text-rose-800 px-4 py-2 text-sm">{{ error }}</div>
+  {% endif %}
+  <form method="post" action="{{ url_for('seleccionar_carrera_submit').path }}" class="space-y-4">
+    <div>
+      <label for="password" class="block text-sm font-medium mb-1">Nueva contraseña</label>
+      <input id="password" name="password" type="password" required autocomplete="new-password" class="w-full border rounded-lg px-3 py-2">
+    </div>
+    <div>
+      <label for="password_confirm" class="block text-sm font-medium mb-1">Confirmar contraseña</label>
+      <div class="flex items-center gap-3">
+        <input id="password_confirm" name="password_confirm" type="password" required autocomplete="new-password" class="w-full border rounded-lg px-3 py-2">
+        <button id="password-toggle" type="button" aria-label="Mostrar contraseñas" class="border rounded-lg px-3 py-2 text-sm">Mostrar</button>
+      </div>
+    </div>
+    <p id="password-validation" aria-live="polite" class="text-sm text-slate-600">Usa al menos 8 caracteres y confirma la misma contraseña.</p>
+    <div>
+      <label for="carrera_id" class="block text-sm font-medium mb-1">Carrera</label>
+      <select id="carrera_id" name="carrera_id" required disabled class="w-full border rounded-lg px-3 py-2 bg-gray-100 text-gray-400 disabled:cursor-not-allowed">
+        <option value="">Selecciona una carrera</option>
+        {% for carrera in carreras %}
+        <option value="{{ carrera.id }}">{{ carrera.tipo.nombre }} {{ carrera.nombre }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <button id="onboarding-submit" type="submit" disabled class="w-full border rounded-lg py-2 font-medium bg-gray-100 text-gray-400 disabled:cursor-not-allowed">
+      Guardar y continuar
+    </button>
+  </form>
+</div>
+{% endblock %}
+{% block scripts %}
+<script>
+  const passwordInput = document.getElementById("password");
+  const passwordConfirmInput = document.getElementById("password_confirm");
+  const passwordToggle = document.getElementById("password-toggle");
+  const carreraSelect = document.getElementById("carrera_id");
+  const submitButton = document.getElementById("onboarding-submit");
+  const validationMessage = document.getElementById("password-validation");
+
+  function updateOnboardingState() {
+    const valid = passwordInput.value.length >= 8
+      && passwordInput.value === passwordConfirmInput.value;
+    carreraSelect.disabled = !valid;
+    submitButton.disabled = !valid;
+
+    for (const element of [carreraSelect, submitButton]) {
+      element.classList.toggle("bg-gray-100", !valid);
+      element.classList.toggle("text-gray-400", !valid);
+      element.classList.toggle("disabled:cursor-not-allowed", !valid);
+      element.classList.toggle("bg-white", valid);
+      element.classList.toggle("text-gray-900", valid);
+    }
+
+    validationMessage.textContent = valid
+      ? "Contraseña válida. Ahora selecciona tu carrera."
+      : "Usa al menos 8 caracteres y confirma la misma contraseña.";
+  }
+
+  passwordInput.addEventListener("input", updateOnboardingState);
+  passwordConfirmInput.addEventListener("input", updateOnboardingState);
+
+  passwordToggle.addEventListener("click", () => {
+    const visible = passwordInput.type === "password";
+    for (const input of [passwordInput, passwordConfirmInput]) {
+      input.type = visible ? "text" : "password";
+    }
+    passwordToggle.textContent = visible ? "Ocultar" : "Mostrar";
+    passwordToggle.setAttribute(
+      "aria-label",
+      `${visible ? "Ocultar" : "Mostrar"} contraseñas`
+    );
+  });
+</script>
+{% endblock %}

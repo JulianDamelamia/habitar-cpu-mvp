@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 
 from app.database import Base
@@ -20,6 +20,7 @@ class User(Base):
     pw_hash: Mapped[str] = mapped_column(String(255))
     nombre: Mapped[str] = mapped_column(String(120), default="")
     apellido: Mapped[str] = mapped_column(String(120), default="")
+    debe_cambiar_pw: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
     carrera_id: Mapped[int | None] = mapped_column(
         Integer, ForeignKey("carreras.id", ondelete="SET NULL"), nullable=True, index=True

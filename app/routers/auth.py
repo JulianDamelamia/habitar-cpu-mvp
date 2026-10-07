@@ -6,8 +6,12 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import User
+from app.models.carrera import Carrera
+from app.models.enums import ROL_ESTUDIANTE
 from app.security import (
     current_user_required,
+    current_user_required_base,
+    hash_password,
     login_user,
     logout_user,
 )
@@ -33,6 +37,12 @@ def login_submit(
     if not user:
         return render(request, "auth/login.html", error="Email o contraseña incorrectos.", email=email)
     login_user(request, user)
+
+    if user.rol == ROL_ESTUDIANTE and (
+        user.carrera_id is None or user.debe_cambiar_pw
+    ):
+        return redirect_to(request, "seleccionar_carrera_form")
+
     return redirect_to(request, "root")
 
 
@@ -96,3 +106,69 @@ def perfil_update(
         request, "perfil",
         query_params={"msg": "Perfil actualizado."},
     )
+
+@router.get("/seleccionar-carrera", name="seleccionar_carrera_form")
+def seleccionar_carrera_form(
+    request: Request,
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user_required_base),
+):
+    if user.carrera_id is not None and not user.debe_cambiar_pw:
+        return redirect_to(request, "root")
+
+    carreras = services.carreras.get_carreras(db)
+    return render(
+        request,
+        "auth/seleccionar_carrera.html",
+        user=user,
+        db=db,
+        carreras=carreras,
+    )
+
+
+@router.post("/seleccionar-carrera", name="seleccionar_carrera_submit")
+def seleccionar_carrera_submit(
+    request: Request,
+    password: str = Form(...),
+    password_confirm: str = Form(...),
+    carrera_id: int = Form(...),
+    db: Session = Depends(get_db),
+    user: User = Depends(current_user_required_base),
+):
+    carreras = services.carreras.get_carreras(db)
+    if len(password) < 8:
+        return render(
+            request,
+            "auth/seleccionar_carrera.html",
+            user=user,
+            db=db,
+            carreras=carreras,
+            error="La contraseña debe tener al menos 8 caracteres.",
+        )
+    if password != password_confirm:
+        return render(
+            request,
+            "auth/seleccionar_carrera.html",
+            user=user,
+            db=db,
+            carreras=carreras,
+            error="Las contraseñas no coinciden.",
+        )
+
+    carrera = db.get(Carrera, carrera_id)
+    if not carrera:
+        return render(
+            request,
+            "auth/seleccionar_carrera.html",
+            user=user,
+            db=db,
+            carreras=carreras,
+            error="Debes seleccionar una carrera válida.",
+        )
+
+    user.pw_hash = hash_password(password)
+    user.debe_cambiar_pw = False
+    user.carrera_id = carrera.id
+    db.commit()
+
+    return redirect_to(request, "root")
