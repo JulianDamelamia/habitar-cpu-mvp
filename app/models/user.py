@@ -2,13 +2,14 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, func
-from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
+from sqlalchemy import Boolean, DateTime, String, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from app.models.carrera import Carrera
+    from app.models.estudiante import Estudiante
 from app.models.enums import ROL_ESTUDIANTE
 
 
@@ -22,12 +23,8 @@ class User(Base):
     apellido: Mapped[str] = mapped_column(String(120), default="")
     debe_cambiar_pw: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
 
-    carrera_id: Mapped[int | None] = mapped_column(
-        Integer, ForeignKey("carreras.id", ondelete="SET NULL"), nullable=True, index=True
-    )
-    # Relación Muchos a Uno (1 estudiante -> 1 carrera)
-    carrera: Mapped[Optional["Carrera"]] = relationship(
-        back_populates="estudiantes"
+    estudiante: Mapped["Estudiante | None"] = relationship(
+        back_populates="user", uselist=False, cascade="all, delete-orphan"
     )
 
     rol: Mapped[str] = mapped_column(String(20), default=ROL_ESTUDIANTE, index=True)
@@ -39,6 +36,26 @@ class User(Base):
         return name or self.email
 
 
-    @validates("carrera")
-    def validate_carreras(self, key, carrera):
-        return carrera
+    @property
+    def carrera_id(self) -> int | None:
+        return self.estudiante.carrera_id if self.estudiante else None
+
+    @carrera_id.setter
+    def carrera_id(self, carrera_id: int | None) -> None:
+        if self.estudiante is None:
+            from app.models.estudiante import Estudiante
+
+            self.estudiante = Estudiante()
+        self.estudiante.carrera_id = carrera_id
+
+    @property
+    def carrera(self) -> "Carrera | None":
+        return self.estudiante.carrera if self.estudiante else None
+
+    @carrera.setter
+    def carrera(self, carrera: "Carrera | None") -> None:
+        if self.estudiante is None:
+            from app.models.estudiante import Estudiante
+
+            self.estudiante = Estudiante()
+        self.estudiante.carrera = carrera

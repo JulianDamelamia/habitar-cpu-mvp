@@ -231,5 +231,6 @@ def seed_all(db: Session) -> None:
             Inscripcion(actividad_id=bienvenida.id, user_id=bruno.id, estado=INSCRIPCION_ALTA),
         ])
         db.add(Asistencia(actividad_id=bienvenida.id, user_id=ana.id, validated_by=docente.id))
+        ana.estudiante.creditos_acreditados += bienvenida.creditos
 
     db.commit()

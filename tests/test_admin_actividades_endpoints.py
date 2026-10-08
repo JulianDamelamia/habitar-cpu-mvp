@@ -82,9 +82,13 @@ def test_parse_dates_rejects_dates_before_today():
         )
 
 
-def test_admin_activities_pages_require_coordination_role(db_session, user_factory):
+def test_admin_activities_pages_require_coordination_role(
+    db_session, user_factory, carrera_factory
+):
     student = user_factory(email="alumno@example.com")
     student.pw_hash = hash_password("student-password")
+    student.carrera_id = carrera_factory().id
+    student.debe_cambiar_pw = False
     db_session.commit()
 
     def override_get_db():

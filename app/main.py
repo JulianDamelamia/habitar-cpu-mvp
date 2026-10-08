@@ -126,13 +126,16 @@ async def root(request: Request):
     db = SessionLocal()
     try:
         user = get_current_user(request, db)
+        estudiante_pendiente = bool(
+            user
+            and user.rol == ROL_ESTUDIANTE
+            and (user.carrera_id is None or user.debe_cambiar_pw)
+        )
     finally:
         db.close()
     if user is None:
         return redirect_to(request, "login_form")
-    if user.rol == ROL_ESTUDIANTE and (
-        user.carrera_id is None or user.debe_cambiar_pw
-    ):
+    if estudiante_pendiente:
         return redirect_to(request, "seleccionar_carrera_form")
     if user.rol == ROL_COORDINACION:
         return redirect_to(request, "panel")

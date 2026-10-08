@@ -90,6 +90,8 @@ app/
 - **Redis Pub/Sub** → notificaciones in-app + mail (tabla `notifications`).
 - **Dash/Plotly** → Chart.js renderizado en el servidor.
 - **Migraciones** → `Base.metadata.create_all` al iniciar; Alembic aplica cambios a bases existentes.
+- **Datos de estudiantes** → perfil `Estudiante` 1:1 con `User`; créditos acreditados,
+  requeridos y penalizaciones quedan individuales. `required_credits` suma base y penalización.
 
 ## Notas de seguridad para producción
 - Contraseñas con **bcrypt**, sesiones en cookie firmada, acceso por rol.

@@ -4,13 +4,14 @@ from __future__ import annotations
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import exists, select
+from sqlalchemy import exists, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models import (
     Actividad,
     Asistencia,
+    Estudiante,
     SesionAsistencia,
     ROL_ESTUDIANTE,
     User,
@@ -22,6 +23,16 @@ TOKEN_TTL_SECONDS = 90
 
 class AsistenciaError(Exception):
     pass
+
+
+def _acreditar_creditos(db: Session, user_id: int, cantidad: float) -> None:
+    result = db.execute(
+        update(Estudiante)
+        .where(Estudiante.user_id == user_id)
+        .values(creditos_acreditados=Estudiante.creditos_acreditados + cantidad)
+    )
+    if result.rowcount != 1:
+        raise AsistenciaError("No se pudo actualizar el registro de créditos del estudiante.")
 
 
 def _now() -> datetime:
@@ -98,6 +109,9 @@ def check_in(db: Session, token: str, user_id: int) -> Actividad:
     )
     if already:
         raise AsistenciaError("Tu asistencia ya fue registrada.")
+    actividad = db.get(Actividad, sess.actividad_id)
+    if actividad is None:
+        raise AsistenciaError("No se pudo actualizar el registro de créditos del estudiante.")
 
     db.add(
         Asistencia(
@@ -106,13 +120,14 @@ def check_in(db: Session, token: str, user_id: int) -> Actividad:
             validated_by=sess.created_by,
         )
     )
+    _acreditar_creditos(db, user_id, actividad.creditos)
     try:
         db.commit()
     except IntegrityError:
         # Concurrent double-scan: the unique constraint already recorded it.
         db.rollback()
         raise AsistenciaError("Tu asistencia ya fue registrada.")
-    return db.get(Actividad, sess.actividad_id) # type: ignore
+    return actividad
 
 
 def present_user_ids(db: Session, actividad_id: int) -> set[int]:
@@ -128,6 +143,9 @@ def mark_present_manual(db: Session, actividad_id: int, user_id: int, validated_
     target = db.get(User, user_id)
     if target is None or target.rol != ROL_ESTUDIANTE:
         raise AsistenciaError("El usuario indicado no es un estudiante válido.")
+    actividad = db.get(Actividad, actividad_id)
+    if actividad is None:
+        raise AsistenciaError("No se pudo actualizar el registro de créditos del estudiante.")
     if not is_enrolled(db, actividad_id, user_id):
         raise AsistenciaError("El estudiante no está inscripto en esta actividad.")
     exists = (
@@ -138,6 +156,7 @@ def mark_present_manual(db: Session, actividad_id: int, user_id: int, validated_
     if exists:
         return
     db.add(Asistencia(actividad_id=actividad_id, user_id=user_id, validated_by=validated_by))
+    _acreditar_creditos(db, user_id, actividad.creditos)
     try:
         db.commit()
     except IntegrityError:

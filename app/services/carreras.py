@@ -1,7 +1,7 @@
 from typing import Optional
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session,contains_eager
-from app.models import Carrera, TipoCarrera, User
+from app.models import Carrera, Estudiante, TipoCarrera, User
 from app.models.enums import ESTADO_BORRADOR, ROL_ESTUDIANTE
 
 def _obtener_y_validar_tipo_id(
@@ -162,12 +162,11 @@ def get_cantidad_inscriptos_agrupados(db: Session) -> dict[str, int]:
             Carrera.id,
             Carrera.nombre,
             Carrera.tipo,
-            func.count(User.id).label("cantidad"),
+            func.count(Estudiante.user_id).label("cantidad"),
         )
         .outerjoin(
-            User,
-            (User.carrera_id == Carrera.id) &
-            (User.rol == ROL_ESTUDIANTE)
+            Estudiante,
+            Estudiante.carrera_id == Carrera.id,
         )
         .group_by(Carrera.id, Carrera.nombre, Carrera.tipo)
     )
@@ -182,8 +181,9 @@ def get_cantidad_inscriptos_agrupados(db: Session) -> dict[str, int]:
 def get_cantidad_inscriptos_por_carrera(db: Session, carrera_id: int) -> int:
     stmt = (
         select(func.count(User.id))
+        .join(Estudiante, Estudiante.user_id == User.id)
         .where(
-            User.carrera_id == carrera_id,
+            Estudiante.carrera_id == carrera_id,
             User.rol == ROL_ESTUDIANTE,
         )
     )

@@ -7,19 +7,29 @@ from app.services.credits import (
 )
 
 
-def test_required_credits_usa_los_creditos_de_la_carrera_del_usuario(
-    db_session, user_factory, carrera_factory
+def test_required_credits_usa_valor_individual_y_penalizaciones(
+    db_session, user_factory
 ):
-    carrera = carrera_factory("Arquitectura", creditos_requeridos=12)
     estudiante = user_factory()
-    estudiante.carrera_id = carrera.id
+    estudiante.estudiante.creditos_requeridos = 12.5
+    estudiante.estudiante.creditos_penalizacion = 2.0
     db_session.commit()
 
-    assert required_credits(db_session, estudiante.id) == 12
+    assert required_credits(db_session, estudiante.id) == 14.5
+
+
+def test_creditos_estudiante_tienen_defaults_individuales(db_session, user_factory):
+    estudiante = user_factory()
+    db_session.refresh(estudiante.estudiante)
+
+    assert estudiante.estudiante.creditos_acreditados == 0.0
+    assert estudiante.estudiante.creditos_requeridos == 10.0
+    assert estudiante.estudiante.creditos_penalizacion == 0.0
 
 
 def test_accumulated_and_completed_actividades(db_session, actividad_factory, user_factory):
     estudiante = user_factory()
+    estudiante.estudiante.creditos_acreditados = 8.0
     primera = actividad_factory(titulo="Primera", creditos=3)
     segunda = actividad_factory(titulo="Segunda", creditos=5)
     db_session.add_all(
@@ -43,6 +53,8 @@ def test_progress_calcula_porcentaje_y_limita_a_cien(
     estudiante = user_factory()
     carrera = carrera_factory(creditos_requeridos=5)
     estudiante.carrera_id = carrera.id
+    estudiante.estudiante.creditos_requeridos = 5.0
+    estudiante.estudiante.creditos_acreditados = 8.0
     actividad = actividad_factory(creditos=8)
     db_session.add(Asistencia(actividad_id=actividad.id, user_id=estudiante.id))
     db_session.commit()
@@ -59,6 +71,7 @@ def test_progress_sin_creditos_acumulados(db_session, user_factory, carrera_fact
     estudiante = user_factory()
     carrera = carrera_factory(creditos_requeridos=10)
     estudiante.carrera_id = carrera.id
+    estudiante.estudiante.creditos_requeridos = 10.0
     db_session.commit()
 
     assert progress(db_session, estudiante.id) == {

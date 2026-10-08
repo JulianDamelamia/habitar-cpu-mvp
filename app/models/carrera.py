@@ -8,7 +8,7 @@ from app.models.actividad import Actividad
 from app.models.associations import actividad_carrera
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from app.models.user import User
+    from app.models.estudiante import Estudiante
 
 
 class Carrera(Base):
@@ -23,7 +23,7 @@ class Carrera(Base):
         secondary=actividad_carrera,
         back_populates="carreras_asociadas",
     )
-    estudiantes: Mapped[list["User"]] = relationship(back_populates="carrera")
+    estudiantes: Mapped[list["Estudiante"]] = relationship(back_populates="carrera")
 
     def __repr__(self) -> str:
         return f"<Carrera(id={self.id}, nombre='{self.nombre}', tipo_id={self.tipo_id})>"

@@ -1,30 +1,21 @@
 """Credits & progress service (E-07)."""
 from __future__ import annotations
 
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
-from app.models import Actividad, Asistencia, Carrera, User
+from app.models import Actividad, Asistencia, Estudiante
 
 
-def required_credits(db: Session, user_id: int) -> int:
-    required = (
-        db.query(Carrera.creditos_requeridos)
-        .join(User, User.carrera_id == Carrera.id)
-        .filter(User.id == user_id)
-        .scalar()
-    )
-    return int(required or 0)
+def required_credits(db: Session, user_id: int) -> float:
+    estudiante = db.get(Estudiante, user_id)
+    if estudiante is None:
+        return 0.0
+    return estudiante.creditos_requeridos + estudiante.creditos_penalizacion
 
 
-def accumulated_credits(db: Session, user_id: int) -> int:
-    total = (
-        db.query(func.coalesce(func.sum(Actividad.creditos), 0))
-        .join(Asistencia, Asistencia.actividad_id == Actividad.id)
-        .filter(Asistencia.user_id == user_id)
-        .scalar()
-    )
-    return int(total or 0)
+def accumulated_credits(db: Session, user_id: int) -> float:
+    estudiante = db.get(Estudiante, user_id)
+    return estudiante.creditos_acreditados if estudiante else 0.0
 
 
 def completed_actividades(db: Session, user_id: int) -> list[tuple[Actividad, object]]:

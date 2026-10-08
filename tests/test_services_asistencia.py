@@ -12,6 +12,7 @@ from app.services.asistencia import (
     open_or_rotate,
     present_user_ids,
 )
+from app.services.credits import accumulated_credits
 from app.services.inscripcion import inscribir
 
 
@@ -59,6 +60,7 @@ def test_check_in_registra_asistencia_para_usuario_inscripto(
     assert resultado.id == actividad.id
     assert present_user_ids(db_session, actividad.id) == {estudiante.id}
     assert db_session.query(Asistencia).one().validated_by == docente.id
+    assert accumulated_credits(db_session, estudiante.id) == actividad.creditos
 
 
 @pytest.mark.parametrize(
@@ -108,6 +110,7 @@ def test_mark_present_manual_valida_estudiante_inscripto(
     mark_present_manual(db_session, actividad.id, estudiante.id, validador.id)
 
     assert present_user_ids(db_session, actividad.id) == {estudiante.id}
+    assert accumulated_credits(db_session, estudiante.id) == actividad.creditos
 
 
 def test_mark_present_manual_rechaza_usuario_invalido_o_no_inscripto(

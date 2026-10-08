@@ -9,6 +9,7 @@ from app.models import (
     Actividad,
     Carrera,
     ESTADO_BORRADOR,
+    Estudiante,
     TipoCarrera,
     User,
 )
@@ -50,6 +51,7 @@ def user_factory(db_session):
             nombre=f"Nombre {counter}",
             apellido="Prueba",
             rol=rol,
+            estudiante=Estudiante() if rol == "estudiante" else None,
         )
         db_session.add(user)
         db_session.commit()
