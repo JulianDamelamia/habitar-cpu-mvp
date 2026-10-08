@@ -58,11 +58,25 @@ def checkin_submit(
             request, "checkin_page",
             query_params={"err": str(exc)},
         )
+    if services.asistencia.creditos_pendientes_encuesta(
+        db, actividad.id, user.id
+    ):
+        return redirect_to(
+            request,
+            "survey_form",
+            actividad_id=actividad.id,
+            query_params={
+                "msg": (
+                    "Asistencia registrada. Respondé la encuesta para recibir "
+                    f"{actividad.creditos} créditos."
+                )
+            },
+        )
     return redirect_to(
-        request, "survey_form", actividad_id=actividad.id,
-        query_params={
-            "msg": f"¡Asistencia registrada! Sumaste {actividad.creditos} créditos."
-        },
+        request,
+        "survey_form" if actividad.encuesta_obligatoria else "home",
+        **({"actividad_id": actividad.id} if actividad.encuesta_obligatoria else {}),
+        query_params={"msg": f"¡Asistencia registrada! Sumaste {actividad.creditos} créditos."},
     )
 
 
@@ -76,6 +90,8 @@ def survey_form(
 ):
     actividad = db.get(Actividad, actividad_id)
     if actividad is None:
+        return redirect_to(request, "home")
+    if not actividad.encuesta_obligatoria:
         return redirect_to(request, "home")
     attended = (
         db.query(Asistencia)
@@ -104,6 +120,9 @@ def survey_submit(
     user: User = Depends(requiere_roles("estudiante")),
     db: Session = Depends(get_db),
 ):
+    actividad = db.get(Actividad, actividad_id)
+    if actividad is None or not actividad.encuesta_obligatoria:
+        return redirect_to(request, "home")
     attended = (
         db.query(Asistencia)
         .filter(Asistencia.actividad_id == actividad_id, Asistencia.user_id == user.id)
@@ -124,11 +143,10 @@ def survey_submit(
     if existing:
         existing.rating = rating
         existing.comment = comment_val
-        db.commit()
     else:
         db.add(SurveyResponse(actividad_id=actividad_id, user_id=user.id, rating=rating, comment=comment_val))
         try:
-            db.commit()
+            db.flush()
         except IntegrityError:
             # Concurrent double-submit: a row was inserted between our check and commit.
             db.rollback()
@@ -137,13 +155,23 @@ def survey_submit(
                 .filter(SurveyResponse.actividad_id == actividad_id, SurveyResponse.user_id == user.id)
                 .first()
             )
-            if row:
-                row.rating = rating
-                row.comment = comment_val
-                db.commit()
+            if row is None:
+                raise
+            row.rating = rating
+            row.comment = comment_val
+    credited = services.asistencia.acreditar_creditos_pendientes(
+        db, actividad_id, user.id
+    )
+    db.commit()
     return redirect_to(
         request, "home",
-        query_params={"msg": "¡Gracias por tu opinión!"},
+        query_params={
+            "msg": (
+                f"¡Gracias por tu opinión! Se acreditaron {credited:g} créditos."
+                if credited
+                else "¡Gracias por tu opinión!"
+            )
+        },
     )
 
 
@@ -213,7 +241,9 @@ def docente_mark(
             query_params={"err": "Actividad no encontrada."},
         )
     try:
-        services.asistencia.mark_present_manual(db, actividad_id, student_id, user.id)
+        credited = services.asistencia.mark_present_manual(
+            db, actividad_id, student_id, user.id
+        )
     except services.asistencia.AsistenciaError as exc:
         return redirect_to(
             request, "docente_asistencia", actividad_id=actividad_id,
@@ -221,5 +251,11 @@ def docente_mark(
         )
     return redirect_to(
         request, "docente_asistencia", actividad_id=actividad_id,
-        query_params={"msg": "Asistencia registrada."},
+        query_params={
+            "msg": (
+                "Asistencia registrada y créditos acreditados."
+                if credited
+                else "Asistencia registrada. El estudiante debe responder la encuesta para recibir los créditos."
+            )
+        },
     )

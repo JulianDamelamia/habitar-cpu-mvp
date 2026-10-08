@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, Integer, String, Text, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Integer, String, Text, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
@@ -28,6 +28,9 @@ class Actividad(Base):
     lugar: Mapped[str] = mapped_column(String(200), default="")
     docente_id: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
     creditos: Mapped[int] = mapped_column(Integer, default=1)
+    encuesta_obligatoria: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=True, server_default=text("true")
+    )
     cupo_max: Mapped[int] = mapped_column(Integer, default=30)
     estado: Mapped[str] = mapped_column(String(20), default=ESTADO_BORRADOR, index=True)
     created_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))

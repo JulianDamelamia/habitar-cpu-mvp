@@ -7,14 +7,18 @@ from fastapi.testclient import TestClient
 from app.database import get_db
 from app.main import app
 from app.models import (
+    Asistencia,
     ESTADO_BORRADOR,
     ESTADO_CANCELADA,
+    ESTADO_CREDITOS_ACREDITADO,
+    ESTADO_CREDITOS_PENDIENTE_ENCUESTA,
     ESTADO_PUBLICADA,
     Actividad,
 )
 from app.security import hash_password
 from app.routers.admin.admin_actividades import parse_intervalo_tiempo
 from app.services.parsing import parse_duracion
+from app.services.credits import accumulated_credits
 
 
 @pytest.fixture
@@ -194,6 +198,42 @@ def test_activity_without_career_cannot_be_published(admin_actividades_client):
     assert "sin carreras asociadas" in redirect_query(publish_response, "err")
     db_session.refresh(actividad)
     assert actividad.estado == ESTADO_BORRADOR
+
+
+def test_disabling_activity_survey_releases_pending_credits(
+    admin_actividades_client, user_factory
+):
+    client, db_session, docente, carrera = admin_actividades_client
+    create_response = client.post(
+        "/admin/actividades",
+        data=actividad_form_data(docente.id, carrera.id),
+    )
+    assert create_response.status_code == 303
+    activity = db_session.query(Actividad).one()
+    assert activity.encuesta_obligatoria is True
+
+    student = user_factory()
+    db_session.add(
+        Asistencia(
+            actividad_id=activity.id,
+            user_id=student.id,
+            estado_creditos=ESTADO_CREDITOS_PENDIENTE_ENCUESTA,
+        )
+    )
+    db_session.commit()
+    update_data = actividad_form_data(
+        docente.id, carrera.id, titulo=activity.titulo
+    )
+    update_data["encuesta_obligatoria"] = "false"
+
+    response = client.post(f"/admin/actividades/{activity.id}", data=update_data)
+
+    assert response.status_code == 303
+    db_session.refresh(activity)
+    attendance = db_session.query(Asistencia).one()
+    assert activity.encuesta_obligatoria is False
+    assert attendance.estado_creditos == ESTADO_CREDITOS_ACREDITADO
+    assert accumulated_credits(db_session, student.id) == activity.creditos
 
 
 def test_missing_activity_endpoints_redirect_with_not_found(admin_actividades_client):

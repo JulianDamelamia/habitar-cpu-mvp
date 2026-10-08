@@ -2,7 +2,13 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 
-from app.models import Asistencia, ESTADO_PUBLICADA
+from app.models import (
+    Asistencia,
+    ESTADO_CREDITOS_ACREDITADO,
+    ESTADO_CREDITOS_PENDIENTE_ENCUESTA,
+    ESTADO_PUBLICADA,
+    SurveyResponse,
+)
 from app.services import asistencia
 from app.services.asistencia import (
     AsistenciaError,
@@ -11,7 +17,9 @@ from app.services.asistencia import (
     mark_present_manual,
     open_or_rotate,
     present_user_ids,
+    acreditar_creditos_pendientes,
 )
+from app.services.encuestas import estudiante_completo_encuesta
 from app.services.credits import accumulated_credits
 from app.services.inscripcion import inscribir
 
@@ -49,7 +57,9 @@ def test_open_or_rotate_renueva_sesion_expirada(db_session, actividad_factory, u
 def test_check_in_registra_asistencia_para_usuario_inscripto(
     db_session, actividad_factory, user_factory
 ):
-    actividad = actividad_factory(estado=ESTADO_PUBLICADA)
+    actividad = actividad_factory(
+        estado=ESTADO_PUBLICADA, encuesta_obligatoria=False
+    )
     docente = user_factory(rol="docente")
     estudiante = user_factory()
     inscribir(db_session, actividad.id, estudiante.id)
@@ -61,6 +71,68 @@ def test_check_in_registra_asistencia_para_usuario_inscripto(
     assert present_user_ids(db_session, actividad.id) == {estudiante.id}
     assert db_session.query(Asistencia).one().validated_by == docente.id
     assert accumulated_credits(db_session, estudiante.id) == actividad.creditos
+
+
+def test_check_in_defers_credits_until_survey_then_releases_once(
+    db_session, actividad_factory, user_factory
+):
+    actividad = actividad_factory(estado=ESTADO_PUBLICADA, creditos=3)
+    docente = user_factory(rol="docente")
+    estudiante = user_factory()
+    inscribir(db_session, actividad.id, estudiante.id)
+    sesion = open_or_rotate(db_session, actividad.id, docente.id)
+
+    check_in(db_session, sesion.token, estudiante.id)
+
+    asistencia = db_session.query(Asistencia).one()
+    assert asistencia.estado_creditos == ESTADO_CREDITOS_PENDIENTE_ENCUESTA
+    assert accumulated_credits(db_session, estudiante.id) == 0
+    assert not estudiante_completo_encuesta(
+        db_session, estudiante.id, actividad.id
+    )
+
+    db_session.add(
+        SurveyResponse(
+            actividad_id=actividad.id,
+            user_id=estudiante.id,
+            rating=5,
+            comment=None,
+        )
+    )
+    db_session.flush()
+    assert estudiante_completo_encuesta(db_session, estudiante.id, actividad.id)
+    assert acreditar_creditos_pendientes(
+        db_session, actividad.id, estudiante.id
+    ) == actividad.creditos
+    db_session.commit()
+
+    assert asistencia.estado_creditos == ESTADO_CREDITOS_ACREDITADO
+    assert accumulated_credits(db_session, estudiante.id) == actividad.creditos
+    assert acreditar_creditos_pendientes(
+        db_session, actividad.id, estudiante.id
+    ) == 0
+    assert accumulated_credits(db_session, estudiante.id) == actividad.creditos
+
+
+def test_survey_not_required_credits_are_awarded_immediately(
+    db_session, actividad_factory, user_factory
+):
+    actividad = actividad_factory(
+        estado=ESTADO_PUBLICADA, encuesta_obligatoria=False
+    )
+    docente = user_factory(rol="docente")
+    estudiante = user_factory()
+    inscribir(db_session, actividad.id, estudiante.id)
+    sesion = open_or_rotate(db_session, actividad.id, docente.id)
+
+    check_in(db_session, sesion.token, estudiante.id)
+
+    asistencia = db_session.query(Asistencia).one()
+    assert asistencia.estado_creditos == ESTADO_CREDITOS_ACREDITADO
+    assert accumulated_credits(db_session, estudiante.id) == actividad.creditos
+    assert estudiante_completo_encuesta(
+        db_session, estudiante.id, actividad.id
+    )
 
 
 @pytest.mark.parametrize(
@@ -101,7 +173,9 @@ def test_check_in_rechaza_expirado_no_inscripto_y_duplicado(
 def test_mark_present_manual_valida_estudiante_inscripto(
     db_session, actividad_factory, user_factory
 ):
-    actividad = actividad_factory(estado=ESTADO_PUBLICADA)
+    actividad = actividad_factory(
+        estado=ESTADO_PUBLICADA, encuesta_obligatoria=False
+    )
     estudiante = user_factory()
     validador = user_factory(rol="docente")
     inscribir(db_session, actividad.id, estudiante.id)

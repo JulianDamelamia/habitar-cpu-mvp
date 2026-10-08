@@ -95,9 +95,11 @@ def home(
     proximas = [a for a in mine if _aware(a.fecha_fin) >= now]
     progreso = services.credits.progress(db, user.id)
     historial = services.credits.completed_actividades(db, user.id)
+    encuestas_pendientes = services.credits.pending_survey_activities(db, user.id)
     return render(
         request, "student/home.html", user=user, db=db,
         proximas=proximas, progreso=progreso, historial=historial,
+        encuestas_pendientes=encuestas_pendientes,
     )
 
 

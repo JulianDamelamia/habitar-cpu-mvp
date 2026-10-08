@@ -4,18 +4,21 @@ from __future__ import annotations
 import secrets
 from datetime import datetime, timedelta, timezone
 
-from sqlalchemy import exists, select, update
+from sqlalchemy import update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.models import (
     Actividad,
     Asistencia,
+    ESTADO_CREDITOS_ACREDITADO,
+    ESTADO_CREDITOS_PENDIENTE_ENCUESTA,
     Estudiante,
     SesionAsistencia,
     ROL_ESTUDIANTE,
     User,
 )
+from app.services.encuestas import estudiante_completo_encuesta
 from app.services.consultas_comunes import is_enrolled
 
 TOKEN_TTL_SECONDS = 90
@@ -25,7 +28,48 @@ class AsistenciaError(Exception):
     pass
 
 
-def _acreditar_creditos(db: Session, user_id: int, cantidad: float) -> None:
+def _acreditar_creditos(
+    db: Session, actividad_id: int, user_id: int, cantidad: float
+) -> bool:
+    attendance = (
+        db.query(Asistencia)
+        .filter(
+            Asistencia.actividad_id == actividad_id,
+            Asistencia.user_id == user_id,
+        )
+        .one_or_none()
+    )
+    if attendance is None:
+        raise AsistenciaError("No se encontró la asistencia para acreditar.")
+    if attendance.estado_creditos == ESTADO_CREDITOS_ACREDITADO:
+        return True
+    if attendance.estado_creditos != ESTADO_CREDITOS_PENDIENTE_ENCUESTA:
+        raise AsistenciaError("La asistencia tiene un estado de créditos inválido.")
+    if not estudiante_completo_encuesta(db, user_id, actividad_id):
+        return False
+
+    marked = db.execute(
+        update(Asistencia)
+        .where(
+            Asistencia.actividad_id == actividad_id,
+            Asistencia.user_id == user_id,
+            Asistencia.estado_creditos == ESTADO_CREDITOS_PENDIENTE_ENCUESTA,
+        )
+        .values(estado_creditos=ESTADO_CREDITOS_ACREDITADO)
+    )
+    if marked.rowcount != 1:
+        attendance = (
+            db.query(Asistencia)
+            .filter(
+                Asistencia.actividad_id == actividad_id,
+                Asistencia.user_id == user_id,
+            )
+            .one_or_none()
+        )
+        if attendance is None:
+            raise AsistenciaError("No se encontró la asistencia para acreditar.")
+        return attendance.estado_creditos == ESTADO_CREDITOS_ACREDITADO
+
     result = db.execute(
         update(Estudiante)
         .where(Estudiante.user_id == user_id)
@@ -33,6 +77,42 @@ def _acreditar_creditos(db: Session, user_id: int, cantidad: float) -> None:
     )
     if result.rowcount != 1:
         raise AsistenciaError("No se pudo actualizar el registro de créditos del estudiante.")
+    return True
+
+
+def creditos_pendientes_encuesta(db: Session, actividad_id: int, user_id: int) -> bool:
+    return (
+        db.query(Asistencia.id)
+        .filter(
+            Asistencia.actividad_id == actividad_id,
+            Asistencia.user_id == user_id,
+            Asistencia.estado_creditos == ESTADO_CREDITOS_PENDIENTE_ENCUESTA,
+        )
+        .first()
+        is not None
+    )
+
+
+def acreditar_creditos_pendientes(
+    db: Session, actividad_id: int, user_id: int
+) -> float:
+    actividad = db.get(Actividad, actividad_id)
+    if actividad is None:
+        return 0.0
+    pendientes = (
+        db.query(Asistencia)
+        .filter(
+            Asistencia.actividad_id == actividad_id,
+            Asistencia.user_id == user_id,
+            Asistencia.estado_creditos == ESTADO_CREDITOS_PENDIENTE_ENCUESTA,
+        )
+        .all()
+    )
+    acreditados = 0.0
+    for _ in pendientes:
+        if _acreditar_creditos(db, actividad_id, user_id, actividad.creditos):
+            acreditados += actividad.creditos
+    return acreditados
 
 
 def _now() -> datetime:
@@ -118,10 +198,12 @@ def check_in(db: Session, token: str, user_id: int) -> Actividad:
             actividad_id=sess.actividad_id,
             user_id=user_id,
             validated_by=sess.created_by,
+            estado_creditos=ESTADO_CREDITOS_PENDIENTE_ENCUESTA,
         )
     )
-    _acreditar_creditos(db, user_id, actividad.creditos)
     try:
+        db.flush()
+        _acreditar_creditos(db, sess.actividad_id, user_id, actividad.creditos)
         db.commit()
     except IntegrityError:
         # Concurrent double-scan: the unique constraint already recorded it.
@@ -134,7 +216,9 @@ def present_user_ids(db: Session, actividad_id: int) -> set[int]:
     rows = db.query(Asistencia.user_id).filter(Asistencia.actividad_id == actividad_id).all()
     return {r[0] for r in rows}
 
-def mark_present_manual(db: Session, actividad_id: int, user_id: int, validated_by: int) -> None:
+def mark_present_manual(
+    db: Session, actividad_id: int, user_id: int, validated_by: int
+) -> bool:
     """Admin/docente manual override (E-09 supervision).
 
     Mirrors the guards in check_in(): the target must be a real student enrolled
@@ -148,16 +232,29 @@ def mark_present_manual(db: Session, actividad_id: int, user_id: int, validated_
         raise AsistenciaError("No se pudo actualizar el registro de créditos del estudiante.")
     if not is_enrolled(db, actividad_id, user_id):
         raise AsistenciaError("El estudiante no está inscripto en esta actividad.")
-    exists = (
+    existing = (
         db.query(Asistencia)
         .filter(Asistencia.actividad_id == actividad_id, Asistencia.user_id == user_id)
         .first()
     )
-    if exists:
-        return
-    db.add(Asistencia(actividad_id=actividad_id, user_id=user_id, validated_by=validated_by))
-    _acreditar_creditos(db, user_id, actividad.creditos)
-    try:
+    if existing:
+        credited = _acreditar_creditos(
+            db, actividad_id, user_id, actividad.creditos
+        )
         db.commit()
+        return credited
+    attendance = Asistencia(
+        actividad_id=actividad_id,
+        user_id=user_id,
+        validated_by=validated_by,
+        estado_creditos=ESTADO_CREDITOS_PENDIENTE_ENCUESTA,
+    )
+    db.add(attendance)
+    try:
+        db.flush()
+        credited = _acreditar_creditos(db, actividad_id, user_id, actividad.creditos)
+        db.commit()
+        return credited
     except IntegrityError:
         db.rollback()
+        return False

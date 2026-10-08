@@ -90,6 +90,7 @@ def actividad_factory(db_session):
         cupo_max=30,
         tipo="presencial",
         carreras=None,
+        encuesta_obligatoria=True,
     ):
         nonlocal counter
         counter += 1
@@ -104,6 +105,7 @@ def actividad_factory(db_session):
             creditos=creditos,
             cupo_max=cupo_max,
             estado=estado,
+            encuesta_obligatoria=encuesta_obligatoria,
         )
         if carreras:
             actividad.carreras_asociadas.extend(carreras)

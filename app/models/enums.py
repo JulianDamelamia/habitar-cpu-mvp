@@ -24,6 +24,11 @@ class EstadoInscripcion(StrEnum):
     BAJA = "baja"
 
 
+class EstadoCreditos(StrEnum):
+    ACREDITADO = "acreditado"
+    PENDIENTE_ENCUESTA = "pendiente_encuesta"
+
+
 CARRERAS_ASOCIADAS_DEFAULT = "todas"
 
 # Compatibility aliases for existing callers and persisted string values.
@@ -39,4 +44,6 @@ ESTADO_PUBLICADA = EstadoActividad.PUBLICADA
 ESTADO_CANCELADA = EstadoActividad.CANCELADA
 INSCRIPCION_ALTA = EstadoInscripcion.INSCRIPTO
 INSCRIPCION_BAJA = EstadoInscripcion.BAJA
+ESTADO_CREDITOS_ACREDITADO = EstadoCreditos.ACREDITADO
+ESTADO_CREDITOS_PENDIENTE_ENCUESTA = EstadoCreditos.PENDIENTE_ENCUESTA
 CARRERAS_ASOCIADAS_DEFALUT = CARRERAS_ASOCIADAS_DEFAULT

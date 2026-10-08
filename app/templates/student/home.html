@@ -10,9 +10,28 @@
     <h2 class="font-semibold text-lg">Mi progreso</h2>
     <span class="text-sm text-slate-500">{{ progreso.accumulated }} / {{ progreso.required }} créditos</span>
   </div>
-  <div class="w-full bg-slate-200 rounded-full h-4 overflow-hidden">
+  <div class="relative w-full bg-slate-200 rounded-full h-4 overflow-hidden">
     <div class="bg-emerald-500 h-4 rounded-full transition-all" style="width: {{ progreso.pct }}%"></div>
+    {% if progreso.pending %}
+    <div class="absolute inset-y-0 bg-amber-400 transition-all"
+         style="left: {{ progreso.pct }}%; width: {{ progreso.pending_pct }}%"></div>
+    {% endif %}
   </div>
+  {% if progreso.pending %}
+    <p class="text-amber-700 text-sm mt-2 font-medium">
+      {{ progreso.pending }} créditos pendientes: respondé las encuestas para acreditarlos.
+    </p>
+    <ul class="mt-2 space-y-1 text-sm">
+      {% for actividad in encuestas_pendientes %}
+      <li>
+        <a href="{{ url_for('survey_form', actividad_id=actividad.id).path }}"
+           class="text-amber-700 hover:text-amber-900 underline">
+          Responder encuesta: {{ actividad.titulo }} ({{ actividad.creditos }} créditos)
+        </a>
+      </li>
+      {% endfor %}
+    </ul>
+  {% endif %}
   {% if progreso.complete %}
     <p class="text-emerald-600 text-sm mt-2 font-medium inline-flex items-center gap-1"><i data-lucide="party-popper" class="w-4 h-4"></i> ¡Completaste los créditos del módulo!</p>
   {% else %}

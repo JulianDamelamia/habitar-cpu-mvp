@@ -2,10 +2,11 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from sqlalchemy import DateTime, ForeignKey, UniqueConstraint, func
+from sqlalchemy import DateTime, ForeignKey, String, UniqueConstraint, func, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
+from app.models.enums import ESTADO_CREDITOS_ACREDITADO
 
 
 class Asistencia(Base):
@@ -17,5 +18,11 @@ class Asistencia(Base):
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     validated_by: Mapped[int | None] = mapped_column(ForeignKey("users.id"))
     validated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    estado_creditos: Mapped[str] = mapped_column(
+        String(30),
+        nullable=False,
+        default=ESTADO_CREDITOS_ACREDITADO,
+        server_default=text("'acreditado'"),
+    )
     actividad: Mapped["Actividad"] = relationship()
     user: Mapped["User"] = relationship(foreign_keys=[user_id])

@@ -1,4 +1,7 @@
-from app.models import Asistencia
+from app.models import (
+    Asistencia,
+    ESTADO_CREDITOS_PENDIENTE_ENCUESTA,
+)
 from app.services.credits import (
     accumulated_credits,
     completed_actividades,
@@ -63,6 +66,8 @@ def test_progress_calcula_porcentaje_y_limita_a_cien(
         "accumulated": 8,
         "required": 5,
         "pct": 100,
+        "pending": 0,
+        "pending_pct": 0,
         "complete": True,
     }
 
@@ -78,5 +83,27 @@ def test_progress_sin_creditos_acumulados(db_session, user_factory, carrera_fact
         "accumulated": 0,
         "required": 10,
         "pct": 0,
+        "pending": 0,
+        "pending_pct": 0,
         "complete": False,
     }
+
+
+def test_progress_includes_credits_pending_survey(
+    db_session, actividad_factory, user_factory
+):
+    estudiante = user_factory()
+    actividad = actividad_factory(creditos=3)
+    db_session.add(
+        Asistencia(
+            actividad_id=actividad.id,
+            user_id=estudiante.id,
+            estado_creditos=ESTADO_CREDITOS_PENDIENTE_ENCUESTA,
+        )
+    )
+    db_session.commit()
+
+    progreso = progress(db_session, estudiante.id)
+
+    assert progreso["pending"] == 3
+    assert progreso["pending_pct"] == 30

@@ -9,10 +9,12 @@ from starlette.templating import _TemplateResponse
 
 from app.database import get_db
 from app.models import (
+    Asistencia,
     Inscripcion,
     INSCRIPCION_ALTA,
     ESTADO_BORRADOR,
     ESTADO_CANCELADA,
+    ESTADO_CREDITOS_PENDIENTE_ENCUESTA,
     ESTADO_PUBLICADA,
     TIPO_PRESENCIAL,
     TIPO_VIRTUAL,
@@ -77,6 +79,7 @@ def crear(
     docente_id: str = Form(""),
     creditos: int = Form(1),
     cupo_max: int = Form(30),
+    encuesta_obligatoria: bool = Form(True),
     carreras_asociadas: list[str] = Form([]),
     user: User = Depends(REQUIERE_ADMIN),
     db: Session = Depends(get_db),
@@ -94,7 +97,9 @@ def crear(
         titulo=titulo.strip(), descripcion=descripcion.strip(), tipo=tipo,
         fecha_inicio=inicio, fecha_fin=fin, lugar=lugar.strip(),
         docente_id=int(docente_id) if docente_id.isdigit() else None,
-        creditos=creditos, cupo_max=cupo_max, estado=ESTADO_BORRADOR, created_by=user.id,
+        creditos=creditos, cupo_max=cupo_max,
+        encuesta_obligatoria=encuesta_obligatoria,
+        estado=ESTADO_BORRADOR, created_by=user.id,
         carreras_asociadas=carreras_asociadas_list,
     )
     return redirect_to(
@@ -134,6 +139,7 @@ def actualizar(
     docente_id: str = Form(""),
     creditos: int = Form(1),
     cupo_max: int = Form(30),
+    encuesta_obligatoria: bool = Form(True),
     user: User = Depends(REQUIERE_ADMIN),
     db: Session = Depends(get_db),
     carreras_asociadas: list[str] = Form([])
@@ -160,8 +166,24 @@ def actualizar(
         fecha_inicio=inicio, fecha_fin=fin,
         lugar=lugar.strip(), docente_id=int(docente_id) if docente_id.isdigit() else None,
         creditos=creditos, cupo_max=cupo_max,
+        encuesta_obligatoria=encuesta_obligatoria,
         carreras_asociadas=carreras_asociadas_list
     )
+    if not encuesta_obligatoria:
+        estudiantes_pendientes = (
+            db.query(Asistencia.user_id)
+            .filter(
+                Asistencia.actividad_id == actividad_id,
+                Asistencia.estado_creditos == ESTADO_CREDITOS_PENDIENTE_ENCUESTA,
+            )
+            .all()
+        )
+        for (estudiante_id,) in estudiantes_pendientes:
+            services.asistencia.acreditar_creditos_pendientes(
+                db, actividad_id, estudiante_id
+            )
+        if estudiantes_pendientes:
+            db.commit()
     if fecha_cambio:
         # Cambió la fecha de inicio: re-armar el recordatorio de 24h de los inscriptos.
         db.query(Inscripcion).filter(
