@@ -1,62 +1,141 @@
 {% extends "base.html" %}
-{% block title %}Importar Usuarios{% endblock %}
+{% block title %}Administrar usuarios{% endblock %}
 
 {% block content %}
-<a href="{{ url_for('inscriptos_index').path }}" class="text-sm text-indigo-600 hover:underline inline-flex items-center gap-1">
-  <i data-lucide="arrow-left" class="w-4 h-4"></i> Inscriptos
-</a>
+<div class="mb-6">
+  <h1 class="text-2xl font-bold">Administrar usuarios</h1>
+  <p class="text-sm text-slate-500 mt-1">Creá cuentas y actualizá datos y créditos de estudiantes.</p>
+</div>
 
-<div class="bg-white rounded-2xl shadow p-8 mt-3 {% if errores %}max-w-4xl{% else %}max-w-lg{% endif %} transition-all">
+{% if form_error %}
+<div role="alert" class="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm">{{ form_error }}</div>
+{% endif %}
 
-  <p class="text-sm text-slate-500 mb-6">Carga masiva de estudiantes desde un archivo de hoja de cálculo.</p>
+<section class="bg-white rounded-2xl shadow p-6 mb-6">
+  <h2 class="text-lg font-semibold mb-4">Buscar estudiantes</h2>
+  <form method="get" action="{{ url_for('crear_usuarios').path }}" class="flex flex-col sm:flex-row gap-3">
+    <label for="busqueda-usuarios" class="sr-only">Nombre, apellido o email</label>
+    <input id="busqueda-usuarios" type="search" name="q" value="{{ busqueda }}" maxlength="120"
+           placeholder="Nombre, apellido o email"
+           class="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-5 py-2 text-sm font-medium">
+      Buscar
+    </button>
+  </form>
 
-  <!-- Formulario de importación -->
-  <form method="post" action="{{ url_for('generacion_usuarios').path }}" enctype="multipart/form-data" class="space-y-4 mb-8">
+  {% if busqueda %}
+  <div class="mt-5 space-y-4">
+    {% for estudiante in estudiantes %}
+    <article class="border border-slate-200 rounded-xl p-4">
+      <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+        <div>
+          <h3 class="font-semibold">{{ estudiante.nombre_completo }}</h3>
+          <p class="text-sm text-slate-500">{{ estudiante.email }}</p>
+          <p class="text-xs text-slate-500 mt-1">
+            Créditos requeridos actuales:
+            <span data-current-credits="{{ estudiante.id }}" class="font-semibold text-slate-700">
+              {{ estudiante.estudiante.creditos_requeridos }}
+            </span>
+          </p>
+        </div>
+
+        <form method="post" action="{{ url_for('actualizar_usuario', estudiante_id=estudiante.id).path }}"
+              class="grid sm:grid-cols-2 gap-3 w-full md:max-w-2xl">
+          <input type="hidden" name="q" value="{{ busqueda }}">
+          <div>
+            <label for="nombre-{{ estudiante.id }}" class="block text-xs font-medium text-slate-600 mb-1">Nombre</label>
+            <input id="nombre-{{ estudiante.id }}" name="nombre" value="{{ estudiante.nombre }}" maxlength="120" required
+                   class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+          <div>
+            <label for="apellido-{{ estudiante.id }}" class="block text-xs font-medium text-slate-600 mb-1">Apellido</label>
+            <input id="apellido-{{ estudiante.id }}" name="apellido" value="{{ estudiante.apellido }}" maxlength="120" required
+                   class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+          </div>
+          <div>
+            <label for="carrera-{{ estudiante.id }}" class="block text-xs font-medium text-slate-600 mb-1">Carrera</label>
+            <select id="carrera-{{ estudiante.id }}" name="carrera_id"
+                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+              <option value="">Sin carrera</option>
+              {% for carrera in carreras %}
+              <option value="{{ carrera.id }}" {% if estudiante.carrera_id == carrera.id %}selected{% endif %}>
+                {{ carrera.tipo.nombre }} {{ carrera.nombre }}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="flex items-end">
+            <button type="submit" class="w-full bg-slate-800 hover:bg-slate-700 text-white rounded-lg px-4 py-2 text-sm font-medium">
+              Guardar datos
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <form data-credit-form
+            data-endpoint="{{ url_for('actualizar_creditos_requeridos', estudiante_id=estudiante.id).path }}"
+            class="mt-4 pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-end gap-3">
+        <div>
+          <label for="creditos-{{ estudiante.id }}" class="block text-xs font-medium text-slate-600 mb-1">
+            Créditos requeridos
+          </label>
+          <input id="creditos-{{ estudiante.id }}" name="creditos_requeridos" type="number" min="0.5" step="0.5"
+                 value="{{ estudiante.estudiante.creditos_requeridos }}" required
+                 class="w-full sm:w-40 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+        </div>
+        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2 text-sm font-medium">
+          Guardar créditos
+        </button>
+        <p data-credit-status role="status" aria-live="polite" class="text-sm text-slate-500"></p>
+      </form>
+    </article>
+    {% else %}
+    <p class="rounded-lg bg-slate-50 p-4 text-sm text-slate-500">No se encontraron estudiantes.</p>
+    {% endfor %}
+    {% if estudiantes|length == 50 %}
+    <p class="text-xs text-slate-500">Se muestran hasta 50 coincidencias. Afiná la búsqueda para encontrar otros resultados.</p>
+    {% endif %}
+  </div>
+  {% endif %}
+</section>
+
+<section class="bg-white rounded-2xl shadow p-6">
+  <h2 class="text-lg font-semibold mb-2">Agregar usuarios</h2>
+  <p class="text-sm text-slate-500 mb-5">Carga masiva de estudiantes desde un archivo CSV o XLSX.</p>
+
+  <form method="post" action="{{ url_for('generacion_usuarios').path }}" enctype="multipart/form-data" class="space-y-4">
     <div>
-      <label class="block text-sm font-medium mb-1 text-slate-700">Archivo CSV o XLSX</label>
-      <input type="file" name="archivo" accept=".csv,.xlsx" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+      <label for="archivo-usuarios" class="block text-sm font-medium mb-1 text-slate-700">Archivo CSV o XLSX</label>
+      <input id="archivo-usuarios" type="file" name="archivo" accept=".csv,.xlsx" required
+             class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
       <p class="text-xs text-slate-400 mt-1">
         Columnas esperadas: <code>email</code>, <code>carrera</code>, <code>nombre</code>, <code>apellido</code>.
       </p>
     </div>
     <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-5 py-2 text-sm font-medium transition-colors inline-flex items-center gap-2">
-      <i data-lucide="upload-cloud" class="w-4 h-4"></i> Importar
+      <i data-lucide="upload-cloud" class="w-4 h-4"></i> Importar usuarios
     </button>
   </form>
 
-  <!-- Tabla de Errores Detallada -->
   {% if errores %}
-  <div class="border-t border-slate-200 pt-6">
+  <div class="border-t border-slate-200 pt-6 mt-6">
     <div class="flex items-center gap-2 mb-4 text-rose-700 font-semibold">
       <i data-lucide="alert-triangle" class="w-5 h-5"></i>
-      <h2>Filas con errores que requieren atención ({{ errores|length }})</h2>
+      <h3>Filas con errores que requieren atención ({{ errores|length }})</h3>
     </div>
-
     <div class="overflow-x-auto rounded-xl border border-slate-200">
       <table class="w-full text-left text-sm text-slate-600">
         <thead class="bg-slate-50 text-slate-700 font-medium border-b border-slate-200">
-          <tr>
-            <th class="px-4 py-3 w-16 text-center">Fila</th>
-            <th class="px-4 py-3">Email</th>
-            <th class="px-4 py-3">Detalle del error</th>
-          </tr>
+          <tr><th class="px-4 py-3">Fila</th><th class="px-4 py-3">Email</th><th class="px-4 py-3">Detalle del error</th></tr>
         </thead>
         <tbody class="divide-y divide-slate-100 bg-white">
           {% for e in errores %}
           <tr class="hover:bg-slate-50">
-            <!-- +2 para corregir el índice 0 de Pandas + la fila del header en Excel -->
-            <td class="px-4 py-3 font-mono text-center font-semibold text-slate-500">
-              #{{ e.fila + 2 }}
-            </td>
-            <td class="px-4 py-3 font-mono text-xs text-slate-800">
-              {{ e.email if e.email else '-' }}
-            </td>
-            
+            <td class="px-4 py-3 font-mono text-center font-semibold text-slate-500">#{{ e.fila + 2 }}</td>
+            <td class="px-4 py-3 font-mono text-xs text-slate-800">{{ e.email if e.email else '-' }}</td>
             <td class="px-4 py-3">
               <ul class="list-disc list-inside text-rose-600 text-xs space-y-0.5">
-                {% for err_msg in e.errores %}
-                  <li>{{ err_msg }}</li>
-                {% endfor %}
+                {% for err_msg in e.errores %}<li>{{ err_msg }}</li>{% endfor %}
               </ul>
             </td>
           </tr>
@@ -66,6 +145,47 @@
     </div>
   </div>
   {% endif %}
+</section>
+{% endblock %}
 
-</div>
+{% block scripts %}
+<script>
+  document.querySelectorAll("[data-credit-form]").forEach((form) => {
+    form.addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const input = form.elements.creditos_requeridos;
+      const status = form.querySelector("[data-credit-status]");
+      const button = form.querySelector("button[type=submit]");
+      status.textContent = "";
+      button.disabled = true;
+
+      try {
+        const response = await fetch(form.dataset.endpoint, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ creditos_requeridos: Number(input.value) }),
+        });
+        const result = await response.json();
+        if (!response.ok) {
+          const detail = result.detail;
+          const message = typeof detail === "string"
+            ? detail
+            : Array.isArray(detail)
+              ? detail.map((issue) => issue.msg).join(" ")
+              : "No se pudieron actualizar los créditos.";
+          throw new Error(message);
+        }
+        form.closest("article").querySelector(`[data-current-credits="${result.id}"]`).textContent =
+          result.creditos_requeridos;
+        status.textContent = "Créditos actualizados.";
+        status.className = "text-sm text-emerald-700";
+      } catch (error) {
+        status.textContent = error.message;
+        status.className = "text-sm text-rose-700";
+      } finally {
+        button.disabled = false;
+      }
+    });
+  });
+</script>
 {% endblock %}

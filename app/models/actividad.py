@@ -8,6 +8,12 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.database import Base
 from app.models.associations import actividad_carrera
 from app.models.enums import ESTADO_BORRADOR, TIPO_PRESENCIAL
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from app.models.carrera import Carrera
+    from app.models.inscripcion import Inscripcion
+    from app.models.user import User
 
 
 class Actividad(Base):

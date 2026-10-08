@@ -21,6 +21,7 @@
       {% elif user.rol == 'coordinacion' %}
         <a href="{{ url_for('panel').path }}" class="hover:underline">Actividades</a>
         <a href="{{ url_for('inscriptos_index').path }}" class="hover:underline">Inscriptos</a>
+        <a href="{{ url_for('crear_usuarios').path }}" class="hover:underline">Usuarios</a>
         <a href="{{ url_for('dashboard').path }}" class="hover:underline">Analítica</a>
         <a href="{{ url_for('faq_admin').path }}" class="hover:underline">FAQ</a>
         <a href="{{ url_for('listar_carreras').path }}" class="hover:underline">Carreras</a>
