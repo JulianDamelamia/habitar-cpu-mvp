@@ -12,7 +12,10 @@ logger = logging.getLogger("habitar.email")
 
 def send_email(to: str, subject: str, body: str) -> None:
     if not settings.SMTP_HOST:
-        logger.info("EMAIL (console backend) -> %s | %s\n%s", to, subject, body)
+        if settings.ENVIRONMENT == "development":
+            logger.info("EMAIL (console backend) -> %s | %s\n%s", to, subject, body)
+        else:
+            logger.warning("Email not sent because SMTP_HOST is not configured.")
         return
 
     msg = EmailMessage()

@@ -14,6 +14,11 @@
       <label class="block text-sm font-medium mb-1">Contraseña</label>
       <input name="password" type="password" required class="w-full border rounded-lg px-3 py-2">
     </div>
+    <p class="text-right text-sm">
+      <a href="{{ url_for('password_reset_form').path }}" class="text-indigo-600 hover:underline">
+        ¿Olvidaste tu contraseña?
+      </a>
+    </p>
     <button class="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg py-2 font-medium">Ingresar</button>
   </form>
   <p class="mt-5 text-sm text-slate-600">¿Sos ingresante nuevo? <a href="{{ url_for('signup_form').path }}" class="text-indigo-600 hover:underline">Creá tu cuenta</a></p>

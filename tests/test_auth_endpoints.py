@@ -1,3 +1,5 @@
+from urllib.parse import parse_qs, urlsplit
+
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
@@ -6,6 +8,8 @@ from app import services
 from app.database import get_db
 from app.main import app
 import app.main as main_module
+from app.config import settings
+from app.models import PasswordReset
 from app.security import hash_password
 
 
@@ -33,6 +37,129 @@ def test_login_form_responds_ok(auth_client):
     assert response.status_code == 200
     assert 'action="/login"' in response.text
     assert 'name="password"' in response.text
+    assert 'href="/recuperar-contrasena"' in response.text
+
+
+def test_password_reset_sends_code_and_changes_password(
+    auth_client, db_session, monkeypatch, caplog
+):
+    client, user = auth_client
+    sent_emails = []
+    monkeypatch.setattr(settings, "ENVIRONMENT", "development")
+    caplog.set_level("INFO", logger="habitar.auth")
+    monkeypatch.setattr(
+        services.mailing,
+        "send_email",
+        lambda to, subject, body: sent_emails.append((to, subject, body)),
+    )
+
+    response = client.post(
+        "/recuperar-contrasena",
+        data={"action": "request_code", "email": user.email},
+    )
+
+    assert response.status_code == 200
+    assert "recibirás un código" in response.text
+    assert 'name="code"' in response.text
+    assert len(sent_emails) == 1
+    recipient, subject, body = sent_emails[0]
+    assert recipient == user.email
+    assert subject == "Restablecer contraseña - Módulo Habitar"
+    code = body.split("Tu código para restablecer la contraseña es: ", 1)[1].split()[0]
+    assert len(code) == 6 and code.isdigit()
+    assert code in caplog.text
+
+    response = client.post(
+        "/recuperar-contrasena",
+        data={
+            "action": "reset_password",
+            "email": user.email,
+            "code": code,
+            "password": "nueva-clave-segura",
+            "password_confirm": "nueva-clave-segura",
+        },
+    )
+
+    assert response.status_code == 303
+    assert urlsplit(response.headers["location"]).path == "/login"
+    assert parse_qs(urlsplit(response.headers["location"]).query)["msg"] == [
+        "Contraseña restablecida. Ya podés ingresar."
+    ]
+    assert services.identity.authenticate(
+        db_session,
+        user.email,
+        "nueva-clave-segura",
+    )
+    assert db_session.query(PasswordReset).count() == 0
+
+
+def test_password_reset_unknown_email_has_same_response_without_sending_mail(
+    auth_client, monkeypatch
+):
+    client, _ = auth_client
+    sent_emails = []
+    monkeypatch.setattr(
+        services.mailing,
+        "send_email",
+        lambda *args: sent_emails.append(args),
+    )
+
+    known = client.post(
+        "/recuperar-contrasena",
+        data={"action": "request_code", "email": "ana@alumno.unsam.edu.ar"},
+    )
+    unknown = client.post(
+        "/recuperar-contrasena",
+        data={"action": "request_code", "email": "missing@example.com"},
+    )
+
+    message = "Si existe una cuenta de estudiante con ese email, recibirás"
+    assert known.status_code == unknown.status_code == 200
+    assert message in known.text
+    assert message in unknown.text
+    assert len(sent_emails) == 1
+
+
+def test_password_reset_code_locks_after_five_invalid_attempts(
+    auth_client, db_session, monkeypatch
+):
+    client, user = auth_client
+    sent_emails = []
+    monkeypatch.setattr(settings, "ENVIRONMENT", "production")
+    monkeypatch.setattr(
+        services.mailing,
+        "send_email",
+        lambda to, subject, body: sent_emails.append(body),
+    )
+    client.post(
+        "/recuperar-contrasena",
+        data={"action": "request_code", "email": user.email},
+    )
+    code = sent_emails[0].split(
+        "Tu código para restablecer la contraseña es: ", 1
+    )[1].split()[0]
+    wrong_code = ("0" if code[0] != "0" else "1") + code[1:]
+    for _ in range(5):
+        response = client.post(
+            "/recuperar-contrasena",
+            data={
+                "action": "reset_password",
+                "email": user.email,
+                "code": wrong_code,
+                "password": "new-password",
+                "password_confirm": "new-password",
+            },
+        )
+        assert "inválido o venció" in response.text
+
+    assert db_session.query(PasswordReset).count() == 0
+    assert services.identity.authenticate(
+        db_session, user.email, "habitar123"
+    ) is not None
+    assert services.identity.authenticate(
+        db_session, user.email, "new-password"
+    ) is None
+    assert len(sent_emails) == 1
 
 
 def test_login_requires_career_even_when_password_is_set(auth_client, db_session):

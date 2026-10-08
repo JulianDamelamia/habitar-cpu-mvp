@@ -9,6 +9,7 @@ from app.services import mailing
 
 def test_send_email_logs_to_console_when_smtp_is_not_configured(caplog, monkeypatch):
     monkeypatch.setattr(settings, "SMTP_HOST", "")
+    monkeypatch.setattr(settings, "ENVIRONMENT", "development")
     caplog.set_level("INFO", logger="habitar.email")
 
     mailing.send_email("alumno@example.com", "Alta de usuario", "Hola Alumno")
@@ -16,6 +17,18 @@ def test_send_email_logs_to_console_when_smtp_is_not_configured(caplog, monkeypa
     assert "EMAIL (console backend) -> alumno@example.com" in caplog.text
     assert "Alta de usuario" in caplog.text
     assert "Hola Alumno" in caplog.text
+
+
+def test_send_email_does_not_log_content_outside_development(caplog, monkeypatch):
+    monkeypatch.setattr(settings, "SMTP_HOST", "")
+    monkeypatch.setattr(settings, "ENVIRONMENT", "production")
+    caplog.set_level("INFO", logger="habitar.email")
+
+    mailing.send_email("alumno@example.com", "Reset", "secret code 123456")
+
+    assert "Email not sent because SMTP_HOST is not configured." in caplog.text
+    assert "123456" not in caplog.text
+    assert "alumno@example.com" not in caplog.text
 
 
 @pytest.mark.parametrize("smtp_user", ["", "smtp-user"])

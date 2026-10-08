@@ -6,6 +6,7 @@ from .faq import Faq
 from .estudiante import Estudiante
 from .inscripcion import Inscripcion
 from .notification import Notification
+from .password_reset import PasswordReset
 from .sesion_asistencia import SesionAsistencia
 from .survey_response import SurveyResponse
 from .tipo_carrera import TipoCarrera
@@ -20,6 +21,7 @@ __all__ = [
 	"Estudiante",
 	"Inscripcion",
 	"Notification",
+	"PasswordReset",
 	"SesionAsistencia",
 	"SurveyResponse",
 	"TipoCarrera",
