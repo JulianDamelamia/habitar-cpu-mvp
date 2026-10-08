@@ -46,7 +46,14 @@ def inscribir(
         db.rollback()
     return redirect_to(
         request, "actividad_detail", actividad_id=actividad_id,
-        query_params={"msg": "¡Inscripción confirmada! Te enviamos un mail."},
+        query_params={
+            "msg": "¡Inscripción confirmada! Te enviamos un mail.",
+            "notice": (
+                "Recordá que podés darte de baja hasta 24hs antes del inicio de "
+                "la actividad. Si te das de baja con menos tiempo de anticipación, "
+                "deberás acreditar 1 punto extra para completar el Módulo Habitar"
+            ),
+        },
     )
 
 
@@ -58,7 +65,7 @@ def baja(
     db: Session = Depends(get_db),
 ):
     try:
-        services.inscripcion.unenroll(db, actividad_id, user.id)
+        penalizada = services.inscripcion.unenroll(db, actividad_id, user.id)
     except services.inscripcion.EnrollError as exc:
         return redirect_to(
             request, "actividad_detail", actividad_id=actividad_id,
@@ -66,7 +73,14 @@ def baja(
         )
     return redirect_to(
         request, "actividad_detail", actividad_id=actividad_id,
-        query_params={"msg": "Te diste de baja. Liberaste tu cupo."},
+        query_params={
+            "msg": (
+                "Te diste de baja. Se sumó 1 crédito requerido por cancelar "
+                "con menos de 24 horas."
+                if penalizada
+                else "Te diste de baja. Liberaste tu cupo."
+            )
+        },
     )
 
 

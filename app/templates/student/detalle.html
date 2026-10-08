@@ -22,7 +22,8 @@
       <div class="flex items-center gap-3">
         <span class="text-emerald-600 font-medium inline-flex items-center gap-1"><i data-lucide="check" class="w-4 h-4"></i> Estás inscripto/a</span>
         {% if not asistencia_validada %}
-          <form method="post" action="{{ url_for('baja', actividad_id=a.id).path }}">
+          <form method="post" action="{{ url_for('baja', actividad_id=a.id).path }}"
+                {% if penalizacion_baja %}onsubmit="return confirm('Si continúas, deberás acreditar 1 punto más por baja tardía. ¿Quieres continuar?')"{% endif %}>
             <button class="border border-rose-300 text-rose-600 hover:bg-rose-50 rounded-lg px-4 py-2 text-sm">Darme de baja</button>
           </form>
         {% else %}

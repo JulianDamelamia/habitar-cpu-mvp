@@ -48,6 +48,12 @@
         <span>{{ msg }}</span>
       </div>
     {% endif %}
+    {% set notice = request.query_params.get('notice') %}
+    {% if notice %}
+      <div role="status" class="mb-6 p-4 rounded-xl bg-sky-50 border border-sky-200 text-sky-800 text-sm">
+        {{ notice }}
+      </div>
+    {% endif %}
     {% if err %}
       <div class="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center gap-2">
         <i data-lucide="alert-circle" class="w-5 h-5 text-rose-600 shrink-0"></i>

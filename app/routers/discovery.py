@@ -60,7 +60,14 @@ def actividad_detail(
     cupo = services.actividades.cupo_info(db, actividad)
     enrolled = services.consultas_comunes.is_enrolled(db, actividad_id, user.id)
     asistencia_validada = services.consultas_comunes.asistencia_validada(db, actividad_id, user.id)
+    penalizacion_baja = (
+        enrolled
+        and not asistencia_validada
+        and services.inscripcion.cancellation_penalty_applies(actividad)
+    )
     return render(
         request, "student/detalle.html", user=user, db=db,
-        a=actividad, cupo=cupo, enrolled=enrolled, asistencia_validada=asistencia_validada
+        a=actividad, cupo=cupo, enrolled=enrolled,
+        asistencia_validada=asistencia_validada,
+        penalizacion_baja=penalizacion_baja,
     )
