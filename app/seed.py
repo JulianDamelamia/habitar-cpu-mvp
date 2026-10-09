@@ -175,7 +175,7 @@ def seed_all(db: Session) -> None:
                 descripcion="Recorrido guiado por la ECyT y presentación del Módulo Habitar.",
                 tipo=TIPO_PRESENCIAL, fecha_inicio=now - timedelta(days=7),
                 fecha_fin=now - timedelta(days=7) + timedelta(hours=2),
-                lugar="Hall central - Campus Miguelete", docente_id=docente.id,
+                lugar="Hall central - Campus Miguelete", docentes=[docente.docente],
                 creditos=2, cupo_max=40, estado=ESTADO_PUBLICADA, created_by=coord.id,carreras_asociadas = [lic_datos,carrera_1, carrera_2]
             ),
             Actividad(
@@ -183,7 +183,7 @@ def seed_all(db: Session) -> None:
                 descripcion="Estrategias para organizar el tiempo y estudiar en la universidad.",
                 tipo=TIPO_PRESENCIAL, fecha_inicio=now + timedelta(hours=24),
                 fecha_fin=now + timedelta(hours=26),
-                lugar="Aula 12 - Tornavía", docente_id=docente.id,
+                lugar="Aula 12 - Tornavía", docentes=[docente.docente],
                 creditos=3, cupo_max=2, estado=ESTADO_PUBLICADA, created_by=coord.id,carreras_asociadas = [lic_datos, carrera_1, carrera_2]
             ),
             Actividad(
@@ -191,7 +191,7 @@ def seed_all(db: Session) -> None:
                 descripcion="Egresados cuentan su experiencia y responden preguntas.",
                 tipo=TIPO_VIRTUAL, fecha_inicio=now + timedelta(days=5),
                 fecha_fin=now + timedelta(days=5) + timedelta(hours=1, minutes=30),
-                lugar="Zoom (link por mail)", docente_id=docente.id,
+                lugar="Zoom (link por mail)", docentes=[docente.docente],
                 creditos=2, cupo_max=100, estado=ESTADO_PUBLICADA, created_by=coord.id,carreras_asociadas =[carrera_1, carrera_3]
             ),
             Actividad(
@@ -199,7 +199,7 @@ def seed_all(db: Session) -> None:
                 descripcion="Experiencias prácticas en el laboratorio de física.",
                 tipo=TIPO_PRESENCIAL, fecha_inicio=now + timedelta(days=10),
                 fecha_fin=now + timedelta(days=10) + timedelta(hours=3),
-                lugar="Lab 3 - Pabellón de Física", docente_id=docente.id,
+                lugar="Lab 3 - Pabellón de Física", docentes=[docente.docente],
                 creditos=4, cupo_max=15, estado=ESTADO_PUBLICADA, created_by=coord.id,carreras_asociadas = [carrera_1, carrera_2]
             ),
             Actividad(
@@ -207,7 +207,7 @@ def seed_all(db: Session) -> None:
                 descripcion="Pendiente de revisión, todavía sin publicar.",
                 tipo=TIPO_PRESENCIAL, fecha_inicio=now + timedelta(days=14),
                 fecha_fin=now + timedelta(days=14) + timedelta(hours=2),
-                lugar="Aula 5", docente_id=docente.id,
+                lugar="Aula 5", docentes=[docente.docente],
                 creditos=2, cupo_max=20, estado="borrador", created_by=coord.id,carreras_asociadas = [carrera_3]
             ),
             Actividad(
@@ -215,7 +215,7 @@ def seed_all(db: Session) -> None:
                 descripcion="Pendiente de revisión, todavía sin publicar.",
                 tipo=TIPO_PRESENCIAL, fecha_inicio=now + timedelta(days=14),
                 fecha_fin=now + timedelta(days=14) + timedelta(hours=2),
-                lugar="Aula 5", docente_id=docente.id,
+                lugar="Aula 5", docentes=[docente.docente],
                 creditos=2, cupo_max=20, estado="borrador", created_by=coord.id,carreras_asociadas = [carrera_3, carrera_2]
             ),
         ]

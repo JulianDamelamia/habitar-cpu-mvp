@@ -1,6 +1,8 @@
 """E-02 Discovery & exploration of actividades (student-facing)."""
 from __future__ import annotations
 
+from decimal import Decimal, InvalidOperation
+
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 from starlette.templating import _TemplateResponse
@@ -9,7 +11,7 @@ from app.database import get_db
 from app.models import TIPO_PRESENCIAL, TIPO_VIRTUAL, User
 from app.security import current_user_required
 from app import services
-from app.templating import redirect_to, render
+from app.templating import build_sort_links, redirect_to, render
 
 router = APIRouter()
 
@@ -21,10 +23,20 @@ def list_actividades(
     fecha: str = "",
     min_creditos: str = "",
     solo_disponibles: str = "",
+    sort: str = "",
+    direction: str = "",
     user: User = Depends(current_user_required),
     db: Session = Depends(get_db)
 ) -> _TemplateResponse:
-    min_cred = int(min_creditos) if min_creditos.isdigit() else None
+    sort = sort if sort in {"nombre", "fecha", "cupo"} else ""
+    defaults = {"nombre": "asc", "fecha": "desc", "cupo": "desc"}
+    direction = direction if direction in {"asc", "desc"} else defaults.get(sort, "")
+    try:
+        min_cred = Decimal(min_creditos) if min_creditos else None
+    except InvalidOperation:
+        min_cred = None
+    if min_cred is not None and (not min_cred.is_finite() or min_cred < 0.5):
+        min_cred = None
     items = services.actividades.list_published(
         db,
         carrera_id=user.carrera_id,
@@ -32,6 +44,8 @@ def list_actividades(
         fecha=fecha or None,
         min_creditos=min_cred,
         solo_disponibles=bool(solo_disponibles),
+        orden=sort or None,
+        direccion=direction or None,
     )
     enrolled_ids = {a.id for a in services.inscripcion.my_actividades(db, user.id)}
     rows = [{"a": a, "cupo": services.actividades.cupo_info(db, a), "enrolled": a.id in enrolled_ids} for a in items]
@@ -40,6 +54,16 @@ def list_actividades(
         rows=rows,
         filtros={"tipo": tipo, "fecha": fecha, "min_creditos": min_creditos, "solo_disponibles": solo_disponibles,},
         tipos=[TIPO_PRESENCIAL, TIPO_VIRTUAL],
+        sort=sort,
+        direction=direction,
+        sort_links=build_sort_links(
+            request,
+            "list_actividades",
+            ("nombre", "fecha", "cupo"),
+            sort,
+            direction,
+            defaults,
+        ),
     )
 
 

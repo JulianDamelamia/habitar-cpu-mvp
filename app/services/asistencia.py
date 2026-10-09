@@ -73,7 +73,7 @@ def _acreditar_creditos(
     result = db.execute(
         update(Estudiante)
         .where(Estudiante.user_id == user_id)
-        .values(creditos_acreditados=Estudiante.creditos_acreditados + cantidad)
+        .values(creditos_acreditados=Estudiante.creditos_acreditados + float(cantidad))
     )
     if result.rowcount != 1:
         raise AsistenciaError("No se pudo actualizar el registro de créditos del estudiante.")
@@ -110,8 +110,9 @@ def acreditar_creditos_pendientes(
     )
     acreditados = 0.0
     for _ in pendientes:
-        if _acreditar_creditos(db, actividad_id, user_id, actividad.creditos):
-            acreditados += actividad.creditos
+        cantidad = float(actividad.creditos)
+        if _acreditar_creditos(db, actividad_id, user_id, cantidad):
+            acreditados += cantidad
     return acreditados
 
 

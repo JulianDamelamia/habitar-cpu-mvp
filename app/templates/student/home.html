@@ -26,7 +26,7 @@
       <li>
         <a href="{{ url_for('survey_form', actividad_id=actividad.id).path }}"
            class="text-amber-700 hover:text-amber-900 underline">
-          Responder encuesta: {{ actividad.titulo }} ({{ actividad.creditos }} créditos)
+          Responder encuesta: {{ actividad.titulo }} ({{ actividad.creditos|fmt_creditos }} créditos)
         </a>
       </li>
       {% endfor %}
@@ -52,7 +52,7 @@
           <p class="font-medium">{{ a.titulo }}</p>
           <p class="text-sm text-slate-500"><i data-lucide="calendar" class="inline-block w-4 h-4 align-[-3px]"></i> {{ a.fecha_inicio|fmt_dt }}, <i data-lucide="map-pin" class="inline-block w-4 h-4 align-[-3px]"></i> {{ a.lugar }}</p>
         </div>
-        <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">{{ a.creditos }} cr.</span>
+        <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">{{ a.creditos|fmt_creditos }} cr.</span>
       </a>
       {% endfor %}
     </div>
@@ -70,7 +70,7 @@
       <thead><tr class="text-left text-slate-400 border-b"><th class="py-2">Actividad</th><th>Créditos</th><th>Fecha</th></tr></thead>
       <tbody>
       {% for a, when in historial %}
-        <tr class="border-b last:border-0"><td class="py-2 font-medium">{{ a.titulo }}</td><td>{{ a.creditos }}</td><td class="text-slate-500">{{ when|fmt_dt }}</td></tr>
+        <tr class="border-b last:border-0"><td class="py-2 font-medium">{{ a.titulo }}</td><td>{{ a.creditos|fmt_creditos }}</td><td class="text-slate-500">{{ when|fmt_dt }}</td></tr>
       {% endfor %}
       </tbody>
     </table>

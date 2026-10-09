@@ -1,3 +1,4 @@
+from .docente import Docente
 from .actividad import Actividad
 from .asistencia import Asistencia
 from .carrera import Carrera
@@ -15,6 +16,7 @@ from .user import User
 
 __all__ = [
 	"Actividad",
+	"Docente",
 	"Asistencia",
 	"Carrera",
 	"Faq",

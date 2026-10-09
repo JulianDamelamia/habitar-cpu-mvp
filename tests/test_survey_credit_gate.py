@@ -31,7 +31,7 @@ def test_manual_attendance_stays_valid_and_survey_submission_awards_credits(
         creditos=4,
         fecha_inicio=datetime.now(timezone.utc) + timedelta(days=1),
     )
-    activity.docente_id = teacher.id
+    activity.docentes.append(teacher.docente)
     db_session.commit()
     inscribir(db_session, activity.id, student.id)
 

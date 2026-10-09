@@ -5,7 +5,8 @@ from sqlalchemy.orm import Session, contains_eager
 from app.models.asistencia import Asistencia
 from app.models.carrera import Carrera
 from app.models.inscripcion import Inscripcion
-from app.models.enums import INSCRIPCION_ALTA, ROL_DOCENTE
+from app.models.enums import INSCRIPCION_ALTA
+from app.models.docente import Docente
 from app.models.tipo_carrera import TipoCarrera
 from app.models.user import User
 
@@ -47,5 +48,5 @@ def get_carreras(db: Session) -> list[Carrera]:
 def is_enrolled(db: Session, actividad_id: int, user_id: int) -> bool:
     return active_enrollment(db, actividad_id, user_id) is not None
 
-def get_docentes(db: Session) -> list[User]:
-    return db.query(User).filter(User.rol == ROL_DOCENTE).order_by(User.apellido).all()
+def get_docentes(db: Session) -> list[Docente]:
+    return db.query(Docente).order_by(Docente.apellido, Docente.nombre).all()

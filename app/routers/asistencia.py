@@ -15,6 +15,7 @@ from app.database import get_db
 from app.models import (
     Actividad,
     Asistencia,
+    Docente,
     ESTADO_PUBLICADA,
     ROL_COORDINACION,
     SurveyResponse,
@@ -35,7 +36,10 @@ def _qr_data_uri(text: str) -> str:
 
 
 def _can_manage(actividad: Actividad, user: User) -> bool:
-    return user.rol == ROL_COORDINACION or actividad.docente_id == user.id
+    return user.rol == ROL_COORDINACION or (
+        user.docente_id is not None
+        and any(docente.id == user.docente_id for docente in actividad.docentes)
+    )
 
 
 # ---- Student check-in --------------------------------------------------------
@@ -184,7 +188,7 @@ def docente_home(
 ):
     q = db.query(Actividad).filter(Actividad.estado == ESTADO_PUBLICADA)
     if user.rol != ROL_COORDINACION:
-        q = q.filter(Actividad.docente_id == user.id)
+        q = q.filter(Actividad.docentes.any(Docente.id == user.docente_id))
     actividades = q.order_by(Actividad.fecha_inicio.desc()).all()
     return render(request, "docente/home.html", user=user, db=db, actividades=actividades)
 

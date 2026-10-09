@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-from app.models import ESTADO_PUBLICADA, Inscripcion
+from app.models import ESTADO_BORRADOR, ESTADO_PUBLICADA, Inscripcion
 from app.services.actividades import (
     create,
     cupo_info,
@@ -103,6 +103,31 @@ def test_list_all_filtra_carreras_y_acepta_todas(db_session, actividad_factory, 
         con_carrera.id,
         sin_carrera.id,
     }
+
+
+def test_list_all_ordering_uses_defaults_and_stable_tiebreakers(
+    db_session, actividad_factory
+):
+    base = datetime(2026, 10, 10, tzinfo=timezone.utc)
+    alpha = actividad_factory(
+        titulo="Alfa", fecha_inicio=base, estado=ESTADO_PUBLICADA, cupo_max=3
+    )
+    beta = actividad_factory(
+        titulo="Beta", fecha_inicio=base + timedelta(days=1), estado=ESTADO_BORRADOR,
+        cupo_max=12,
+    )
+    beta_publicada = actividad_factory(
+        titulo="Beta", fecha_inicio=base + timedelta(days=1), estado=ESTADO_PUBLICADA,
+        cupo_max=5,
+    )
+
+    assert list_all(db_session, orden="nombre") == [alpha, beta_publicada, beta]
+    assert list_all(db_session, orden="fecha") == [beta_publicada, beta, alpha]
+    assert list_all(db_session, orden="cupo") == [beta, beta_publicada, alpha]
+    assert list_all(db_session, orden="estado") == [alpha, beta_publicada, beta]
+    assert list_all(db_session, orden="nombre", direccion="desc") == [
+        beta_publicada, beta, alpha
+    ]
 
 
 def test_create_y_update_persisten_actividad(db_session, actividad_factory):

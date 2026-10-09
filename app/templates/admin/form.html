@@ -99,19 +99,19 @@
       </div>
 
       <div>
-        <label class="block text-sm font-medium mb-1">Docente</label>
-        <select name="docente_id" class="w-full border rounded-lg px-3 py-2">
-          <option value="">Sin asignar</option>
-
+        <label class="block text-sm font-medium mb-1">Docentes</label>
+        <select name="docentes_ids" multiple class="w-full border rounded-lg px-3 py-2 min-h-28">
           {% for d in docentes %}
-            <option
-              value="{{ d.id }}"
-              {% if a and a.docente_id==d.id %}selected{% endif %}
-            >
+            <option value="{{ d.id }}" {% if a and d in a.docentes %}selected{% endif %}>
               {{ d.nombre_completo }}
             </option>
           {% endfor %}
         </select>
+        <p class="text-xs text-slate-500 mt-1">Usá Ctrl o Cmd para seleccionar varios.</p>
+        <div id="docentes-nuevos" class="space-y-2 mt-3"></div>
+        <button type="button" id="agregar-docente" class="text-sm text-indigo-600 hover:underline mt-2">
+          Agregar docente sin usuario
+        </button>
       </div>
 
     </div>
@@ -241,7 +241,8 @@
         <input
           type="number"
           name="creditos"
-          min="1"
+          min="0.5"
+          step="0.5"
           value="{{ a.creditos if a else 1 }}"
           required
           class="w-full border rounded-lg px-3 py-2"
@@ -399,6 +400,17 @@
   );
 
   actualizarModoFinalizacion();
+
+  const docentesNuevos = document.getElementById('docentes-nuevos');
+  document.getElementById('agregar-docente').addEventListener('click', () => {
+    const fila = document.createElement('div');
+    fila.className = 'grid grid-cols-2 gap-2';
+    fila.innerHTML = `
+      <input name="docentes_nombres" placeholder="Nombre" required class="border rounded-lg px-3 py-2">
+      <input name="docentes_apellidos" placeholder="Apellido" required class="border rounded-lg px-3 py-2">
+    `;
+    docentesNuevos.appendChild(fila);
+  });
 
 </script>
 

@@ -17,6 +17,8 @@
 <!-- Barra de Filtros (Multiselect) -->
 <div class="bg-white rounded-2xl shadow p-4 mb-4">
   <form method="get" action="{{ url_for('panel').path }}" data-auto-submit="true" class="flex flex-col gap-3">
+    <input type="hidden" name="sort" value="{{ sort }}">
+    <input type="hidden" name="direction" value="{{ direction }}">
     <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Filtrar por Carreras:</label>
     
     <div class="flex flex-wrap items-center gap-3">
@@ -61,11 +63,27 @@
   <table class="w-full text-sm min-w-[640px]">
     <thead class="bg-slate-100 text-slate-500 text-left">
       <tr>
-        <th class="px-4 py-3">Actividad</th>
+        <th class="px-4 py-3" aria-sort="{{ 'ascending' if sort == 'nombre' and direction == 'asc' else 'descending' if sort == 'nombre' else 'none' }}">
+          <a href="{{ sort_links.nombre }}" class="inline-flex items-center gap-1 hover:text-slate-800">
+            Actividad <span class="{{ 'text-indigo-600' if sort == 'nombre' else 'text-slate-400' }}">{{ '▲' if sort == 'nombre' and direction == 'asc' else '▼' if sort == 'nombre' else '△' }}</span>
+          </a>
+        </th>
         <th class="px-4 py-3">Carreras asociadas</th>
-        <th>Fecha</th>
-        <th>Estado</th>
-        <th>Cupo</th>
+        <th aria-sort="{{ 'ascending' if sort == 'fecha' and direction == 'asc' else 'descending' if sort == 'fecha' else 'none' }}">
+          <a href="{{ sort_links.fecha }}" class="inline-flex items-center gap-1 hover:text-slate-800">
+            Fecha <span class="{{ 'text-indigo-600' if sort == 'fecha' else 'text-slate-400' }}">{{ '▲' if sort == 'fecha' and direction == 'asc' else '▼' if sort == 'fecha' else '△' }}</span>
+          </a>
+        </th>
+        <th aria-sort="{{ 'ascending' if sort == 'estado' and direction == 'asc' else 'descending' if sort == 'estado' else 'none' }}">
+          <a href="{{ sort_links.estado }}" class="inline-flex items-center gap-1 hover:text-slate-800">
+            Estado <span class="{{ 'text-indigo-600' if sort == 'estado' else 'text-slate-400' }}">{{ '▲' if sort == 'estado' and direction == 'asc' else '▼' if sort == 'estado' else '△' }}</span>
+          </a>
+        </th>
+        <th aria-sort="{{ 'ascending' if sort == 'cupo' and direction == 'asc' else 'descending' if sort == 'cupo' else 'none' }}">
+          <a href="{{ sort_links.cupo }}" class="inline-flex items-center gap-1 hover:text-slate-800">
+            Cupo <span class="{{ 'text-indigo-600' if sort == 'cupo' else 'text-slate-400' }}">{{ '▲' if sort == 'cupo' and direction == 'asc' else '▼' if sort == 'cupo' else '△' }}</span>
+          </a>
+        </th>
         <th class="text-right px-4">Acciones</th>
       </tr>
     </thead>

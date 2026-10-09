@@ -61,6 +61,7 @@ def progress(db: Session, user_id: int) -> dict:
         )
         .scalar()
     )
+    pending = float(pending or 0)
     pending_pct = min(round(pending / req * 100), 100 - pct) if req else 0
     return {
         "accumulated": acc,

@@ -26,14 +26,26 @@ from app.security import REQUIERE_ADMIN
 from app import services 
 
 from app.services.parsing import formatear_duracion, parse_intervalo_tiempo
-from app.templating import redirect_to, render
+from app.templating import build_sort_links, redirect_to, render
 
 router = APIRouter()
 
 
 @router.get("")
-def panel(request: Request,carreras_asociadas: list[str] = Query([]), user: User = Depends(REQUIERE_ADMIN), db: Session = Depends(get_db)) -> _TemplateResponse:
-    items = services.actividades.list_all(db, carreras_ids=carreras_asociadas)
+def panel(
+    request: Request,
+    carreras_asociadas: list[str] = Query([]),
+    sort: str = Query(""),
+    direction: str = Query(""),
+    user: User = Depends(REQUIERE_ADMIN),
+    db: Session = Depends(get_db),
+) -> _TemplateResponse:
+    sort = sort if sort in {"nombre", "fecha", "cupo", "estado"} else ""
+    defaults = {"nombre": "asc", "fecha": "desc", "cupo": "desc", "estado": "asc"}
+    direction = direction if direction in {"asc", "desc"} else defaults.get(sort, "")
+    items = services.actividades.list_all(
+        db, carreras_ids=carreras_asociadas, orden=sort or None, direccion=direction or None
+    )
     rows = [{"a": a, "cupo": services.actividades.cupo_info(db, a)} for a in items]
     resumen = {
         "publicadas": sum(1 for a in items if a.estado == ESTADO_PUBLICADA),
@@ -50,7 +62,17 @@ def panel(request: Request,carreras_asociadas: list[str] = Query([]), user: User
         rows=rows,
         resumen=resumen,
         lista_carreras=lista_carreras,
-        carreras_seleccionadas=carreras_asociadas
+        carreras_seleccionadas=carreras_asociadas,
+        sort=sort,
+        direction=direction,
+        sort_links=build_sort_links(
+            request,
+            "panel",
+            ("nombre", "fecha", "cupo", "estado"),
+            sort,
+            direction,
+            defaults,
+        ),
     )
 
 
@@ -76,8 +98,10 @@ def crear(
     duracion: str = Form(""),
     modo_finalizacion: str = Form("duracion"),
     lugar: str = Form(""),
-    docente_id: str = Form(""),
-    creditos: int = Form(1),
+    docentes_ids: list[int] = Form([]),
+    docentes_nombres: list[str] = Form([]),
+    docentes_apellidos: list[str] = Form([]),
+    creditos: str = Form("1"),
     cupo_max: int = Form(30),
     encuesta_obligatoria: bool = Form(True),
     carreras_asociadas: list[str] = Form([]),
@@ -91,13 +115,20 @@ def crear(
             request, "panel",
             query_params={"err": "Fechas inválidas: revisá inicio y fin."},
         )
-    carreras_asociadas_list = services.carreras.get_carreras_desde_dropdown(carreras_asociadas, db)      
+    try:
+        creditos_validados = services.actividades.validar_creditos(creditos)
+        docentes = services.actividades.resolver_docentes(
+            db, docentes_ids=docentes_ids, nombres=docentes_nombres, apellidos=docentes_apellidos
+        )
+    except ValueError as exc:
+        return redirect_to(request, "panel", query_params={"err": str(exc)})
+    carreras_asociadas_list = services.carreras.get_carreras_desde_dropdown(carreras_asociadas, db)
     services.actividades.create(
         db,
         titulo=titulo.strip(), descripcion=descripcion.strip(), tipo=tipo,
         fecha_inicio=inicio, fecha_fin=fin, lugar=lugar.strip(),
-        docente_id=int(docente_id) if docente_id.isdigit() else None,
-        creditos=creditos, cupo_max=cupo_max,
+        docentes=docentes,
+        creditos=creditos_validados, cupo_max=cupo_max,
         encuesta_obligatoria=encuesta_obligatoria,
         estado=ESTADO_BORRADOR, created_by=user.id,
         carreras_asociadas=carreras_asociadas_list,
@@ -136,8 +167,10 @@ def actualizar(
     duracion: str = Form(""),
     modo_finalizacion: str = Form("duracion"),
     lugar: str = Form(""),
-    docente_id: str = Form(""),
-    creditos: int = Form(1),
+    docentes_ids: list[int] = Form([]),
+    docentes_nombres: list[str] = Form([]),
+    docentes_apellidos: list[str] = Form([]),
+    creditos: str = Form("1"),
     cupo_max: int = Form(30),
     encuesta_obligatoria: bool = Form(True),
     user: User = Depends(REQUIERE_ADMIN),
@@ -159,13 +192,20 @@ def actualizar(
         )
     was_published = a.estado == ESTADO_PUBLICADA
     fecha_cambio = a.fecha_inicio != inicio
-    carreras_asociadas_list = services.carreras.get_carreras_desde_dropdown(carreras_asociadas, db)  
+    try:
+        creditos_validados = services.actividades.validar_creditos(creditos)
+        docentes = services.actividades.resolver_docentes(
+            db, docentes_ids=docentes_ids, nombres=docentes_nombres, apellidos=docentes_apellidos
+        )
+    except ValueError as exc:
+        return redirect_to(request, "panel", query_params={"err": str(exc)})
+    carreras_asociadas_list = services.carreras.get_carreras_desde_dropdown(carreras_asociadas, db)
     services.actividades.update(
         db, a,
         titulo=titulo.strip(), descripcion=descripcion.strip(), tipo=tipo,
         fecha_inicio=inicio, fecha_fin=fin,
-        lugar=lugar.strip(), docente_id=int(docente_id) if docente_id.isdigit() else None,
-        creditos=creditos, cupo_max=cupo_max,
+        lugar=lugar.strip(), docentes=docentes,
+        creditos=creditos_validados, cupo_max=cupo_max,
         encuesta_obligatoria=encuesta_obligatoria,
         carreras_asociadas=carreras_asociadas_list
     )

@@ -89,3 +89,46 @@ def test_inscription_confirmation_shows_cancellation_policy_below_banner(
         "deberás acreditar 1 punto extra para completar el Módulo Habitar"
         in response.text
     )
+
+
+def test_activity_sort_links_preserve_filters_and_toggle_direction(
+    db_session, user_factory, carrera_factory, actividad_factory
+):
+    carrera = carrera_factory()
+    user = user_factory(email="student-sort@example.com")
+    user.pw_hash = hash_password("password123")
+    user.carrera_id = carrera.id
+    user.debe_cambiar_pw = False
+    actividad_factory(
+        estado=ESTADO_PUBLICADA,
+        tipo="virtual",
+        carreras=[carrera],
+        fecha_inicio=datetime.now(timezone.utc) + timedelta(days=1),
+    )
+    db_session.commit()
+
+    def override_get_db():
+        yield db_session
+
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        with TestClient(app, follow_redirects=False) as client:
+            login = client.post(
+                "/login",
+                data={"email": user.email, "password": "password123"},
+            )
+            response = client.get(
+                "/actividades",
+                params={
+                    "tipo": "virtual",
+                    "sort": "cupo",
+                    "direction": "desc",
+                },
+            )
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+    assert login.status_code == 303
+    assert response.status_code == 200
+    assert "tipo=virtual&amp;sort=cupo&amp;direction=asc" in response.text
+    assert "aria-pressed=\"true\"" in response.text

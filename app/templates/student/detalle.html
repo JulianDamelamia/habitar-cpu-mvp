@@ -12,8 +12,8 @@
     <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">Inicio</dt><dd class="font-medium">{{ a.fecha_inicio|fmt_dt }}</dd></div>
     <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">Fin</dt><dd class="font-medium">{{ a.fecha_fin|fmt_dt }}</dd></div>
     <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">Lugar</dt><dd class="font-medium">{{ a.lugar }}</dd></div>
-    <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">Docente</dt><dd class="font-medium">{{ a.docente.nombre_completo if a.docente else 'Sin asignar' }}</dd></div>
-    <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">Créditos</dt><dd class="font-medium">{{ a.creditos }}</dd></div>
+    <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">Docentes</dt><dd class="font-medium">{{ a.docentes|map(attribute='nombre_completo')|join(', ') or 'Sin asignar' }}</dd></div>
+    <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">Créditos</dt><dd class="font-medium">{{ a.creditos|fmt_creditos }}</dd></div>
     <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">Cupos disponibles</dt><dd class="font-medium">{{ cupo.free }} / {{ a.cupo_max }}</dd></div>
   </dl>
 
