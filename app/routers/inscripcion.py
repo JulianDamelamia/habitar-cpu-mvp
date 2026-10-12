@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Notification, User
+from app.models import User
 from app.services.notifications import notify
 from app.security import current_user_required, requiere_roles
 from app import services
@@ -101,24 +101,3 @@ def home(
         proximas=proximas, progreso=progreso, historial=historial,
         encuestas_pendientes=encuestas_pendientes,
     )
-
-
-@router.get("/notificaciones")
-def notificaciones(
-    request: Request,
-    user: User = Depends(current_user_required),
-    db: Session = Depends(get_db),
-):
-    items = (
-        db.query(Notification)
-        .filter(Notification.user_id == user.id)
-        .order_by(Notification.created_at.desc())
-        .limit(50)
-        .all()
-    )
-    # Mark all as read on view.
-    db.query(Notification).filter(
-        Notification.user_id == user.id, Notification.leido.is_(False)
-    ).update({Notification.leido: True})
-    db.commit()
-    return render(request, "shared/notificaciones.html", user=user, db=db, items=items)

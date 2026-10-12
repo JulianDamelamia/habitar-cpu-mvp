@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.services.mailing import send_email
 from app.models import Notification, User
+from app.services.mensajes import unread_count as unread_messages_count
 
 
 def notify(db: Session, user: User, mensaje: str, *, email_subject: str | None = None) -> None:
@@ -15,8 +16,10 @@ def notify(db: Session, user: User, mensaje: str, *, email_subject: str | None =
 
 
 def unread_count(db: Session, user_id: int) -> int:
-    return (
+    notifications = (
         db.query(Notification)
         .filter(Notification.user_id == user_id, Notification.leido.is_(False))
         .count()
     )
+    user = db.get(User, user_id)
+    return notifications + unread_messages_count(db, user) if user else notifications

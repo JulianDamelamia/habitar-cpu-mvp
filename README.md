@@ -87,7 +87,8 @@ app/
 
 ## Decisiones de MVP (divergen del whitepaper, documentadas)
 - **SIU Guaraní** → simulador: tabla `valid_legajos` sembrada (único punto de swap en `services/identity.py`).
-- **Redis Pub/Sub** → notificaciones in-app + mail (tabla `notifications`).
+- **Notificaciones internas** → alertas automáticas en `notifications`; coordinación envía mensajes individuales o masivos desde `/admin/mensajes`. Broadcast usa recibos por estudiante en `mensaje_lecturas`.
+- **Bandeja del usuario** → `/notificaciones` separa notificaciones automáticas y mensajes; abrir mensaje registra lectura.
 - **Dash/Plotly** → Chart.js renderizado en el servidor.
 - **Migraciones** → `Base.metadata.create_all` al iniciar; Alembic aplica cambios a bases existentes.
 - **Datos de estudiantes** → perfil `Estudiante` 1:1 con `User`; créditos acreditados,

@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from app.routers import asistencia, auth, discovery, faq, inscripcion
+from app.routers import asistencia, auth, discovery, faq, inscripcion, notificaciones
 from app.routers.admin import admin_router
 # Router raíz que agrupa TODA la API
 main_router = APIRouter()
@@ -11,6 +11,7 @@ main_router.include_router(auth.router)
 main_router.include_router(discovery.router)
 main_router.include_router(faq.router)
 main_router.include_router(inscripcion.router)
+main_router.include_router(notificaciones.router)
 
 
 # Incluir el router de administración (ya trae su /admin, tags y dependencias)

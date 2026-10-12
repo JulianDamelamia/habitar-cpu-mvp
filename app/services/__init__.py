@@ -8,6 +8,7 @@ from app.services import identity
 from app.services import inscripcion
 from app.services import consultas_comunes
 from app.services import mailing
+from app.services import mensajes
 __all__ = [
     "actividades",
     "analytics",
@@ -18,5 +19,6 @@ __all__ = [
     "identity",
     "inscripcion",
     "consultas_comunes",
-    "mailing"
+    "mailing",
+    "mensajes",
 ]

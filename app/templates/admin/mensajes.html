@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Mensajes internos{% endblock %}
+{% block content %}
+<a href="{{ url_for('notificaciones').path }}" class="text-sm text-indigo-600 hover:underline">Volver a notificaciones</a>
+<h1 class="text-2xl font-bold mt-3 mb-5">Mensajes internos</h1>
+
+{% if form_error %}
+  <div role="alert" class="mb-5 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm">{{ form_error }}</div>
+{% endif %}
+
+<form method="post" action="{{ url_for('enviar_mensaje').path }}" class="bg-white rounded-2xl shadow p-6 space-y-4 mb-6">
+  <div>
+    <label for="destinatario_id" class="block text-sm font-medium mb-1">Destinatario</label>
+    <select id="destinatario_id" name="destinatario_id" class="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white">
+      <option value="">Todos los estudiantes</option>
+      {% for estudiante in estudiantes %}
+        <option value="{{ estudiante.id }}">{{ estudiante.apellido }}, {{ estudiante.nombre }} · {{ estudiante.email }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label for="asunto" class="block text-sm font-medium mb-1">Asunto</label>
+    <input id="asunto" name="asunto" maxlength="200" required class="w-full border border-slate-300 rounded-lg px-3 py-2">
+  </div>
+  <div>
+    <label for="cuerpo" class="block text-sm font-medium mb-1">Mensaje</label>
+    <textarea id="cuerpo" name="cuerpo" rows="5" required class="w-full border border-slate-300 rounded-lg px-3 py-2"></textarea>
+  </div>
+  <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-5 py-2 text-sm font-medium">Enviar mensaje</button>
+</form>
+
+<section class="bg-white rounded-2xl shadow divide-y">
+  <h2 class="px-5 py-4 font-semibold">Mensajes enviados</h2>
+  {% for mensaje in enviados %}
+    <article class="px-5 py-4">
+      <div class="flex justify-between gap-3">
+        <h3 class="font-medium">{{ mensaje.asunto }}</h3>
+        <time class="text-xs text-slate-400">{{ mensaje.created_at|fmt_dt }}</time>
+      </div>
+      <p class="text-xs text-slate-500 mt-1">
+        {% if mensaje.destinatario %}Para {{ mensaje.destinatario.nombre_completo }}{% else %}Para todos los estudiantes{% endif %}
+      </p>
+      <p class="text-sm text-slate-600 mt-2 whitespace-pre-wrap">{{ mensaje.cuerpo }}</p>
+    </article>
+  {% else %}
+    <p class="px-5 py-4 text-sm text-slate-500">Todavía no enviaste mensajes.</p>
+  {% endfor %}
+</section>
+{% endblock %}

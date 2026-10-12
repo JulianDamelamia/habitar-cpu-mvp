@@ -1,16 +1,64 @@
 {% extends "base.html" %}
-{% block title %}Avisos{% endblock %}
+{% block title %}Notificaciones{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-bold mb-4">Avisos</h1>
-<div class="bg-white rounded-2xl shadow divide-y">
+<div class="flex items-center justify-between mb-4">
+  <h1 class="text-2xl font-bold">Notificaciones</h1>
+  {% if user.rol == 'coordinacion' %}
+    <a href="{{ url_for('admin_mensajes').path }}" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2 text-sm font-medium">Enviar mensaje</a>
+  {% endif %}
+</div>
+<div class="border-b border-slate-200 mb-4" role="tablist" aria-label="Bandeja">
+  <button id="tab-notificaciones" type="button" role="tab" aria-controls="panel-notificaciones" aria-selected="true"
+          class="px-4 py-2 border-b-2 border-indigo-600 text-indigo-700 font-medium">
+    Notificaciones <span class="ml-1 text-xs text-slate-500">{{ items|length }}</span>
+  </button>
+  <button id="tab-mensajes" type="button" role="tab" aria-controls="panel-mensajes" aria-selected="false" tabindex="-1"
+          class="px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800">
+    Mensajes <span class="ml-1 text-xs text-slate-500">{{ mensajes|length }}</span>
+  </button>
+</div>
+
+<section id="panel-notificaciones" role="tabpanel" aria-labelledby="tab-notificaciones" class="bg-white rounded-2xl shadow divide-y">
   {% if not items %}
-    <p class="p-6 text-slate-500 text-sm">No tenés avisos.</p>
+    <p class="p-6 text-slate-500 text-sm">No tenés notificaciones.</p>
   {% endif %}
   {% for n in items %}
-    <div class="p-4 {% if not n.leido %}bg-indigo-50/40{% endif %}">
+    <article class="p-4">
       <p class="text-sm">{{ n.mensaje }}</p>
       <p class="text-xs text-slate-400 mt-1">{{ n.created_at|fmt_dt }}</p>
-    </div>
+    </article>
   {% endfor %}
-</div>
+</section>
+
+<section id="panel-mensajes" role="tabpanel" aria-labelledby="tab-mensajes" class="hidden bg-white rounded-2xl shadow divide-y">
+  {% if not mensajes %}
+    <p class="p-6 text-slate-500 text-sm">No tenés mensajes.</p>
+  {% endif %}
+  {% for mensaje in mensajes %}
+    {% set leido = lecturas[mensaje.id] %}
+    <details class="message-item group {% if not leido %}bg-indigo-50/50{% endif %}"
+             data-read-url="{{ url_for('leer_mensaje', mensaje_id=mensaje.id).path }}"
+             data-read="{{ 'true' if leido else 'false' }}">
+      <summary class="list-none cursor-pointer p-4 flex items-start gap-3">
+        <span class="message-unread mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-indigo-600 {% if leido %}hidden{% endif %}" aria-label="No leído"></span>
+        <span class="min-w-0 flex-1">
+          <span class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+            <span class="font-semibold {% if leido %}text-slate-700{% else %}text-slate-900{% endif %}">{{ mensaje.asunto }}</span>
+            <time class="text-xs text-slate-400">{{ mensaje.created_at|fmt_dt }}</time>
+          </span>
+          <span class="block text-xs text-slate-500 mt-1">
+            De {{ mensaje.remitente.nombre_completo }}
+            {% if mensaje.destinatario_id is none %}<span class="text-slate-400">· Mensaje general</span>{% endif %}
+          </span>
+        </span>
+        <span class="text-slate-400 group-open:rotate-180 transition-transform" aria-hidden="true">⌄</span>
+      </summary>
+      <div class="px-10 pb-4 text-sm text-slate-700 whitespace-pre-wrap">{{ mensaje.cuerpo }}</div>
+    </details>
+  {% endfor %}
+</section>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', path='/notificaciones.js').path }}"></script>
 {% endblock %}
