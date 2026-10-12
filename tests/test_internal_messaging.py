@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from fastapi.testclient import TestClient
 from urllib.parse import unquote_plus
 
@@ -128,3 +129,160 @@ def test_direct_message_is_hidden_from_other_students_and_read_only_by_recipient
 
     assert unread_count(db_session, recipient) == 1
     assert unread_count(db_session, other) == 0
+
+
+def test_coordinator_can_reply_from_inbox_and_student_receives_reply(
+    db_session, user_factory, carrera_factory
+):
+    carrera = carrera_factory()
+    coordinator = user_factory(rol="coordinacion", email="reply-coord@example.com")
+    student = user_factory(email="reply-student@example.com")
+    coordinator.pw_hash = hash_password("password123")
+    student.pw_hash = hash_password("password123")
+    student.carrera_id = carrera.id
+    student.debe_cambiar_pw = False
+    inquiry = Mensaje(
+        remitente_id=student.id,
+        destinatario_id=coordinator.id,
+        asunto="Consulta FAQ",
+        cuerpo="Necesito ayuda.",
+    )
+    db_session.add(inquiry)
+    db_session.commit()
+
+    coordinator_client = _client(db_session)
+    try:
+        assert coordinator_client.post(
+            "/login",
+            data={"email": coordinator.email, "password": "password123"},
+        ).status_code == 303
+        inbox_page = coordinator_client.get(
+            "/notificaciones", params={"tab": "mensajes"}
+        )
+        assert inbox_page.status_code == 200
+        assert 'id="panel-mensajes"' in inbox_page.text
+        assert 'name="lectura"' in inbox_page.text
+        assert f"/admin/mensajes/{inquiry.id}/responder" in inbox_page.text
+        response = coordinator_client.post(
+            f"/admin/mensajes/{inquiry.id}/responder",
+            data={
+                "cuerpo": "Te ayudamos con tu consulta.",
+                "return_to": "notificaciones",
+                "lectura": "no_leidos",
+                "respuesta": "no_respondidos",
+                "orden": "asc",
+            },
+        )
+        assert response.status_code == 303
+        assert response.headers["location"].startswith("/notificaciones?")
+        assert "tab=mensajes" in response.headers["location"]
+        db_session.refresh(inquiry)
+        assert inquiry.leido is True
+        reply = db_session.query(Mensaje).filter(Mensaje.reply_to_id == inquiry.id).one()
+        assert reply.remitente_id == coordinator.id
+        assert reply.destinatario_id == student.id
+        assert reply.asunto == "Re: Consulta FAQ"
+    finally:
+        coordinator_client.close()
+        app.dependency_overrides.pop(get_db, None)
+
+    student_client = _client(db_session)
+    try:
+        assert student_client.post(
+            "/login",
+            data={"email": student.email, "password": "password123"},
+        ).status_code == 303
+        response = student_client.get("/notificaciones")
+        assert response.status_code == 200
+        assert "Te ayudamos con tu consulta." in response.text
+        assert "filter-lectura" not in response.text
+        assert "responder_mensaje" not in response.text
+    finally:
+        student_client.close()
+        app.dependency_overrides.pop(get_db, None)
+
+
+def test_coordinator_can_filter_unread_unanswered_messages_and_sort_dates(
+    db_session, user_factory
+):
+    coordinator = user_factory(rol="coordinacion")
+    coordinator.pw_hash = hash_password("password123")
+    students = [
+        user_factory(email=f"filter-student-{index}@example.com")
+        for index in range(3)
+    ]
+    messages = [
+        Mensaje(
+            remitente_id=student.id,
+            destinatario_id=coordinator.id,
+            asunto=subject,
+            cuerpo=f"Cuerpo {subject}",
+            leido=read,
+            created_at=datetime(2026, 1, day, tzinfo=timezone.utc),
+        )
+        for student, subject, read, day in [
+            (students[0], "Pendiente antiguo", False, 1),
+            (students[1], "Pendiente leído", True, 2),
+            (students[2], "Respondido nuevo", False, 3),
+        ]
+    ]
+    db_session.add_all(messages)
+    db_session.flush()
+    db_session.add(
+        Mensaje(
+            remitente_id=coordinator.id,
+            destinatario_id=students[2].id,
+            reply_to_id=messages[2].id,
+            asunto="Re: Respondido nuevo",
+            cuerpo="Respuesta enviada.",
+        )
+    )
+    db_session.commit()
+
+    client = _client(db_session)
+    try:
+        assert client.post(
+            "/login",
+            data={"email": coordinator.email, "password": "password123"},
+        ).status_code == 303
+        filtered = client.get(
+            "/admin/mensajes",
+            params={
+                "lectura": "no_leidos",
+                "respuesta": "no_respondidos",
+                "orden": "asc",
+            },
+        )
+        assert filtered.status_code == 200
+        assert "Pendiente antiguo" in filtered.text
+        assert "Pendiente leído" not in filtered.text
+        assert "Cuerpo Respondido nuevo" not in filtered.text
+
+        notifications_tab = client.get(
+            "/notificaciones",
+            params={
+                "tab": "mensajes",
+                "lectura": "no_leidos",
+                "respuesta": "no_respondidos",
+                "orden": "asc",
+            },
+        )
+        assert notifications_tab.status_code == 200
+        assert "Pendiente antiguo" in notifications_tab.text
+        assert "Cuerpo Respondido nuevo" not in notifications_tab.text
+        assert 'aria-selected="true"' in notifications_tab.text
+
+        chronological = client.get(
+            "/admin/mensajes",
+            params={"orden": "asc"},
+        )
+        assert chronological.text.index("Pendiente antiguo") < chronological.text.index(
+            "Pendiente leído"
+        ) < chronological.text.index("Respondido nuevo")
+        reverse = client.get("/admin/mensajes", params={"orden": "desc"})
+        assert reverse.text.index("Respondido nuevo") < reverse.text.index(
+            "Pendiente leído"
+        ) < reverse.text.index("Pendiente antiguo")
+    finally:
+        client.close()
+        app.dependency_overrides.pop(get_db, None)

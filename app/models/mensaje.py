@@ -18,6 +18,9 @@ class Mensaje(Base):
     destinatario_id: Mapped[int | None] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), nullable=True, index=True
     )
+    reply_to_id: Mapped[int | None] = mapped_column(
+        ForeignKey("mensajes.id", ondelete="SET NULL"), nullable=True, index=True
+    )
     asunto: Mapped[str] = mapped_column(String(200), nullable=False)
     cuerpo: Mapped[str] = mapped_column(Text, nullable=False)
     leido: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False, server_default="false")

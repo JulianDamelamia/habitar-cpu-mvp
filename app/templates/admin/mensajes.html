@@ -29,6 +29,9 @@
   <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-5 py-2 text-sm font-medium">Enviar mensaje</button>
 </form>
 
+{% set filter_endpoint = "admin_mensajes" %}
+{% set reply_return_to = "admin_mensajes" %}
+
 <section class="bg-white rounded-2xl shadow divide-y">
   <h2 class="px-5 py-4 font-semibold">Mensajes enviados</h2>
   {% for mensaje in enviados %}
@@ -46,4 +49,7 @@
     <p class="px-5 py-4 text-sm text-slate-500">Todavía no enviaste mensajes.</p>
   {% endfor %}
 </section>
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', path='/notificaciones.js').path }}" defer></script>
 {% endblock %}

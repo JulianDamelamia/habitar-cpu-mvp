@@ -8,6 +8,7 @@
   <form method="post" action="{{ url_for('faq_add').path }}" class="space-y-3">
     <input name="pregunta" required placeholder="Pregunta" class="w-full border rounded-lg px-3 py-2">
     <textarea name="respuesta" required rows="2" placeholder="Respuesta" class="w-full border rounded-lg px-3 py-2"></textarea>
+    <input name="tags" placeholder="Etiquetas separadas por comas" class="w-full border rounded-lg px-3 py-2">
     <div class="flex items-center gap-2">
       <input type="number" name="orden" value="0" class="w-24 border rounded-lg px-3 py-2" title="Orden">
       <button class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-5 py-2 font-medium">Agregar</button>
@@ -17,14 +18,27 @@
 
 <div class="space-y-2">
   {% for f in items %}
-  <div class="bg-white rounded-xl shadow p-4 flex items-start justify-between gap-3">
-    <div>
-      <p class="font-medium">{{ f.pregunta }}</p>
-      <p class="text-slate-600 text-sm mt-1">{{ f.respuesta }}</p>
-    </div>
-    <form method="post" action="{{ url_for('faq_delete', faq_id=f.id).path }}" onsubmit="return confirm('¿Eliminar esta pregunta?')">
-      <button class="text-rose-600 text-sm hover:underline">Eliminar</button>
+  <div class="bg-white rounded-xl shadow p-4">
+    <form method="post" action="{{ url_for('faq_update', faq_id=f.id).path }}" class="space-y-3">
+      <input name="pregunta" required maxlength="300" value="{{ f.pregunta }}"
+        class="w-full border rounded-lg px-3 py-2" aria-label="Pregunta">
+      <textarea name="respuesta" required rows="3" class="w-full border rounded-lg px-3 py-2"
+        aria-label="Respuesta">{{ f.respuesta }}</textarea>
+      <input name="tags" value="{{ f.tags }}" placeholder="Etiquetas separadas por comas"
+        class="w-full border rounded-lg px-3 py-2" aria-label="Etiquetas">
+      <div class="flex items-center justify-between gap-3">
+        <input type="number" name="orden" value="{{ f.orden }}" class="w-24 border rounded-lg px-3 py-2" title="Orden">
+        <div class="flex gap-3">
+          <button class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2 text-sm font-medium">Guardar cambios</button>
+          <button form="faq-delete-{{ f.id }}" class="text-rose-600 text-sm hover:underline">Eliminar</button>
+        </div>
+      </div>
     </form>
+    {% if f.tags_list %}
+    <p class="text-xs text-slate-500 mt-2">Etiquetas: {{ f.tags_list|join(", ") }}</p>
+    {% endif %}
+    <form id="faq-delete-{{ f.id }}" method="post" action="{{ url_for('faq_delete', faq_id=f.id).path }}"
+      onsubmit="return confirm('¿Eliminar esta pregunta?')"></form>
   </div>
   {% else %}
   <p class="text-slate-500">No hay preguntas cargadas.</p>

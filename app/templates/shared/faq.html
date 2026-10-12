@@ -2,14 +2,68 @@
 {% block title %}Preguntas frecuentes{% endblock %}
 {% block content %}
 <h1 class="text-2xl font-bold mb-4">Preguntas frecuentes</h1>
-<div class="space-y-3">
+<label for="faq-search" class="block text-sm font-medium mb-1">Buscar respuestas</label>
+<input id="faq-search" type="search" placeholder="Escribí una pregunta o palabra clave"
+  class="w-full border border-slate-300 rounded-lg px-3 py-2 mb-4">
+<p id="faq-empty" class="hidden text-slate-500 mb-4">No encontramos preguntas relacionadas.</p>
+{% if user.rol == 'estudiante' %}
+<style>
+  @keyframes faq-contact-fade-in {
+    from { opacity: 0; transform: translateY(0.5rem); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .faq-contact-form-visible { animation: faq-contact-fade-in 300ms ease-out both; }
+  @media (prefers-reduced-motion: reduce) {
+    .faq-contact-form-visible { animation: none; }
+  }
+</style>
+{% endif %}
+<div id="faq-results" class="space-y-3">
   {% for f in items %}
-  <details class="bg-white rounded-xl shadow p-4">
+  <details class="faq-item bg-white rounded-xl shadow p-4" data-search="{{ (f.pregunta ~ ' ' ~ f.respuesta ~ ' ' ~ f.tags)|lower }}">
     <summary class="font-medium cursor-pointer">{{ f.pregunta }}</summary>
     <p class="text-slate-600 text-sm mt-2">{{ f.respuesta }}</p>
+    {% if f.tags_list %}
+    <div class="flex flex-wrap gap-2 mt-3" aria-label="Etiquetas">
+      {% for tag in f.tags_list %}
+      <span class="rounded-full bg-slate-100 text-slate-600 px-2 py-1 text-xs">{{ tag }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
   </details>
   {% else %}
-  <p class="text-slate-500">Todavía no hay preguntas cargadas.</p>
+  <p id="faq-no-items" class="text-slate-500">Todavía no hay preguntas cargadas.</p>
   {% endfor %}
 </div>
+{% if user.rol == 'estudiante' %}
+<section id="faq-contact-cta" class="hidden mt-6 bg-slate-100 border border-slate-200 rounded-xl p-4">
+  <p class="text-sm text-slate-600 mb-2">¿No encontraste tu respuesta?</p>
+  <button id="faq-contact-open" type="button" class="text-slate-700 hover:underline">
+    Contactar a coordinación
+  </button>
+</section>
+<form id="faq-contact-form" method="post" action="{{ url_for('faq_contacto').path }}"
+  class="hidden mt-3 bg-slate-100 border border-slate-200 rounded-xl p-5 space-y-4">
+  <input id="faq-search-context" type="hidden" name="busqueda">
+  <div>
+    <label for="faq-contact-subject" class="block text-sm font-normal text-slate-600 mb-1">Asunto</label>
+    <input id="faq-contact-subject" name="asunto" maxlength="200" required
+      class="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white">
+  </div>
+  <div>
+    <label for="faq-contact-body" class="block text-sm font-normal text-slate-600 mb-1">Mensaje</label>
+    <textarea id="faq-contact-body" name="cuerpo" rows="5" required
+      class="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white"></textarea>
+  </div>
+  <div class="flex gap-3">
+    <button type="submit" class="bg-slate-700 hover:bg-slate-800 text-white rounded-lg px-5 py-2 text-sm font-normal">
+      Enviar mensaje
+    </button>
+    <button id="faq-contact-cancel" type="button" class="text-slate-600 hover:underline font-normal">Cancelar</button>
+  </div>
+</form>
+{% endif %}
+{% endblock %}
+{% block scripts %}
+<script src="{{ url_for('static', path='/faq.js').path }}" defer></script>
 {% endblock %}

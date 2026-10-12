@@ -1,0 +1,88 @@
+<section class="bg-white rounded-2xl shadow divide-y mb-6">
+  <div class="px-5 py-4">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="font-semibold">Consultas de estudiantes</h2>
+      <span class="text-xs text-slate-500">
+        <span id="consultas-no-leidas">{{ consultas_no_leidas }}</span>
+        sin leer
+      </span>
+    </div>
+    <form method="get" action="{{ url_for(filter_endpoint).path }}" class="flex flex-wrap items-end gap-3">
+      {% if filter_endpoint == "notificaciones" %}
+      <input type="hidden" name="tab" value="mensajes">
+      {% endif %}
+      <div>
+        <label for="filter-lectura" class="block text-xs text-slate-600 mb-1">Lectura</label>
+        <select id="filter-lectura" name="lectura" class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+          <option value="todas" {% if lectura == "todas" %}selected{% endif %}>Todos</option>
+          <option value="no_leidos" {% if lectura == "no_leidos" %}selected{% endif %}>No vistos</option>
+          <option value="leidos" {% if lectura == "leidos" %}selected{% endif %}>Vistos</option>
+        </select>
+      </div>
+      <div>
+        <label for="filter-respuesta" class="block text-xs text-slate-600 mb-1">Respuesta</label>
+        <select id="filter-respuesta" name="respuesta" class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+          <option value="todas" {% if respuesta == "todas" %}selected{% endif %}>Todas</option>
+          <option value="no_respondidos" {% if respuesta == "no_respondidos" %}selected{% endif %}>No respondidos</option>
+          <option value="respondidos" {% if respuesta == "respondidos" %}selected{% endif %}>Respondidos</option>
+        </select>
+      </div>
+      <div>
+        <label for="filter-orden" class="block text-xs text-slate-600 mb-1">Fecha</label>
+        <select id="filter-orden" name="orden" class="border border-slate-300 rounded-lg px-3 py-2 text-sm">
+          <option value="desc" {% if orden == "desc" %}selected{% endif %}>Nuevas a antiguas</option>
+          <option value="asc" {% if orden == "asc" %}selected{% endif %}>Antiguas a nuevas</option>
+        </select>
+      </div>
+      <button class="bg-slate-700 hover:bg-slate-800 text-white rounded-lg px-4 py-2 text-sm">Aplicar</button>
+    </form>
+  </div>
+  {% for mensaje in recibidos %}
+    {% set respuestas = respuestas_por_mensaje.get(mensaje.id, []) %}
+    <details class="message-item px-5 py-4 {% if not mensaje.leido %}bg-indigo-50/50{% endif %}"
+      data-read="{{ 'true' if mensaje.leido else 'false' }}"
+      data-read-url="{{ url_for('leer_mensaje', mensaje_id=mensaje.id).path }}">
+      <summary class="cursor-pointer flex justify-between gap-3">
+        <span class="font-medium {% if not mensaje.leido %}text-slate-900{% else %}text-slate-700{% endif %}">
+          {{ mensaje.asunto }}
+          {% if not mensaje.leido %}<span class="message-unread ml-2 rounded-full bg-indigo-600 px-2 py-0.5 text-xs text-white">Nuevo</span>{% endif %}
+          {% if respuestas %}<span class="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800">Respondido</span>
+          {% else %}<span class="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">Sin responder</span>{% endif %}
+        </span>
+        <time class="text-xs text-slate-400">{{ mensaje.created_at|fmt_dt }}</time>
+      </summary>
+      <p class="text-xs text-slate-500 mt-2">De {{ mensaje.remitente.nombre_completo }} · {{ mensaje.remitente.email }}</p>
+      <p class="text-sm text-slate-600 mt-2 whitespace-pre-wrap">{{ mensaje.cuerpo }}</p>
+      {% if respuestas %}
+        <div class="mt-4 ml-4 border-l-2 border-slate-200 pl-4 space-y-3">
+          {% for respuesta_mensaje in respuestas %}
+            <div>
+              <p class="text-xs text-slate-500">
+                Respuesta de {{ respuesta_mensaje.remitente.nombre_completo }} ·
+                {{ respuesta_mensaje.created_at|fmt_dt }}
+              </p>
+              <p class="text-sm text-slate-700 mt-1 whitespace-pre-wrap">{{ respuesta_mensaje.cuerpo }}</p>
+            </div>
+          {% endfor %}
+        </div>
+      {% endif %}
+      <form method="post" action="{{ url_for('responder_mensaje', mensaje_id=mensaje.id).path }}"
+        class="mt-4 border-t border-slate-200 pt-4 space-y-2">
+        <input type="hidden" name="return_to" value="{{ reply_return_to }}">
+        <input type="hidden" name="lectura" value="{{ lectura }}">
+        <input type="hidden" name="respuesta" value="{{ respuesta }}">
+        <input type="hidden" name="orden" value="{{ orden }}">
+        <label for="reply-{{ mensaje.id }}" class="block text-sm text-slate-700">
+          {% if respuestas %}Responder nuevamente{% else %}Responder al estudiante{% endif %}
+        </label>
+        <textarea id="reply-{{ mensaje.id }}" name="cuerpo" rows="3" required
+          class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"></textarea>
+        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2 text-sm font-medium">
+          Enviar respuesta
+        </button>
+      </form>
+    </details>
+  {% else %}
+    <p class="px-5 py-4 text-sm text-slate-500">No hay consultas que coincidan con los filtros.</p>
+  {% endfor %}
+</section>
