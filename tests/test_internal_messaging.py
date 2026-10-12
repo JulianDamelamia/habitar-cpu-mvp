@@ -30,6 +30,10 @@ def test_coordinator_can_send_broadcast_and_students_read_independently(
     second.pw_hash = hash_password("password123")
     second.carrera_id = carrera.id
     second.debe_cambiar_pw = False
+    db_session.add(Notification(user_id=first.id, mensaje="Notificación nueva"))
+    db_session.add(
+        Notification(user_id=first.id, mensaje="Notificación leída", leido=True)
+    )
     db_session.commit()
 
     client = _client(db_session)
@@ -65,6 +69,9 @@ def test_coordinator_can_send_broadcast_and_students_read_independently(
         second_page = second_client.get("/notificaciones")
         assert "Importante" in first_page.text
         assert "Importante" in second_page.text
+        assert 'id="notificaciones-no-leidas" class="ml-1 text-xs text-slate-500">1</span>' in first_page.text
+        assert 'id="mensajes-no-leidos" class="ml-1 text-xs text-slate-500">1</span>' in first_page.text
+        assert 'id="notificaciones-no-leidas" class="ml-1 text-xs text-slate-500">0</span>' in second_page.text
         assert unread_count(db_session, first) == 1
         assert unread_count(db_session, second) == 1
 

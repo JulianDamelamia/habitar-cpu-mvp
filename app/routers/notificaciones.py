@@ -24,7 +24,16 @@ def notificaciones_page(
         .limit(100)
         .all()
     )
+    notificaciones_no_leidas = (
+        db.query(Notification.id)
+        .filter(
+            Notification.user_id == user.id,
+            Notification.leido.is_(False),
+        )
+        .count()
+    )
     mensajes_usuario = mensajes.inbox(db, user)
+    mensajes_no_leidos = mensajes.unread_count(db, user)
     lecturas = {
         mensaje.id: mensajes.is_read(db, mensaje, user.id)
         for mensaje in mensajes_usuario
@@ -43,6 +52,8 @@ def notificaciones_page(
         items=avisos,
         mensajes=mensajes_usuario,
         lecturas=lecturas,
+        notificaciones_no_leidas=notificaciones_no_leidas,
+        mensajes_no_leidos=mensajes_no_leidos,
     )
 
 

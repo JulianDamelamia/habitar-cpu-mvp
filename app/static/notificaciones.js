@@ -45,6 +45,10 @@
       item.dataset.read = "true";
       item.classList.remove("bg-indigo-50/50");
       item.querySelector(".message-unread")?.classList.add("hidden");
+      const unreadBadge = document.querySelector("#mensajes-no-leidos");
+      if (unreadBadge) {
+        unreadBadge.textContent = String(Math.max(0, Number(unreadBadge.textContent) - 1));
+      }
       item.querySelector("summary > span.min-w-0 > span > span")?.classList.replace(
         "text-slate-900",
         "text-slate-700",

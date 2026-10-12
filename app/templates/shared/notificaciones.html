@@ -10,11 +10,11 @@
 <div class="border-b border-slate-200 mb-4" role="tablist" aria-label="Bandeja">
   <button id="tab-notificaciones" type="button" role="tab" aria-controls="panel-notificaciones" aria-selected="true"
           class="px-4 py-2 border-b-2 border-indigo-600 text-indigo-700 font-medium">
-    Notificaciones <span class="ml-1 text-xs text-slate-500">{{ items|length }}</span>
+    Notificaciones <span id="notificaciones-no-leidas" class="ml-1 text-xs text-slate-500">{{ notificaciones_no_leidas }}</span>
   </button>
   <button id="tab-mensajes" type="button" role="tab" aria-controls="panel-mensajes" aria-selected="false" tabindex="-1"
           class="px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800">
-    Mensajes <span class="ml-1 text-xs text-slate-500">{{ mensajes|length }}</span>
+    Mensajes <span id="mensajes-no-leidos" class="ml-1 text-xs text-slate-500">{{ mensajes_no_leidos }}</span>
   </button>
 </div>
 
