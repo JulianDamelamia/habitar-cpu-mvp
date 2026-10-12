@@ -4,7 +4,7 @@ from urllib.parse import unquote_plus
 
 from app.database import get_db
 from app.main import app
-from app.models import Mensaje, Notification
+from app.models import Inscripcion, Mensaje, Notification
 from app.security import hash_password
 from app.services.mensajes import is_read, unread_count
 
@@ -45,7 +45,11 @@ def test_coordinator_can_send_broadcast_and_students_read_independently(
         ).status_code == 303
         sent = client.post(
             "/admin/mensajes",
-            data={"asunto": "Importante", "cuerpo": "Información para todos."},
+            data={
+                "asunto": "Importante",
+                "cuerpo": "Información para todos.",
+                "enviar_a_todos": "true",
+            },
         )
         assert sent.status_code == 303
         assert "todos los estudiantes" in unquote_plus(sent.headers["location"])
@@ -54,6 +58,7 @@ def test_coordinator_can_send_broadcast_and_students_read_independently(
     finally:
         client.close()
         app.dependency_overrides.pop(get_db, None)
+
 
     first_client = _client(db_session)
     second_client = _client(db_session)
@@ -88,6 +93,71 @@ def test_coordinator_can_send_broadcast_and_students_read_independently(
         second_client.close()
         app.dependency_overrides.pop(get_db, None)
 
+
+def test_admin_recipient_picker_delivers_to_selected_users_careers_and_activities(
+    db_session, user_factory, carrera_factory, actividad_factory
+):
+    carrera = carrera_factory(nombre="Diseño")
+    activity = actividad_factory(titulo="Taller")
+    direct = user_factory(email="picker-direct@example.com")
+    direct.carrera_id = carrera.id
+    group_student = user_factory(email="picker-career@example.com")
+    group_student.carrera_id = carrera.id
+    activity_student = user_factory(email="picker-activity@example.com")
+    db_session.add(
+        Inscripcion(
+            actividad_id=activity.id,
+            user_id=activity_student.id,
+            estado="inscripto",
+        )
+    )
+    coordinator = user_factory(rol="coordinacion", email="picker-admin@example.com")
+    coordinator.pw_hash = hash_password("password123")
+    db_session.commit()
+
+    client = _client(db_session)
+    try:
+        assert client.post(
+            "/login",
+            data={"email": coordinator.email, "password": "password123"},
+        ).status_code == 303
+        page = client.get("/admin/mensajes")
+        assert "window.DATOS_DISPONIBLES" in page.text
+        assert "carrera_" in page.text
+        assert "Taller" in page.text
+        empty_submit = client.post(
+            "/admin/mensajes",
+            data={"asunto": "Sin destino", "cuerpo": "No enviar."},
+        )
+        assert empty_submit.status_code == 200
+        assert "Seleccioná al menos un estudiante" in empty_submit.text
+        assert db_session.query(Mensaje).count() == 0
+        sent = client.post(
+            "/admin/mensajes",
+            data={
+                "asunto": "Aviso segmentado",
+                "cuerpo": "Mensaje para grupo elegido.",
+                "destinatarios_seleccionados": [
+                    f"user_{direct.id}",
+                    f"carrera_{carrera.id}",
+                    f"act_{activity.id}",
+                ],
+            },
+        )
+        assert sent.status_code == 303
+        assert "3 estudiante(s) seleccionados" in unquote_plus(sent.headers["location"])
+        messages = db_session.query(Mensaje).filter(
+            Mensaje.asunto == "Aviso segmentado"
+        ).all()
+        assert {message.destinatario_id for message in messages} == {
+            direct.id,
+            group_student.id,
+            activity_student.id,
+        }
+        assert all(message.destinatario_id is not None for message in messages)
+    finally:
+        client.close()
+        app.dependency_overrides.pop(get_db, None)
 
 def test_direct_message_is_hidden_from_other_students_and_read_only_by_recipient(
     db_session, user_factory, carrera_factory

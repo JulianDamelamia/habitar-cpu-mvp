@@ -8,36 +8,65 @@
   <div role="alert" class="mb-5 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm">{{ form_error }}</div>
 {% endif %}
 
-<form method="post" action="{{ url_for('enviar_mensaje').path }}" class="bg-white rounded-2xl shadow p-6 space-y-4 mb-6">
-  <div>
-    <label for="destinatario_id" class="block text-sm font-medium mb-1">Destinatario</label>
-    <select id="destinatario_id" name="destinatario_id" class="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white">
-      <option value="">Todos los estudiantes</option>
-      {% for estudiante in estudiantes %}
-        <option value="{{ estudiante.id }}">{{ estudiante.apellido }}, {{ estudiante.nombre }} · {{ estudiante.email }}</option>
-      {% endfor %}
-    </select>
+<form method="post" action="{{ url_for('enviar_mensaje').path }}" class="bg-white rounded-2xl shadow p-6 space-y-5 mb-6" id="mensajeForm">
+
+  <!-- Selección de Destinatarios -->
+  <div class="space-y-3">
+    <label class="block text-sm font-medium text-slate-700">Destinatarios</label>
+
+    <!-- Opción rápida: Todos -->
+    <div class="flex items-center gap-2">
+      <input type="checkbox" id="enviar_a_todos" name="enviar_a_todos" value="true" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
+      <label for="enviar_a_todos" class="text-sm font-medium text-slate-800">Enviar a todos los estudiantes</label>
+    </div>
+
+    <!-- Contenedor del Buscador y Selector Múltiple -->
+    <div id="seccion-destinatarios" class="space-y-3 transition-all">
+      <div class="relative">
+        <input type="text" id="buscador-destinatarios" placeholder="Buscar usuarios, carreras o actividades..."
+          class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+
+        <!-- Dropdown de resultados de búsqueda (manejado por JS) -->
+        <div id="dropdown-resultados" class="hidden absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+          <!-- Se llena dinámicamente con JavaScript -->
+        </div>
+      </div>
+
+      <!-- Indicadores / Chips de elementos seleccionados -->
+      <div id="chips-container" class="flex flex-wrap gap-2 min-h-[38px] p-2 bg-slate-50 border border-slate-200 rounded-lg">
+        <span class="text-xs text-slate-400 self-center" id="placeholder-chips">Ningún destinatario específico seleccionado...</span>
+      </div>
+    </div>
+
+    <!-- Inputs ocultos para enviar los IDs seleccionados al backend -->
+    <div id="inputs-ocultos"></div>
   </div>
+
   <div>
     <label for="asunto" class="block text-sm font-medium mb-1">Asunto</label>
-    <input id="asunto" name="asunto" maxlength="200" required class="w-full border border-slate-300 rounded-lg px-3 py-2">
+    <input id="asunto" name="asunto" maxlength="200" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
   </div>
+
   <div>
     <label for="cuerpo" class="block text-sm font-medium mb-1">Mensaje</label>
-    <textarea id="cuerpo" name="cuerpo" rows="5" required class="w-full border border-slate-300 rounded-lg px-3 py-2"></textarea>
+    <textarea id="cuerpo" name="cuerpo" rows="5" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
   </div>
-  <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-5 py-2 text-sm font-medium">Enviar mensaje</button>
+
+  <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-5 py-2 text-sm font-medium transition-colors">
+    Enviar mensaje
+  </button>
 </form>
 
 {% set filter_endpoint = "admin_mensajes" %}
 {% set reply_return_to = "admin_mensajes" %}
+{% include "admin/_bandeja_consultas.html" %}
 
 <section class="bg-white rounded-2xl shadow divide-y">
-  <h2 class="px-5 py-4 font-semibold">Mensajes enviados</h2>
+  <h2 class="px-5 py-4 font-semibold text-slate-800">Mensajes enviados</h2>
   {% for mensaje in enviados %}
     <article class="px-5 py-4">
       <div class="flex justify-between gap-3">
-        <h3 class="font-medium">{{ mensaje.asunto }}</h3>
+        <h3 class="font-medium text-slate-900">{{ mensaje.asunto }}</h3>
         <time class="text-xs text-slate-400">{{ mensaje.created_at|fmt_dt }}</time>
       </div>
       <p class="text-xs text-slate-500 mt-1">
@@ -50,6 +79,11 @@
   {% endfor %}
 </section>
 {% endblock %}
+
 {% block scripts %}
+<!-- Pasamos los datos desde Jinja al archivo JS externo -->
+<script>
+  window.DATOS_DISPONIBLES = {{ destinatarios_disponibles|tojson }};
+</script>
 <script src="{{ url_for('static', path='/notificaciones.js').path }}" defer></script>
 {% endblock %}
