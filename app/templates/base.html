@@ -12,7 +12,14 @@
   <header class="bg-slate-900 text-white">
     <nav class="max-w-5xl mx-auto px-4 py-3 flex items-center gap-4 flex-wrap">
       <a href="{{ url_for('root').path }}" class="font-semibold text-lg flex items-center gap-2"><i data-lucide="graduation-cap" class="w-5 h-5"></i> {{ app_name }}</a>
-      <div class="flex-1"></div>
+      <button type="button" id="nav-toggle" class="ml-auto inline-flex md:hidden items-center justify-center rounded border border-slate-600 p-2 text-white" aria-controls="site-navigation" aria-expanded="false" aria-label="Abrir menú">
+        <span class="flex flex-col gap-1" aria-hidden="true">
+          <span class="h-0.5 w-5 bg-current"></span>
+          <span class="h-0.5 w-5 bg-current"></span>
+          <span class="h-0.5 w-5 bg-current"></span>
+        </span>
+      </button>
+      <div id="site-navigation" class="hidden w-full flex-col gap-3 md:flex md:w-auto md:flex-1 md:flex-row md:items-center md:justify-end md:gap-4">
       {% if user.rol == 'estudiante' %}
         <a href="{{ url_for('home').path }}" class="hover:underline">Inicio</a>
         <a href="{{ url_for('list_actividades').path }}" class="hover:underline">Actividades</a>
@@ -70,6 +77,21 @@
   </footer>
   <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>
   <script src="{{ url_for('static', path='/selector_carreras.js').path }}"></script>
+  <script>
+    (() => {
+      const navToggle = document.getElementById("nav-toggle");
+      const siteNavigation = document.getElementById("site-navigation");
+      if (!navToggle || !siteNavigation) return;
+
+      navToggle.addEventListener("click", () => {
+        const isExpanded = navToggle.getAttribute("aria-expanded") === "true";
+        navToggle.setAttribute("aria-expanded", String(!isExpanded));
+        navToggle.setAttribute("aria-label", isExpanded ? "Abrir menú" : "Cerrar menú");
+        siteNavigation.classList.toggle("hidden", isExpanded);
+        siteNavigation.classList.toggle("flex", !isExpanded);
+      });
+    })();
+  </script>
   {% block scripts %}{% endblock %}
   <script>if (window.lucide) lucide.createIcons();</script>
 </body>

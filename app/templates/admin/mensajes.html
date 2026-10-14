@@ -8,14 +8,14 @@
   <div role="alert" class="mb-5 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm">{{ form_error }}</div>
 {% endif %}
 
-<form method="post" action="{{ url_for('enviar_mensaje').path }}" class="bg-white rounded-2xl shadow p-6 space-y-5 mb-6" id="mensajeForm">
+<form method="post" action="{{ url_for('enviar_mensaje').path }}" class="bg-white rounded-2xl shadow p-4 sm:p-6 space-y-5 mb-6" id="mensajeForm">
 
   <!-- Selección de Destinatarios -->
   <div class="space-y-3">
     <label class="block text-sm font-medium text-slate-700">Destinatarios</label>
 
     <!-- Opción rápida: Todos -->
-    <div class="flex items-center gap-2">
+    <div class="flex items-start gap-2">
       <input type="checkbox" id="enviar_a_todos" name="enviar_a_todos" value="true" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
       <label for="enviar_a_todos" class="text-sm font-medium text-slate-800">Enviar a todos los estudiantes</label>
     </div>
@@ -52,7 +52,7 @@
     <textarea id="cuerpo" name="cuerpo" rows="5" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
   </div>
 
-  <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-5 py-2 text-sm font-medium transition-colors">
+  <button type="submit" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-5 py-2 text-sm font-medium transition-colors">
     Enviar mensaje
   </button>
 </form>
@@ -64,10 +64,10 @@
 <section class="bg-white rounded-2xl shadow divide-y">
   <h2 class="px-5 py-4 font-semibold text-slate-800">Mensajes enviados</h2>
   {% for mensaje in enviados %}
-    <article class="px-5 py-4">
-      <div class="flex justify-between gap-3">
-        <h3 class="font-medium text-slate-900">{{ mensaje.asunto }}</h3>
-        <time class="text-xs text-slate-400">{{ mensaje.created_at|fmt_dt }}</time>
+    <article class="px-4 sm:px-5 py-4">
+      <div class="flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-3">
+        <h3 class="min-w-0 break-words font-medium text-slate-900">{{ mensaje.asunto }}</h3>
+        <time class="shrink-0 text-xs text-slate-400">{{ mensaje.created_at|fmt_dt }}</time>
       </div>
       <p class="text-xs text-slate-500 mt-1">
         {% if mensaje.destinatario %}Para {{ mensaje.destinatario.nombre_completo }}{% else %}Para todos los estudiantes{% endif %}
