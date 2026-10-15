@@ -4,15 +4,24 @@
 <h1 class="text-2xl font-bold mb-4">Preguntas frecuentes</h1>
 
 <div class="bg-white rounded-2xl shadow p-6 mb-6 max-w-2xl">
+  <h2 class="font-semibold mb-3">Agregar categoría</h2>
+  <form method="post" action="{{ url_for('faq_categoria_add').path }}" class="flex flex-col md:flex-row gap-2 mb-6">
+    <input name="nombre" required maxlength="100" placeholder="Nombre de categoría"
+      class="w-full border rounded-lg px-3 py-2">
+    <button class="bg-slate-700 hover:bg-slate-800 text-white rounded-lg px-5 py-2 font-medium">Agregar categoría</button>
+  </form>
   <h2 class="font-semibold mb-3">Agregar pregunta</h2>
   <form method="post" action="{{ url_for('faq_add').path }}" class="space-y-3">
     <input name="pregunta" required placeholder="Pregunta" class="w-full border rounded-lg px-3 py-2">
     <textarea name="respuesta" required rows="2" placeholder="Respuesta" class="w-full border rounded-lg px-3 py-2"></textarea>
     <input name="tags" placeholder="Etiquetas separadas por comas" class="w-full border rounded-lg px-3 py-2">
-    <div class="flex items-center gap-2">
-      <input type="number" name="orden" value="0" class="w-24 border rounded-lg px-3 py-2" title="Orden">
-      <button class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-5 py-2 font-medium">Agregar</button>
-    </div>
+    <select name="categoria_id" required class="w-full border rounded-lg px-3 py-2 bg-white" aria-label="Categoría">
+      <option value="">Seleccioná una categoría</option>
+      {% for categoria in categories %}
+      <option value="{{ categoria.id }}">{{ categoria.nombre }}</option>
+      {% endfor %}
+    </select>
+    <button class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-5 py-2 font-medium">Agregar</button>
   </form>
 </div>
 
@@ -26,9 +35,14 @@
         aria-label="Respuesta">{{ f.respuesta }}</textarea>
       <input name="tags" value="{{ f.tags }}" placeholder="Etiquetas separadas por comas"
         class="w-full border rounded-lg px-3 py-2" aria-label="Etiquetas">
-      <div class="flex items-center justify-between gap-3">
-        <input type="number" name="orden" value="{{ f.orden }}" class="w-24 border rounded-lg px-3 py-2" title="Orden">
-        <div class="flex gap-3">
+      <select name="categoria_id" required class="w-full border rounded-lg px-3 py-2 bg-white" aria-label="Categoría">
+        <option value="">Seleccioná una categoría</option>
+        {% for categoria in categories %}
+        <option value="{{ categoria.id }}" {% if f.categoria_id == categoria.id %}selected{% endif %}>{{ categoria.nombre }}</option>
+        {% endfor %}
+      </select>
+      <div class="flex flex-col md:flex-row md:items-center md:justify-end gap-3">
+        <div class="flex flex-col md:flex-row gap-3">
           <button class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2 text-sm font-medium">Guardar cambios</button>
           <button form="faq-delete-{{ f.id }}" class="text-rose-600 text-sm hover:underline">Eliminar</button>
         </div>

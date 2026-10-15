@@ -73,8 +73,9 @@
 
 {% block scripts %}
 <!-- Pasamos los datos desde Jinja al archivo JS externo -->
+<script id="datos-disponibles" type="application/json">{{ destinatarios_disponibles|tojson }}</script>
 <script>
-  window.DATOS_DISPONIBLES = {{ destinatarios_disponibles|tojson }};
+  window.DATOS_DISPONIBLES = JSON.parse(document.getElementById('datos-disponibles').textContent);
 </script>
 <script src="{{ url_for('static', path='/notificaciones.js').path }}" defer></script>
 {% endblock %}

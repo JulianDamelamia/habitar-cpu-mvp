@@ -15,6 +15,7 @@ from app.models import (
     Inscripcion,
     INSCRIPCION_ALTA,
     Faq,
+    FaqCategoria,
     ROL_COORDINACION,
     ROL_DIRECTOR,
     ROL_DOCENTE,
@@ -109,16 +110,21 @@ def seed_all(db: Session) -> None:
 
 
     # --- FAQ ---
+    faq_categoria = db.query(FaqCategoria).order_by(FaqCategoria.id).first()
+    if faq_categoria is None:
+        faq_categoria = FaqCategoria(nombre="General")
+        db.add(faq_categoria)
+        db.flush()
     if db.query(Faq).count() == 0:
         db.add_all(
             [
-                Faq(orden=1, pregunta="¿Cómo me inscribo en una actividad?",
+                Faq(categoria_id=faq_categoria.id, pregunta="¿Cómo me inscribo en una actividad?",
                     respuesta="Entrá a 'Actividades', abrí el detalle y tocá 'Inscribirme'. El sistema controla el cupo automáticamente."),
-                Faq(orden=2, pregunta="¿Cómo registro mi asistencia?",
+                Faq(categoria_id=faq_categoria.id, pregunta="¿Cómo registro mi asistencia?",
                     respuesta="En la actividad, el docente muestra un código QR. Abrí 'Registrar asistencia' y escaneá o ingresá el código de 6 dígitos."),
-                Faq(orden=3, pregunta="¿Cuántos créditos necesito para aprobar?",
+                Faq(categoria_id=faq_categoria.id, pregunta="¿Cuántos créditos necesito para aprobar?",
                     respuesta="Necesitás los créditos requeridos por tu carrera. Podés ver tu progreso en el inicio."),
-                Faq(orden=4, pregunta="¿Puedo darme de baja de una actividad?",
+                Faq(categoria_id=faq_categoria.id, pregunta="¿Puedo darme de baja de una actividad?",
                     respuesta="Sí, desde el detalle de la actividad podés liberar tu cupo si no vas a asistir."),
             ]
         )

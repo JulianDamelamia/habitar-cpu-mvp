@@ -3,7 +3,7 @@ from .actividad import Actividad
 from .asistencia import Asistencia
 from .carrera import Carrera
 from .enums import *
-from .faq import Faq
+from .faq import Faq, FaqCategoria
 from .estudiante import Estudiante
 from .inscripcion import Inscripcion
 from .notification import Notification
@@ -21,6 +21,7 @@ __all__ = [
 	"Asistencia",
 	"Carrera",
 	"Faq",
+	"FaqCategoria",
 	"Estudiante",
 	"Inscripcion",
 	"Notification",

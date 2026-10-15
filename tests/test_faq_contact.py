@@ -4,7 +4,7 @@ from fastapi.testclient import TestClient
 
 from app.database import get_db
 from app.main import app
-from app.models import Faq, Mensaje
+from app.models import Faq, FaqCategoria, Mensaje
 from app.security import hash_password
 
 
@@ -29,7 +29,13 @@ def test_faq_search_and_tags_render_for_students(db_session, user_factory, carre
     carrera = carrera_factory()
     student = user_factory(email="faq-student@example.com")
     student.carrera_id = carrera.id
-    db_session.add(Faq(pregunta="¿Cómo inscribirme?", respuesta="Desde actividades.", tags="inscripción, cupo"))
+    category = FaqCategoria(nombre="Inscripción")
+    db_session.add(category)
+    db_session.flush()
+    db_session.add(Faq(
+        pregunta="¿Cómo inscribirme?", respuesta="Desde actividades.",
+        tags="inscripción, cupo", categoria_id=category.id,
+    ))
     db_session.commit()
     client = _client(db_session)
     try:
@@ -38,6 +44,8 @@ def test_faq_search_and_tags_render_for_students(db_session, user_factory, carre
         assert response.status_code == 200
         assert "faq-search" in response.text
         assert "inscripción" in response.text
+        assert "faq-contact-subject" in response.text
+        assert "Inscripción" in response.text
         assert "Contactar a coordinación" in response.text
     finally:
         client.close()
@@ -54,6 +62,9 @@ def test_student_contact_is_delivered_to_each_coordinator_and_displayed(
         user_factory(rol="coordinacion", email="faq-coord-1@example.com"),
         user_factory(rol="coordinacion", email="faq-coord-2@example.com"),
     ]
+    category = FaqCategoria(nombre="Inscripción")
+    db_session.add(category)
+    db_session.commit()
     client = _client(db_session)
     try:
         assert _login(client, student).status_code == 303
@@ -61,7 +72,7 @@ def test_student_contact_is_delivered_to_each_coordinator_and_displayed(
             "/faq/contacto",
             data={
                 "busqueda": "inscripción",
-                "asunto": "Consulta sobre inscripción",
+                "categoria_id": str(category.id),
                 "cuerpo": "No encontré cómo anotarme.",
             },
         )
@@ -71,6 +82,7 @@ def test_student_contact_is_delivered_to_each_coordinator_and_displayed(
             coordinator.id for coordinator in coordinators
         }
         assert all(message.remitente_id == student.id for message in messages)
+        assert all(message.asunto == "Inscripción" for message in messages)
         assert all(not message.leido for message in messages)
     finally:
         client.close()
@@ -99,7 +111,10 @@ def test_student_contact_is_delivered_to_each_coordinator_and_displayed(
 
 def test_coordinator_can_update_faq_tags(db_session, user_factory):
     coordinator = user_factory(rol="coordinacion")
-    faq = Faq(pregunta="Pregunta", respuesta="Respuesta", tags="")
+    category = FaqCategoria(nombre="General")
+    db_session.add(category)
+    db_session.flush()
+    faq = Faq(pregunta="Pregunta", respuesta="Respuesta", tags="", categoria_id=category.id)
     db_session.add(faq)
     db_session.commit()
     client = _client(db_session)
@@ -108,12 +123,27 @@ def test_coordinator_can_update_faq_tags(db_session, user_factory):
         page = client.get("/admin/faq")
         assert page.status_code == 200
         assert "Etiquetas separadas por comas" in page.text
+        assert 'name="orden"' not in page.text
+        new_category = client.post("/admin/faq/categorias", data={"nombre": "Cursada"})
+        assert new_category.status_code == 303
+        cursada = db_session.query(FaqCategoria).filter_by(nombre="Cursada").one()
+        added = client.post(
+            "/admin/faq",
+            data={
+                "pregunta": "Nueva pregunta",
+                "respuesta": "Nueva respuesta",
+                "categoria_id": str(category.id),
+            },
+        )
+        assert added.status_code == 303
+        inserted = db_session.query(Faq).order_by(Faq.id).all()
+        assert [item.pregunta for item in inserted] == ["Pregunta", "Nueva pregunta"]
         response = client.post(
             f"/admin/faq/{faq.id}/update",
             data={
                 "pregunta": "Pregunta actualizada",
                 "respuesta": "Respuesta actualizada",
-                "orden": "2",
+                "categoria_id": str(cursada.id),
                 "tags": "becas, cursada, becas",
             },
         )
@@ -121,6 +151,7 @@ def test_coordinator_can_update_faq_tags(db_session, user_factory):
         db_session.refresh(faq)
         assert faq.tags == "becas, cursada"
         assert faq.tags_list == ["becas", "cursada"]
+        assert faq.categoria_id == cursada.id
     finally:
         client.close()
         app.dependency_overrides.pop(get_db, None)
@@ -132,19 +163,22 @@ def test_faq_contact_requires_search_and_coordinator_recipient(
     carrera = carrera_factory()
     student = user_factory(email="faq-no-coord@example.com")
     student.carrera_id = carrera.id
+    category = FaqCategoria(nombre="Consultas")
+    db_session.add(category)
+    db_session.commit()
     client = _client(db_session)
     try:
         assert _login(client, student).status_code == 303
         response = client.post(
             "/faq/contacto",
-            data={"busqueda": " ", "asunto": "Consulta", "cuerpo": "Necesito ayuda."},
+            data={"busqueda": " ", "categoria_id": str(category.id), "cuerpo": "Necesito ayuda."},
         )
         assert response.status_code == 303
         response = client.post(
             "/faq/contacto",
             data={
                 "busqueda": "inscripción",
-                "asunto": "Consulta",
+                "categoria_id": str(category.id),
                 "cuerpo": "Necesito ayuda.",
             },
         )

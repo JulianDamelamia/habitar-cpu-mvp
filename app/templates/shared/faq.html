@@ -6,6 +6,7 @@
 <input id="faq-search" type="search" placeholder="Escribí una pregunta o palabra clave"
   class="w-full border border-slate-300 rounded-lg px-3 py-2 mb-4">
 <p id="faq-empty" class="hidden text-slate-500 mb-4">No encontramos preguntas relacionadas.</p>
+
 {% if user.rol == 'estudiante' %}
 <style>
   @keyframes faq-contact-fade-in {
@@ -18,23 +19,19 @@
   }
 </style>
 {% endif %}
+
 <div id="faq-results" class="space-y-3">
   {% for f in items %}
-  <details class="faq-item bg-white rounded-xl shadow p-4" data-search="{{ (f.pregunta ~ ' ' ~ f.respuesta ~ ' ' ~ f.tags)|lower }}">
+  <details class="faq-item bg-white rounded-xl shadow p-4" data-search="{{ (f.pregunta ~ ' ' ~ f.respuesta ~ ' ' ~ f.tags ~ ' ' ~ (f.categoria.nombre if f.categoria else ''))|lower }}">
     <summary class="font-medium cursor-pointer">{{ f.pregunta }}</summary>
+    {% if f.categoria %}<p class="text-xs text-slate-500 mt-1">{{ f.categoria.nombre }}</p>{% endif %}
     <p class="text-slate-600 text-sm mt-2">{{ f.respuesta }}</p>
-    {% if f.tags_list %}
-    <div class="flex flex-wrap gap-2 mt-3" aria-label="Etiquetas">
-      {% for tag in f.tags_list %}
-      <span class="rounded-full bg-slate-100 text-slate-600 px-2 py-1 text-xs">{{ tag }}</span>
-      {% endfor %}
-    </div>
-    {% endif %}
   </details>
   {% else %}
   <p id="faq-no-items" class="text-slate-500">Todavía no hay preguntas cargadas.</p>
   {% endfor %}
 </div>
+
 {% if user.rol == 'estudiante' %}
 <section id="faq-contact-cta" class="hidden mt-6 bg-slate-100 border border-slate-200 rounded-xl p-4">
   <p class="text-sm text-slate-600 mb-2">¿No encontraste tu respuesta?</p>
@@ -42,19 +39,41 @@
     Contactar a coordinación
   </button>
 </section>
+
 <form id="faq-contact-form" method="post" action="{{ url_for('faq_contacto').path }}"
   class="hidden mt-3 bg-slate-100 border border-slate-200 rounded-xl p-5 space-y-4">
   <input id="faq-search-context" type="hidden" name="busqueda">
+  
+  <!-- Campo oculto para enviar id o nombre de nueva categoría -->
+  <input id="categoria_id" type="hidden" name="categoria_id">
+  <input id="nueva_categoria_nombre" type="hidden" name="nueva_categoria_nombre">
+
   <div>
-    <label for="faq-contact-subject" class="block text-sm font-normal text-slate-600 mb-1">Asunto</label>
-    <input id="faq-contact-subject" name="asunto" maxlength="200" required
-      class="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white">
+    <label for="faq-category-search" class="block text-sm font-normal text-slate-600 mb-1">Tema / Categoría</label>
+    <div class="relative">
+      <input id="faq-category-search" type="text" placeholder="Seleccioná o buscá un tema..." autocomplete="off" required
+        class="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400">
+      
+      <!-- Menú desplegable dinámico -->
+      <ul id="faq-category-dropdown" 
+        class="hidden absolute z-10 w-full mt-1 bg-white border border-slate-300 rounded-lg shadow-lg max-h-48 overflow-y-auto divide-y divide-slate-100">
+        {% for categoria in categories %}
+        <li class="category-option px-3 py-2 text-sm cursor-pointer hover:bg-slate-100" 
+            data-id="{{ categoria.id }}" 
+            data-name="{{ categoria.nombre }}">
+          {{ categoria.nombre }}
+        </li>
+        {% endfor %}
+      </ul>
+    </div>
   </div>
+
   <div>
     <label for="faq-contact-body" class="block text-sm font-normal text-slate-600 mb-1">Mensaje</label>
     <textarea id="faq-contact-body" name="cuerpo" rows="5" required
       class="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white"></textarea>
   </div>
+
   <div class="flex gap-3">
     <button type="submit" class="bg-slate-700 hover:bg-slate-800 text-white rounded-lg px-5 py-2 text-sm font-normal">
       Enviar mensaje
@@ -64,6 +83,7 @@
 </form>
 {% endif %}
 {% endblock %}
+
 {% block scripts %}
 <script src="{{ url_for('static', path='/faq.js').path }}" defer></script>
 {% endblock %}
