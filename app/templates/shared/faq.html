@@ -43,27 +43,27 @@
 <form id="faq-contact-form" method="post" action="{{ url_for('faq_contacto').path }}"
   class="hidden mt-3 bg-slate-100 border border-slate-200 rounded-xl p-5 space-y-4">
   <input id="faq-search-context" type="hidden" name="busqueda">
-  
-  <!-- Campo oculto para enviar id o nombre de nueva categoría -->
   <input id="categoria_id" type="hidden" name="categoria_id">
-  <input id="nueva_categoria_nombre" type="hidden" name="nueva_categoria_nombre">
 
   <div>
     <label for="faq-category-search" class="block text-sm font-normal text-slate-600 mb-1">Tema / Categoría</label>
     <div class="relative">
-      <input id="faq-category-search" type="text" placeholder="Seleccioná o buscá un tema..." autocomplete="off" required
+      <input id="faq-category-search" type="text" placeholder="Seleccioná o buscá un tema..." autocomplete="off"
+        role="combobox" aria-autocomplete="list" aria-controls="faq-category-dropdown" aria-expanded="false"
+        aria-describedby="faq-category-empty" required
         class="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400">
-      
-      <!-- Menú desplegable dinámico -->
-      <ul id="faq-category-dropdown" 
+      <ul id="faq-category-dropdown" role="listbox"
         class="hidden absolute z-10 w-full mt-1 bg-white border border-slate-300 rounded-lg shadow-lg max-h-48 overflow-y-auto divide-y divide-slate-100">
         {% for categoria in categories %}
-        <li class="category-option px-3 py-2 text-sm cursor-pointer hover:bg-slate-100" 
-            data-id="{{ categoria.id }}" 
-            data-name="{{ categoria.nombre }}">
+        <li class="category-option px-3 py-2 text-sm cursor-pointer hover:bg-slate-100"
+            role="option" aria-selected="false" tabindex="-1"
+            data-id="{{ categoria.id }}" data-name="{{ categoria.nombre }}">
           {{ categoria.nombre }}
         </li>
         {% endfor %}
+        <li id="faq-category-empty" class="hidden px-3 py-2 text-sm text-slate-500" role="presentation">
+          No hay categorías coincidentes.
+        </li>
       </ul>
     </div>
   </div>

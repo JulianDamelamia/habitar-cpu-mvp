@@ -32,14 +32,26 @@ def faq_add(
     request: Request,
     pregunta: str = Form(...),
     respuesta: str = Form(...),
-    categoria_id: int = Form(...),
+    categoria: str = Form(...),
     tags: str = Form(""),
     user: User = Depends(requiere_roles("coordinacion")),
     db: Session = Depends(get_db),
 ):
-    categoria = db.get(FaqCategoria, categoria_id)
+    nombre_categoria = categoria.strip()
+    if not nombre_categoria or len(nombre_categoria) > 100:
+        return redirect_to(
+            request, "faq_admin",
+            query_params={"err": "La categoría debe tener entre 1 y 100 caracteres."},
+        )
+    categoria = (
+        db.query(FaqCategoria)
+        .filter(FaqCategoria.nombre == nombre_categoria)
+        .first()
+    )
     if categoria is None:
-        return redirect_to(request, "faq_admin", query_params={"err": "Seleccioná una categoría válida."})
+        categoria = FaqCategoria(nombre=nombre_categoria)
+        db.add(categoria)
+        db.flush()
     db.add(
         Faq(
             pregunta=pregunta.strip(),
@@ -61,7 +73,7 @@ def faq_update(
     faq_id: int,
     pregunta: str = Form(...),
     respuesta: str = Form(...),
-    categoria_id: int = Form(...),
+    categoria_id: str = Form(""),
     tags: str = Form(""),
     user: User = Depends(requiere_roles("coordinacion")),
     db: Session = Depends(get_db),
@@ -80,33 +92,83 @@ def faq_update(
             request, "faq_admin",
             query_params={"err": "Pregunta y respuesta son obligatorias."},
         )
-    categoria = db.get(FaqCategoria, categoria_id)
-    if categoria is None:
-        return redirect_to(request, "faq_admin", query_params={"err": "Seleccioná una categoría válida."})
+    categoria_id = categoria_id.strip()
+    categoria = None
+    if categoria_id:
+        if not categoria_id.isdecimal():
+            return redirect_to(
+                request, "faq_admin",
+                query_params={"err": "Seleccioná una categoría válida."},
+            )
+        categoria = db.get(FaqCategoria, int(categoria_id))
+        if categoria is None:
+            return redirect_to(
+                request, "faq_admin",
+                query_params={"err": "Seleccioná una categoría válida."},
+            )
     item.pregunta = pregunta
     item.respuesta = respuesta
-    item.categoria_id = categoria.id
+    item.categoria_id = categoria.id if categoria else None
     item.tags = ", ".join(dict.fromkeys(tag.strip() for tag in tags.split(",") if tag.strip()))
     db.commit()
     return redirect_to(request, "faq_admin", query_params={"msg": "Pregunta actualizada."})
 
 
-@admin_faq_router.post("/categorias", name="faq_categoria_add")
-def faq_categoria_add(
+@admin_faq_router.post("/categorias/{categoria_id}/delete", name="faq_categoria_delete")
+def faq_categoria_delete(
     request: Request,
+    categoria_id: int,
+    user: User = Depends(requiere_roles("coordinacion")),
+    db: Session = Depends(get_db),
+):
+    categoria = db.get(FaqCategoria, categoria_id)
+    if categoria is None:
+        return redirect_to(
+            request, "faq_admin",
+            query_params={"err": "Categoría no encontrada."},
+        )
+    db.query(Faq).filter(Faq.categoria_id == categoria.id).update(
+        {Faq.categoria_id: None},
+        synchronize_session=False,
+    )
+    db.delete(categoria)
+    db.commit()
+    return redirect_to(request, "faq_admin", query_params={"msg": "Categoría eliminada."})
+
+
+@admin_faq_router.post("/categorias/{categoria_id}/update", name="faq_categoria_update")
+def faq_categoria_update(
+    request: Request,
+    categoria_id: int,
     nombre: str = Form(...),
     user: User = Depends(requiere_roles("coordinacion")),
     db: Session = Depends(get_db),
 ):
+    categoria = db.get(FaqCategoria, categoria_id)
+    if categoria is None:
+        return redirect_to(
+            request, "faq_admin",
+            query_params={"err": "Categoría no encontrada."},
+        )
     nombre = nombre.strip()
     if not nombre or len(nombre) > 100:
-        return redirect_to(request, "faq_admin", query_params={"err": "La categoría debe tener entre 1 y 100 caracteres."})
-    existing = db.query(FaqCategoria).filter(FaqCategoria.nombre == nombre).first()
-    if existing:
-        return redirect_to(request, "faq_admin", query_params={"err": "Esa categoría ya existe."})
-    db.add(FaqCategoria(nombre=nombre))
+        return redirect_to(
+            request, "faq_admin",
+            query_params={"err": "La categoría debe tener entre 1 y 100 caracteres."},
+        )
+    duplicate = (
+        db.query(FaqCategoria)
+        .filter(FaqCategoria.nombre == nombre, FaqCategoria.id != categoria.id)
+        .first()
+    )
+    if duplicate:
+        return redirect_to(
+            request, "faq_admin",
+            query_params={"err": "Esa categoría ya existe."},
+        )
+    categoria.nombre = nombre
     db.commit()
-    return redirect_to(request, "faq_admin", query_params={"msg": "Categoría agregada."})
+    return redirect_to(request, "faq_admin", query_params={"msg": "Categoría actualizada."})
 
 
 @router.post("/faq/contacto", name="faq_contacto")

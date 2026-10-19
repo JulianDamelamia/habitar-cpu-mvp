@@ -44,7 +44,9 @@ def test_faq_search_and_tags_render_for_students(db_session, user_factory, carre
         assert response.status_code == 200
         assert "faq-search" in response.text
         assert "inscripción" in response.text
-        assert "faq-contact-subject" in response.text
+        assert 'id="faq-category-search"' in response.text
+        assert 'id="faq-category-dropdown"' in response.text
+        assert 'data-name="Inscripción"' in response.text
         assert "Inscripción" in response.text
         assert "Contactar a coordinación" in response.text
     finally:
@@ -123,21 +125,54 @@ def test_coordinator_can_update_faq_tags(db_session, user_factory):
         page = client.get("/admin/faq")
         assert page.status_code == 200
         assert "Etiquetas separadas por comas" in page.text
+        assert 'id="faq-admin-category-dropdown"' in page.text
+        assert 'role="combobox"' in page.text
+        assert "faq-admin-category-option" in page.text
+        assert "<datalist" not in page.text
+        assert "Agregar categoría" not in page.text
+        assert "Editar" in page.text
+        assert "faq-category-edit-open" in page.text
+        assert "faq-category-edit-cancel" in page.text
+        assert "<details>" not in page.text
+        assert ">Eliminar<" in page.text
+        assert "Eliminar categoría</button>" not in page.text
         assert 'name="orden"' not in page.text
-        new_category = client.post("/admin/faq/categorias", data={"nombre": "Cursada"})
-        assert new_category.status_code == 303
-        cursada = db_session.query(FaqCategoria).filter_by(nombre="Cursada").one()
+        rejected = client.post(
+            "/admin/faq",
+            data={
+                "pregunta": "Sin categoría",
+                "respuesta": "No debe guardarse",
+                "categoria": "   ",
+            },
+        )
+        assert rejected.status_code == 303
+        assert db_session.query(Faq).count() == 1
         added = client.post(
             "/admin/faq",
             data={
                 "pregunta": "Nueva pregunta",
                 "respuesta": "Nueva respuesta",
-                "categoria_id": str(category.id),
+                "categoria": " Cursada ",
             },
         )
         assert added.status_code == 303
+        cursada = db_session.query(FaqCategoria).filter_by(nombre="Cursada").one()
+        duplicate = client.post(
+            "/admin/faq",
+            data={
+                "pregunta": "Otra pregunta",
+                "respuesta": "Otra respuesta",
+                "categoria": "Cursada",
+            },
+        )
+        assert duplicate.status_code == 303
+        assert db_session.query(FaqCategoria).filter_by(nombre="Cursada").count() == 1
         inserted = db_session.query(Faq).order_by(Faq.id).all()
-        assert [item.pregunta for item in inserted] == ["Pregunta", "Nueva pregunta"]
+        assert [item.pregunta for item in inserted] == [
+            "Pregunta", "Nueva pregunta", "Otra pregunta",
+        ]
+        assert inserted[1].categoria_id == cursada.id
+        assert inserted[2].categoria_id == cursada.id
         response = client.post(
             f"/admin/faq/{faq.id}/update",
             data={
@@ -152,6 +187,87 @@ def test_coordinator_can_update_faq_tags(db_session, user_factory):
         assert faq.tags == "becas, cursada"
         assert faq.tags_list == ["becas", "cursada"]
         assert faq.categoria_id == cursada.id
+        cleared = client.post(
+            f"/admin/faq/{faq.id}/update",
+            data={
+                "pregunta": "Pregunta actualizada",
+                "respuesta": "Respuesta actualizada",
+                "categoria_id": "",
+                "tags": "becas, cursada",
+            },
+        )
+        assert cleared.status_code == 303
+        db_session.refresh(faq)
+        assert faq.categoria_id is None
+    finally:
+        client.close()
+        app.dependency_overrides.pop(get_db, None)
+
+
+def test_deleting_faq_category_preserves_faq_and_allows_reassignment(db_session, user_factory):
+    coordinator = user_factory(rol="coordinacion")
+    category = FaqCategoria(nombre="General")
+    replacement = FaqCategoria(nombre="Cursada")
+    db_session.add_all([category, replacement])
+    db_session.flush()
+    faq = Faq(
+        pregunta="Pregunta",
+        respuesta="Respuesta",
+        tags="",
+        categoria_id=category.id,
+    )
+    db_session.add(faq)
+    db_session.commit()
+    client = _client(db_session)
+    try:
+        assert _login(client, coordinator).status_code == 303
+        response = client.post(f"/admin/faq/categorias/{category.id}/delete")
+        assert response.status_code == 303
+        db_session.refresh(faq)
+        assert db_session.get(FaqCategoria, category.id) is None
+        assert db_session.get(Faq, faq.id) is faq
+        assert faq.categoria_id is None
+
+        reassigned = client.post(
+            f"/admin/faq/{faq.id}/update",
+            data={
+                "pregunta": "Pregunta",
+                "respuesta": "Respuesta",
+                "categoria_id": str(replacement.id),
+            },
+        )
+        assert reassigned.status_code == 303
+        db_session.refresh(faq)
+        assert faq.categoria_id == replacement.id
+    finally:
+        client.close()
+        app.dependency_overrides.pop(get_db, None)
+
+
+def test_coordinator_can_edit_faq_category_and_reject_duplicate_name(db_session, user_factory):
+    coordinator = user_factory(rol="coordinacion")
+    category = FaqCategoria(nombre="General")
+    other_category = FaqCategoria(nombre="Cursada")
+    db_session.add_all([category, other_category])
+    db_session.commit()
+    client = _client(db_session)
+    try:
+        assert _login(client, coordinator).status_code == 303
+        renamed = client.post(
+            f"/admin/faq/categorias/{category.id}/update",
+            data={"nombre": "  Consultas  "},
+        )
+        assert renamed.status_code == 303
+        db_session.refresh(category)
+        assert category.nombre == "Consultas"
+
+        duplicate = client.post(
+            f"/admin/faq/categorias/{category.id}/update",
+            data={"nombre": "Cursada"},
+        )
+        assert duplicate.status_code == 303
+        db_session.refresh(category)
+        assert category.nombre == "Consultas"
     finally:
         client.close()
         app.dependency_overrides.pop(get_db, None)

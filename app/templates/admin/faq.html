@@ -4,39 +4,83 @@
 <h1 class="text-2xl font-bold mb-4">Preguntas frecuentes</h1>
 
 <div class="bg-white rounded-2xl shadow p-6 mb-6 max-w-2xl">
-  <h2 class="font-semibold mb-3">Agregar categoría</h2>
-  <form method="post" action="{{ url_for('faq_categoria_add').path }}" class="flex flex-col md:flex-row gap-2 mb-6">
-    <input name="nombre" required maxlength="100" placeholder="Nombre de categoría"
-      class="w-full border rounded-lg px-3 py-2">
-    <button class="bg-slate-700 hover:bg-slate-800 text-white rounded-lg px-5 py-2 font-medium">Agregar categoría</button>
-  </form>
   <h2 class="font-semibold mb-3">Agregar pregunta</h2>
   <form method="post" action="{{ url_for('faq_add').path }}" class="space-y-3">
-    <input name="pregunta" required placeholder="Pregunta" class="w-full border rounded-lg px-3 py-2">
+    <input name="pregunta" required placeholder="Pregunta" autocomplete="off"
+      class="w-full border rounded-lg px-3 py-2">
     <textarea name="respuesta" required rows="2" placeholder="Respuesta" class="w-full border rounded-lg px-3 py-2"></textarea>
-    <input name="tags" placeholder="Etiquetas separadas por comas" class="w-full border rounded-lg px-3 py-2">
-    <select name="categoria_id" required class="w-full border rounded-lg px-3 py-2 bg-white" aria-label="Categoría">
-      <option value="">Seleccioná una categoría</option>
+    <input name="tags" placeholder="Etiquetas separadas por comas" autocomplete="off"
+      class="w-full border rounded-lg px-3 py-2">
+    <div class="relative">
+      <input id="faq-admin-category-search" name="categoria" required maxlength="100"
+        placeholder="Buscá o escribí una categoría" autocomplete="off"
+        role="combobox" aria-autocomplete="list" aria-controls="faq-admin-category-dropdown"
+        aria-expanded="false" class="w-full border rounded-lg px-3 py-2 bg-white"
+        aria-label="Categoría">
+      <ul id="faq-admin-category-dropdown" role="listbox"
+        class="hidden absolute left-0 right-0 top-full z-20 mt-1 max-h-48 overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
       {% for categoria in categories %}
-      <option value="{{ categoria.id }}">{{ categoria.nombre }}</option>
+      <li>
+        <button type="button" role="option" aria-selected="false" tabindex="-1"
+          class="faq-admin-category-option w-full px-3 py-2 text-left text-sm hover:bg-slate-100 focus:bg-slate-100 focus:outline-none"
+          data-name="{{ categoria.nombre }}">{{ categoria.nombre }}</button>
+      </li>
       {% endfor %}
-    </select>
+      <li id="faq-admin-category-empty" class="hidden px-3 py-2 text-sm text-slate-500">
+        No hay categorías coincidentes.
+      </li>
+      </ul>
+    </div>
     <button class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-5 py-2 font-medium">Agregar</button>
   </form>
 </div>
+
+<section class="bg-white rounded-2xl shadow p-6 mb-6 max-w-2xl">
+  <h2 class="font-semibold mb-3">Categorías</h2>
+  <ul class="space-y-2">
+    {% for categoria in categories %}
+    <li class="flex items-center justify-between gap-3">
+      <div class="relative min-w-0 flex-1">
+        <span class="faq-category-name">{{ categoria.nombre }}</span>
+        <form method="post" action="{{ url_for('faq_categoria_update', categoria_id=categoria.id).path }}"
+          class="faq-category-edit hidden absolute inset-0 z-10 flex items-center gap-2 bg-white">
+          <input name="nombre" value="{{ categoria.nombre }}" required maxlength="100" autocomplete="off"
+            aria-label="Nombre de categoría"
+            class="min-w-0 flex-1 border rounded-lg px-3 py-2">
+          <button class="text-indigo-600 text-sm hover:underline">Guardar</button>
+          <button type="button" class="faq-category-edit-cancel text-slate-600 text-sm hover:underline">
+            Cancelar
+          </button>
+        </form>
+      </div>
+      <div class="flex shrink-0 items-center gap-3">
+        <button type="button" class="faq-category-edit-open text-indigo-600 text-sm hover:underline">
+          Editar
+        </button>
+        <form method="post" action="{{ url_for('faq_categoria_delete', categoria_id=categoria.id).path }}"
+          onsubmit="return confirm('¿Eliminar esta categoría? Las preguntas se conservarán sin categoría.')">
+          <button class="text-rose-600 text-sm hover:underline">Eliminar</button>
+        </form>
+      </div>
+    </li>
+    {% else %}
+    <li class="text-sm text-slate-500">No hay categorías cargadas.</li>
+    {% endfor %}
+  </ul>
+</section>
 
 <div class="space-y-2">
   {% for f in items %}
   <div class="bg-white rounded-xl shadow p-4">
     <form method="post" action="{{ url_for('faq_update', faq_id=f.id).path }}" class="space-y-3">
-      <input name="pregunta" required maxlength="300" value="{{ f.pregunta }}"
+      <input name="pregunta" required maxlength="300" value="{{ f.pregunta }}" autocomplete="off"
         class="w-full border rounded-lg px-3 py-2" aria-label="Pregunta">
       <textarea name="respuesta" required rows="3" class="w-full border rounded-lg px-3 py-2"
         aria-label="Respuesta">{{ f.respuesta }}</textarea>
-      <input name="tags" value="{{ f.tags }}" placeholder="Etiquetas separadas por comas"
+      <input name="tags" value="{{ f.tags }}" placeholder="Etiquetas separadas por comas" autocomplete="off"
         class="w-full border rounded-lg px-3 py-2" aria-label="Etiquetas">
-      <select name="categoria_id" required class="w-full border rounded-lg px-3 py-2 bg-white" aria-label="Categoría">
-        <option value="">Seleccioná una categoría</option>
+      <select name="categoria_id" class="w-full border rounded-lg px-3 py-2 bg-white" aria-label="Categoría">
+        <option value="" {% if not f.categoria_id %}selected{% endif %}>Sin categoría</option>
         {% for categoria in categories %}
         <option value="{{ categoria.id }}" {% if f.categoria_id == categoria.id %}selected{% endif %}>{{ categoria.nombre }}</option>
         {% endfor %}
@@ -58,4 +102,8 @@
   <p class="text-slate-500">No hay preguntas cargadas.</p>
   {% endfor %}
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', path='/faq.js').path }}" defer></script>
 {% endblock %}
