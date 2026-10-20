@@ -10,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.models import (
     Actividad,
     Docente,
+    ESTADO_CANCELADA,
     ESTADO_BORRADOR,
     ESTADO_PUBLICADA,
     Inscripcion,
@@ -108,28 +109,46 @@ def ordenar_actividades(
     }[orden]
     datos = {actividad.id: cupo_info(db, actividad) for actividad in actividades}
 
-    # Stable passes retain tie-break order: title, date, state, then free seats.
+    if orden == "estado":
+        actividades.sort(key=lambda actividad: actividad.titulo.casefold())
+        actividades.sort(key=lambda actividad: actividad.fecha_inicio, reverse=True)
+        actividades.sort(
+            key=_clave_estado_actividad, reverse=sentido == "desc"
+        )
+        return actividades
+
+    if orden == "cupo":
+        actividades.sort(key=lambda actividad: actividad.titulo.casefold())
+        actividades.sort(key=lambda actividad: actividad.fecha_inicio, reverse=True)
+        actividades.sort(
+            key=lambda actividad: datos[actividad.id]["free"],
+            reverse=sentido == "desc",
+        )
+        actividades.sort(key=_clave_estado_actividad)
+        return actividades
+
+    # Keep date and name ordering stable with status and capacity tie-breakers.
     actividades.sort(key=lambda actividad: -datos[actividad.id]["free"])
-    actividades.sort(
-        key=lambda actividad: {
-            ESTADO_PUBLICADA: 0,
-            ESTADO_BORRADOR: 1,
-        }.get(actividad.estado, 2)
-    )
+    actividades.sort(key=_clave_estado_actividad)
     actividades.sort(key=lambda actividad: actividad.fecha_inicio, reverse=True)
     actividades.sort(key=lambda actividad: actividad.titulo.casefold())
 
     primary_key = {
         "nombre": lambda actividad: actividad.titulo.casefold(),
         "fecha": lambda actividad: actividad.fecha_inicio,
-        "cupo": lambda actividad: datos[actividad.id]["free"],
-        "estado": lambda actividad: {
-            ESTADO_PUBLICADA: 0,
-            ESTADO_BORRADOR: 1,
-        }.get(actividad.estado, 2),
     }[orden]
     actividades.sort(key=primary_key, reverse=sentido == "desc")
     return actividades
+
+
+def _clave_estado_actividad(actividad: Actividad) -> int:
+    if actividad.estado == ESTADO_PUBLICADA:
+        return 1 if actividad.finalizada else 0
+    if actividad.finalizada:
+        return 3
+    if actividad.estado == ESTADO_CANCELADA:
+        return 2
+    return 4
 
 
 def list_published(

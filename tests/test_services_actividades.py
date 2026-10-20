@@ -1,6 +1,6 @@
 from datetime import datetime, timedelta, timezone
 
-from app.models import ESTADO_BORRADOR, ESTADO_PUBLICADA, Inscripcion
+from app.models import ESTADO_BORRADOR, ESTADO_CANCELADA, ESTADO_PUBLICADA, Inscripcion
 from app.services.actividades import (
     create,
     cupo_info,
@@ -108,7 +108,7 @@ def test_list_all_filtra_carreras_y_acepta_todas(db_session, actividad_factory, 
 def test_list_all_ordering_uses_defaults_and_stable_tiebreakers(
     db_session, actividad_factory
 ):
-    base = datetime(2026, 10, 10, tzinfo=timezone.utc)
+    base = datetime(2030, 10, 10, tzinfo=timezone.utc)
     alpha = actividad_factory(
         titulo="Alfa", fecha_inicio=base, estado=ESTADO_PUBLICADA, cupo_max=3
     )
@@ -123,10 +123,52 @@ def test_list_all_ordering_uses_defaults_and_stable_tiebreakers(
 
     assert list_all(db_session, orden="nombre") == [alpha, beta_publicada, beta]
     assert list_all(db_session, orden="fecha") == [beta_publicada, beta, alpha]
-    assert list_all(db_session, orden="cupo") == [beta, beta_publicada, alpha]
-    assert list_all(db_session, orden="estado") == [alpha, beta_publicada, beta]
+    assert list_all(db_session, orden="cupo") == [beta_publicada, alpha, beta]
+    assert list_all(db_session, orden="cupo", direccion="asc") == [
+        alpha, beta_publicada, beta
+    ]
+    assert list_all(db_session, orden="estado") == [beta_publicada, alpha, beta]
     assert list_all(db_session, orden="nombre", direccion="desc") == [
         beta_publicada, beta, alpha
+    ]
+
+
+def test_list_all_state_ordering_uses_derived_finalized_status(
+    db_session, actividad_factory
+):
+    now = datetime.now(timezone.utc)
+    publicada = actividad_factory(
+        titulo="Publicada",
+        fecha_inicio=now + timedelta(days=2),
+        estado=ESTADO_PUBLICADA,
+    )
+    publicada_mas_reciente = actividad_factory(
+        titulo="Publicada más reciente",
+        fecha_inicio=now + timedelta(days=5),
+        estado=ESTADO_PUBLICADA,
+    )
+    finalizada = actividad_factory(
+        titulo="Finalizada",
+        fecha_inicio=now - timedelta(days=2),
+        estado=ESTADO_PUBLICADA,
+    )
+    cancelada = actividad_factory(
+        titulo="Cancelada",
+        fecha_inicio=now + timedelta(days=1),
+        estado=ESTADO_CANCELADA,
+    )
+    vencida = actividad_factory(
+        titulo="Vencida",
+        fecha_inicio=now - timedelta(days=1),
+        estado=ESTADO_BORRADOR,
+    )
+
+    assert list_all(db_session, orden="estado") == [
+        publicada_mas_reciente,
+        publicada,
+        finalizada,
+        cancelada,
+        vencida,
     ]
 
 

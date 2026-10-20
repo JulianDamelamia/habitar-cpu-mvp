@@ -49,8 +49,9 @@ def panel(
     rows = [{"a": a, "cupo": services.actividades.cupo_info(db, a)} for a in items]
     resumen = {
         "publicadas": sum(1 for a in items if a.estado == ESTADO_PUBLICADA),
-        "completadas": sum(1 for a in items if a.finalizada and a.estado == ESTADO_PUBLICADA),
+        "finalizadas": sum(1 for a in items if (a.estado == ESTADO_PUBLICADA and a.finalizada)),
         "canceladas": sum(1 for a in items if a.estado == ESTADO_CANCELADA),
+        "vencidas": sum(1 for a in items if (a.estado != ESTADO_PUBLICADA and a.finalizada)),
         "total": len(items),
     }
     lista_carreras = services.carreras.get_carreras(db)
