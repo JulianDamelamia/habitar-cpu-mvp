@@ -1,36 +1,36 @@
 {% extends "base.html" %}
 {% block title %}Mensajes internos{% endblock %}
 {% block content %}
-<a href="{{ url_for('notificaciones').path }}" class="text-sm text-indigo-600 hover:underline">Volver a notificaciones</a>
-<h1 class="text-2xl font-bold mt-3 mb-5">Mensajes internos</h1>
+<a href="{{ url_for('notificaciones').path }}" class="type-body-small text-link hover-text-underline">Volver a notificaciones</a>
+<h1 class="type-heading weight-bold mt-3 mb-5">Mensajes internos</h1>
 
 {% if form_error %}
-  <div role="alert" class="mb-5 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm">{{ form_error }}</div>
+  <div role="alert" class="mb-5 p-4 radius-panel surface-danger-soft border-width border-danger text-danger-contrast type-body-small">{{ form_error }}</div>
 {% endif %}
 
-<form method="post" action="{{ url_for('enviar_mensaje').path }}" class="bg-white rounded-2xl shadow p-6 space-y-5 mb-6" id="mensajeForm">
+<form method="post" action="{{ url_for('enviar_mensaje').path }}" class="surface-card radius-card elevation-card p-6 space-y-5 mb-6" id="mensajeForm">
   
   <!-- Selección de Destinatarios -->
   <div class="space-y-3">
-    <label class="block text-sm font-medium text-slate-700">Destinatarios</label>
+    <label class="block type-body-small weight-medium text-emphasis">Destinatarios</label>
     
     <!-- Opción rápida: Todos -->
     <div class="flex items-center gap-2">
-      <input type="checkbox" id="enviar_a_todos" name="enviar_a_todos" value="true" class="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500">
-      <label for="enviar_a_todos" class="text-sm font-medium text-slate-800">Enviar a todos los estudiantes</label>
+      <input type="checkbox" id="enviar_a_todos" name="enviar_a_todos" value="true" class="radius-small border-field text-link focus-ring-brand">
+      <label for="enviar_a_todos" class="type-body-small weight-medium text-primary">Enviar a todos los estudiantes</label>
     </div>
 
     <!-- Contenedor del Buscador y Selector Múltiple -->
-    <div id="seccion-destinatarios" class="space-y-3 transition-all">
+    <div id="seccion-destinatarios" class="space-y-3 transition-layout">
       <div class="relative">
         <input type="text" id="buscador-destinatarios" placeholder="Buscar usuarios, carreras o actividades..." 
-          class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-        <div id="dropdown-resultados" class="hidden absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+          class="w-full border-width border-field radius-control px-3 py-2 type-body-small focus-no-outline focus:focus-ring-width focus-ring-brand">
+        <div id="dropdown-resultados" class="hidden absolute z-10 w-full mt-1 surface-card border-width border-soft radius-control elevation-floating max-h-60 overflow-y-auto">
         </div>
       </div>
 
-      <div id="chips-container" class="flex flex-wrap gap-2 min-h-[38px] p-2 bg-slate-50 border border-slate-200 rounded-lg">
-        <span class="text-xs text-slate-400 self-center" id="placeholder-chips">Ningún destinatario específico seleccionado...</span>
+      <div id="chips-container" class="flex flex-wrap gap-2 min-height-control p-2 surface-page border-width border-soft radius-control">
+        <span class="type-caption text-subtle self-center" id="placeholder-chips">Ningún destinatario específico seleccionado...</span>
       </div>
     </div>
 
@@ -38,35 +38,35 @@
   </div>
 
   <div>
-    <label for="asunto" class="block text-sm font-medium mb-1">Asunto</label>
-    <input id="asunto" name="asunto" maxlength="200" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+    <label for="asunto" class="block type-body-small weight-medium mb-1">Asunto</label>
+    <input id="asunto" name="asunto" maxlength="200" required class="w-full border-width border-field radius-control px-3 py-2 type-body-small focus-no-outline focus:focus-ring-width focus-ring-brand">
   </div>
 
   <div>
-    <label for="cuerpo" class="block text-sm font-medium mb-1">Mensaje</label>
-    <textarea id="cuerpo" name="cuerpo" rows="5" required class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+    <label for="cuerpo" class="block type-body-small weight-medium mb-1">Mensaje</label>
+    <textarea id="cuerpo" name="cuerpo" rows="5" required class="w-full border-width border-field radius-control px-3 py-2 type-body-small focus-no-outline focus:focus-ring-width focus-ring-brand"></textarea>
   </div>
 
-  <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-5 py-2 text-sm font-medium transition-colors">
+  <button type="submit" class="surface-brand surface-brand-hover text-on-contrast radius-control px-5 py-2 type-body-small weight-medium transition-color">
     Enviar mensaje
   </button>
 </form>
 
-<section class="bg-white rounded-2xl shadow divide-y">
-  <h2 class="px-5 py-4 font-semibold text-slate-800">Mensajes enviados</h2>
+<section class="surface-card radius-card elevation-card divide-rows">
+  <h2 class="px-5 py-4 weight-semibold text-primary">Mensajes enviados</h2>
   {% for mensaje in enviados %}
     <article class="px-5 py-4">
       <div class="flex justify-between gap-3">
-        <h3 class="font-medium text-slate-900">{{ mensaje.asunto }}</h3>
-        <time class="text-xs text-slate-400">{{ mensaje.created_at|fmt_dt }}</time>
+        <h3 class="weight-medium text-heading">{{ mensaje.asunto }}</h3>
+        <time class="type-caption text-subtle">{{ mensaje.created_at|fmt_dt }}</time>
       </div>
-      <p class="text-xs text-slate-500 mt-1">
+      <p class="type-caption text-muted mt-1">
         {% if mensaje.destinatario %}Para {{ mensaje.destinatario.nombre_completo }}{% else %}Para todos los estudiantes{% endif %}
       </p>
-      <p class="text-sm text-slate-600 mt-2 whitespace-pre-wrap">{{ mensaje.cuerpo }}</p>
+      <p class="type-body-small text-secondary mt-2 text-pre-wrap">{{ mensaje.cuerpo }}</p>
     </article>
   {% else %}
-    <p class="px-5 py-4 text-sm text-slate-500">Todavía no enviaste mensajes.</p>
+    <p class="px-5 py-4 type-body-small text-muted">Todavía no enviaste mensajes.</p>
   {% endfor %}
 </section>
 {% endblock %}

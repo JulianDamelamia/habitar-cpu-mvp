@@ -1,32 +1,32 @@
 {% extends "base.html" %}
 {% block title %}Inicio{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-bold mb-1">Hola, {{ user.nombre or 'ingresante' }}</h1>
-<p class="text-slate-500 mb-6">Tu recorrido en el Módulo Habitar.</p>
+<h1 class="type-heading weight-bold mb-1">Hola, {{ user.nombre or 'ingresante' }}</h1>
+<p class="text-muted mb-6">Tu recorrido en el Módulo Habitar.</p>
 
 <!-- Progreso (E-07) -->
-<div class="bg-white rounded-2xl shadow p-6 mb-6">
+<div class="surface-card radius-card elevation-card p-6 mb-6">
   <div class="flex items-baseline justify-between mb-2">
-    <h2 class="font-semibold text-lg">Mi progreso</h2>
-    <span class="text-sm text-slate-500">{{ progreso.accumulated }} / {{ progreso.required }} créditos</span>
+    <h2 class="weight-semibold type-subheading">Mi progreso</h2>
+    <span class="type-body-small text-muted">{{ progreso.accumulated }} / {{ progreso.required }} créditos</span>
   </div>
-  <div class="relative w-full bg-slate-200 rounded-full h-4 overflow-hidden">
-    <div class="progress-bar-fill bg-emerald-500 h-4 rounded-full transition-all"
+  <div class="relative w-full surface-track radius-pill h-4 overflow-hidden">
+    <div class="progress-bar-fill surface-success-strong h-4 radius-pill transition-layout"
          style="--progress-width: {{ progreso.pct }}%"></div>
     {% if progreso.pending %}
-    <div class="progress-bar-pending bg-amber-400 transition-all"
+    <div class="progress-bar-pending surface-warning-strong transition-layout"
          style="--progress-offset: {{ progreso.pct }}%; --progress-width: {{ progreso.pending_pct }}%"></div>
     {% endif %}
   </div>
   {% if progreso.pending %}
-    <p class="text-amber-700 text-sm mt-2 font-medium">
+    <p class="text-warning type-body-small mt-2 weight-medium">
       {{ progreso.pending }} créditos pendientes: respondé las encuestas para acreditarlos.
     </p>
-    <ul class="mt-2 space-y-1 text-sm">
+    <ul class="mt-2 space-y-1 type-body-small">
       {% for actividad in encuestas_pendientes %}
       <li>
         <a href="{{ url_for('survey_form', actividad_id=actividad.id).path }}"
-           class="text-amber-700 hover:text-amber-900 underline">
+           class="text-warning hover-text-warning-contrast text-underline">
           Responder encuesta: {{ actividad.titulo }} ({{ actividad.creditos|fmt_creditos }} créditos)
         </a>
       </li>
@@ -34,26 +34,26 @@
     </ul>
   {% endif %}
   {% if progreso.complete %}
-    <p class="text-emerald-600 text-sm mt-2 font-medium inline-flex items-center gap-1"><i data-lucide="party-popper" class="w-4 h-4"></i> ¡Completaste los créditos del módulo!</p>
+    <p class="text-success type-body-small mt-2 weight-medium inline-flex items-center gap-1"><i data-lucide="party-popper" class="w-4 h-4"></i> ¡Completaste los créditos del módulo!</p>
   {% else %}
-    <p class="text-slate-500 text-sm mt-2">Te faltan {{ progreso.required - progreso.accumulated }} créditos para aprobar.</p>
+    <p class="text-muted type-body-small mt-2">Te faltan {{ progreso.required - progreso.accumulated }} créditos para aprobar.</p>
   {% endif %}
 </div>
 
 <!-- Mis próximas actividades (E-04) -->
-<div class="bg-white rounded-2xl shadow p-6 mb-6">
-  <h2 class="font-semibold text-lg mb-3">Mis próximas actividades</h2>
+<div class="surface-card radius-card elevation-card p-6 mb-6">
+  <h2 class="weight-semibold type-subheading mb-3">Mis próximas actividades</h2>
   {% if not proximas %}
-    <p class="text-slate-500 text-sm">No tenés actividades próximas. <a href="{{ url_for('list_actividades').path }}" class="text-indigo-600 hover:underline">Explorá la oferta</a>.</p>
+    <p class="text-muted type-body-small">No tenés actividades próximas. <a href="{{ url_for('list_actividades').path }}" class="text-link hover-text-underline">Explorá la oferta</a>.</p>
   {% else %}
     <div class="space-y-2">
       {% for a in proximas %}
-      <a href="{{ url_for('actividad_detail', actividad_id=a.id).path }}" class="flex items-center justify-between border rounded-lg px-4 py-3 hover:bg-slate-50">
+      <a href="{{ url_for('actividad_detail', actividad_id=a.id).path }}" class="flex items-center justify-between border-width radius-control px-4 py-3 surface-page-hover">
         <div>
-          <p class="font-medium">{{ a.titulo }}</p>
-          <p class="text-sm text-slate-500"><i data-lucide="calendar" class="inline-block w-4 h-4 align-[-3px]"></i> {{ a.fecha_inicio|fmt_dt }}, <i data-lucide="map-pin" class="inline-block w-4 h-4 align-[-3px]"></i> {{ a.lugar }}</p>
+          <p class="weight-medium">{{ a.titulo }}</p>
+          <p class="type-body-small text-muted"><i data-lucide="calendar" class="inline-block w-4 h-4 icon-baseline-align"></i> {{ a.fecha_inicio|fmt_dt }}, <i data-lucide="map-pin" class="inline-block w-4 h-4 icon-baseline-align"></i> {{ a.lugar }}</p>
         </div>
-        <span class="text-xs px-2 py-0.5 rounded-full bg-indigo-100 text-indigo-700">{{ a.creditos|fmt_creditos }} cr.</span>
+        <span class="type-caption px-2 py-0.5 radius-pill surface-brand-soft text-link-strong">{{ a.creditos|fmt_creditos }} cr.</span>
       </a>
       {% endfor %}
     </div>
@@ -61,17 +61,17 @@
 </div>
 
 <!-- Historial (E-07) -->
-<div class="bg-white rounded-2xl shadow p-6">
-  <h2 class="font-semibold text-lg mb-3">Actividades completadas</h2>
+<div class="surface-card radius-card elevation-card p-6">
+  <h2 class="weight-semibold type-subheading mb-3">Actividades completadas</h2>
   {% if not historial %}
-    <p class="text-slate-500 text-sm">Todavía no registraste asistencia a ninguna actividad.</p>
+    <p class="text-muted type-body-small">Todavía no registraste asistencia a ninguna actividad.</p>
   {% else %}
     <div class="overflow-x-auto">
-    <table class="w-full text-sm min-w-[420px]">
-      <thead><tr class="text-left text-slate-400 border-b"><th class="py-2">Actividad</th><th>Créditos</th><th>Fecha</th></tr></thead>
+    <table class="w-full type-body-small min-width-table">
+      <thead><tr class="text-align-left text-subtle border-bottom"><th class="py-2">Actividad</th><th>Créditos</th><th>Fecha</th></tr></thead>
       <tbody>
       {% for a, when in historial %}
-        <tr class="border-b last:border-0"><td class="py-2 font-medium">{{ a.titulo }}</td><td>{{ a.creditos|fmt_creditos }}</td><td class="text-slate-500">{{ when|fmt_dt }}</td></tr>
+        <tr class="border-bottom last-no-border"><td class="py-2 weight-medium">{{ a.titulo }}</td><td>{{ a.creditos|fmt_creditos }}</td><td class="text-muted">{{ when|fmt_dt }}</td></tr>
       {% endfor %}
       </tbody>
     </table>

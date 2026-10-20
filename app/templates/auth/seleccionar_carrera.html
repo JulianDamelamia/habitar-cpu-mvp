@@ -1,35 +1,35 @@
 {% extends "base.html" %}
 {% block title %}Completar registro - {{ app_name }}{% endblock %}
 {% block content %}
-<div class="max-w-lg mx-auto mt-8 bg-white rounded-2xl shadow p-8">
-  <h1 class="text-2xl font-bold mb-2">Completar registro</h1>
-  <p class="text-slate-600 mb-6">Crea una contraseña nueva y selecciona tu carrera para continuar.</p>
+<div class="max-w-lg mx-auto mt-8 surface-card radius-card elevation-card p-8">
+  <h1 class="type-heading weight-bold mb-2">Completar registro</h1>
+  <p class="text-secondary mb-6">Crea una contraseña nueva y selecciona tu carrera para continuar.</p>
   {% if error %}
-  <div role="alert" class="mb-4 rounded-lg bg-rose-100 border border-rose-300 text-rose-800 px-4 py-2 text-sm">{{ error }}</div>
+  <div role="alert" class="mb-4 radius-control surface-danger border-width border-danger-strong text-danger-contrast px-4 py-2 type-body-small">{{ error }}</div>
   {% endif %}
   <form method="post" action="{{ url_for('seleccionar_carrera_submit').path }}" class="space-y-4">
     <div>
-      <label for="password" class="block text-sm font-medium mb-1">Nueva contraseña</label>
-      <input id="password" name="password" type="password" required autocomplete="new-password" class="w-full border rounded-lg px-3 py-2">
+      <label for="password" class="block type-body-small weight-medium mb-1">Nueva contraseña</label>
+      <input id="password" name="password" type="password" required autocomplete="new-password" class="w-full border-width radius-control px-3 py-2">
     </div>
     <div>
-      <label for="password_confirm" class="block text-sm font-medium mb-1">Confirmar contraseña</label>
+      <label for="password_confirm" class="block type-body-small weight-medium mb-1">Confirmar contraseña</label>
       <div class="flex items-center gap-3">
-        <input id="password_confirm" name="password_confirm" type="password" required autocomplete="new-password" class="w-full border rounded-lg px-3 py-2">
-        <button id="password-toggle" type="button" aria-label="Mostrar contraseñas" class="border rounded-lg px-3 py-2 text-sm">Mostrar</button>
+        <input id="password_confirm" name="password_confirm" type="password" required autocomplete="new-password" class="w-full border-width radius-control px-3 py-2">
+        <button id="password-toggle" type="button" aria-label="Mostrar contraseñas" class="border-width radius-control px-3 py-2 type-body-small">Mostrar</button>
       </div>
     </div>
-    <p id="password-validation" aria-live="polite" class="text-sm text-slate-600">Usa al menos 8 caracteres y confirma la misma contraseña.</p>
+    <p id="password-validation" aria-live="polite" class="type-body-small text-secondary">Usa al menos 8 caracteres y confirma la misma contraseña.</p>
     <div>
-      <label for="carrera_id" class="block text-sm font-medium mb-1">Carrera</label>
-      <select id="carrera_id" name="carrera_id" required disabled class="w-full border rounded-lg px-3 py-2 bg-gray-100 text-gray-400 disabled:cursor-not-allowed">
+      <label for="carrera_id" class="block type-body-small weight-medium mb-1">Carrera</label>
+      <select id="carrera_id" name="carrera_id" required disabled class="w-full border-width radius-control px-3 py-2 surface-gray-muted text-neutral-subtle cursor-disabled">
         <option value="">Selecciona una carrera</option>
         {% for carrera in carreras %}
         <option value="{{ carrera.id }}">{{ carrera.tipo.nombre }} {{ carrera.nombre }}</option>
         {% endfor %}
       </select>
     </div>
-    <button id="onboarding-submit" type="submit" disabled class="w-full border rounded-lg py-2 font-medium bg-gray-100 text-gray-400 disabled:cursor-not-allowed">
+    <button id="onboarding-submit" type="submit" disabled class="w-full border-width radius-control py-2 weight-medium surface-gray-muted text-neutral-subtle cursor-disabled">
       Guardar y continuar
     </button>
   </form>
@@ -51,11 +51,11 @@
     submitButton.disabled = !valid;
 
     for (const element of [carreraSelect, submitButton]) {
-      element.classList.toggle("bg-gray-100", !valid);
-      element.classList.toggle("text-gray-400", !valid);
-      element.classList.toggle("disabled:cursor-not-allowed", !valid);
-      element.classList.toggle("bg-white", valid);
-      element.classList.toggle("text-gray-900", valid);
+      element.classList.toggle("surface-gray-muted", !valid);
+      element.classList.toggle("text-neutral-subtle", !valid);
+      element.classList.toggle("cursor-disabled", !valid);
+      element.classList.toggle("surface-card", valid);
+      element.classList.toggle("text-neutral-heading", valid);
     }
 
     validationMessage.textContent = valid

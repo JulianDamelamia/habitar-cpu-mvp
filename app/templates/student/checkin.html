@@ -2,20 +2,20 @@
 {% block title %}Registrar asistencia{% endblock %}
 {% block content %}
 <div class="max-w-md mx-auto">
-  <h1 class="text-2xl font-bold mb-1">Registrar asistencia</h1>
-  <p class="text-slate-500 mb-5 text-sm">Escaneá el código QR que muestra el docente, o ingresá el código de 6 dígitos.</p>
+  <h1 class="type-heading weight-bold mb-1">Registrar asistencia</h1>
+  <p class="text-muted mb-5 type-body-small">Escaneá el código QR que muestra el docente, o ingresá el código de 6 dígitos.</p>
 
-  <div class="bg-white rounded-2xl shadow p-5 mb-4">
-    <div id="reader" class="rounded-lg overflow-hidden"></div>
-    <button id="start" class="mt-3 w-full bg-slate-800 hover:bg-slate-700 text-white rounded-lg py-2 text-sm inline-flex items-center justify-center gap-2"><i data-lucide="camera" class="w-4 h-4"></i> Activar cámara</button>
-    <p id="scan-status" class="text-xs text-slate-400 mt-2"></p>
+  <div class="surface-card radius-card elevation-card p-5 mb-4">
+    <div id="reader" class="radius-control overflow-hidden"></div>
+    <button id="start" class="mt-3 w-full surface-dark-strong surface-dark-hover text-on-contrast radius-control py-2 type-body-small inline-flex items-center justify-center gap-2"><i data-lucide="camera" class="w-4 h-4"></i> Activar cámara</button>
+    <p id="scan-status" class="type-caption text-subtle mt-2"></p>
   </div>
 
-  <form method="post" action="{{ url_for('checkin_submit').path }}" class="bg-white rounded-2xl shadow p-5">
-    <label class="block text-sm font-medium mb-1">Código de 6 dígitos</label>
+  <form method="post" action="{{ url_for('checkin_submit').path }}" class="surface-card radius-card elevation-card p-5">
+    <label class="block type-body-small weight-medium mb-1">Código de 6 dígitos</label>
     <div class="flex gap-2">
-      <input id="codigo" name="codigo" inputmode="numeric" pattern="[0-9]*" required class="flex-1 border rounded-lg px-3 py-2 text-lg tracking-widest text-center" placeholder="000000">
-      <button class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-5 py-2 font-medium">Validar</button>
+      <input id="codigo" name="codigo" inputmode="numeric" pattern="[0-9]*" required class="flex-1 border-width radius-control px-3 py-2 type-subheading tracking-widest text-align-center" placeholder="000000">
+      <button class="surface-brand surface-brand-hover text-on-contrast radius-control px-5 py-2 weight-medium">Validar</button>
     </div>
   </form>
 </div>

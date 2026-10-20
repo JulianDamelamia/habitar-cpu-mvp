@@ -1,41 +1,41 @@
 {% extends "base.html" %}
 {% block title %}{{ a.titulo }}{% endblock %}
 {% block content %}
-<a href="{{ url_for('list_actividades').path }}" class="text-sm text-indigo-600 hover:underline inline-flex items-center gap-1"><i data-lucide="arrow-left" class="w-4 h-4"></i> Volver a actividades</a>
-<div class="bg-white rounded-2xl shadow p-8 mt-3">
+<a href="{{ url_for('list_actividades').path }}" class="type-body-small text-link hover-text-underline inline-flex items-center gap-1"><i data-lucide="arrow-left" class="w-4 h-4"></i> Volver a actividades</a>
+<div class="surface-card radius-card elevation-card p-8 mt-3">
   <div class="flex items-center gap-2 mb-2">
-    <h1 class="text-2xl font-bold">{{ a.titulo }}</h1>
-    <span class="text-xs px-2 py-0.5 rounded-full {% if a.tipo=='virtual' %}bg-sky-100 text-sky-700{% else %}bg-amber-100 text-amber-700{% endif %}">{{ a.tipo }}</span>
+    <h1 class="type-heading weight-bold">{{ a.titulo }}</h1>
+    <span class="type-caption px-2 py-0.5 radius-pill {% if a.tipo=='virtual' %}surface-info-strong text-info-strong{% else %}surface-warning text-warning{% endif %}">{{ a.tipo }}</span>
   </div>
-  <p class="text-slate-600 mb-4">{{ a.descripcion }}</p>
-  <dl class="grid sm:grid-cols-2 gap-3 text-sm mb-6">
-    <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">Inicio</dt><dd class="font-medium">{{ a.fecha_inicio|fmt_dt }}</dd></div>
-    <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">Fin</dt><dd class="font-medium">{{ a.fecha_fin|fmt_dt }}</dd></div>
-    <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">Lugar</dt><dd class="font-medium">{{ a.lugar }}</dd></div>
-    <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">Docentes</dt><dd class="font-medium">{{ a.docentes|map(attribute='nombre_completo')|join(', ') or 'Sin asignar' }}</dd></div>
-    <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">Créditos</dt><dd class="font-medium">{{ a.creditos|fmt_creditos }}</dd></div>
-    <div class="bg-slate-50 rounded-lg p-3"><dt class="text-slate-400">Cupos disponibles</dt><dd class="font-medium">{{ cupo.free }} / {{ a.cupo_max }}</dd></div>
+  <p class="text-secondary mb-4">{{ a.descripcion }}</p>
+  <dl class="grid sm:grid-cols-2 gap-3 type-body-small mb-6">
+    <div class="surface-page radius-control p-3"><dt class="text-subtle">Inicio</dt><dd class="weight-medium">{{ a.fecha_inicio|fmt_dt }}</dd></div>
+    <div class="surface-page radius-control p-3"><dt class="text-subtle">Fin</dt><dd class="weight-medium">{{ a.fecha_fin|fmt_dt }}</dd></div>
+    <div class="surface-page radius-control p-3"><dt class="text-subtle">Lugar</dt><dd class="weight-medium">{{ a.lugar }}</dd></div>
+    <div class="surface-page radius-control p-3"><dt class="text-subtle">Docentes</dt><dd class="weight-medium">{{ a.docentes|map(attribute='nombre_completo')|join(', ') or 'Sin asignar' }}</dd></div>
+    <div class="surface-page radius-control p-3"><dt class="text-subtle">Créditos</dt><dd class="weight-medium">{{ a.creditos|fmt_creditos }}</dd></div>
+    <div class="surface-page radius-control p-3"><dt class="text-subtle">Cupos disponibles</dt><dd class="weight-medium">{{ cupo.free }} / {{ a.cupo_max }}</dd></div>
   </dl>
 
   {% if user.rol == 'estudiante' %}
     {% if enrolled %}
       <div class="flex items-center gap-3">
-        <span class="text-emerald-600 font-medium inline-flex items-center gap-1"><i data-lucide="check" class="w-4 h-4"></i> Estás inscripto/a</span>
+        <span class="text-success weight-medium inline-flex items-center gap-1"><i data-lucide="check" class="w-4 h-4"></i> Estás inscripto/a</span>
         {% if not asistencia_validada %}
           <form method="post" action="{{ url_for('baja', actividad_id=a.id).path }}"
                 {% if penalizacion_baja %}onsubmit="return confirm('Si continúas, deberás acreditar 1 punto más por baja tardía. ¿Quieres continuar?')"{% endif %}>
-            <button class="border border-rose-300 text-rose-600 hover:bg-rose-50 rounded-lg px-4 py-2 text-sm">Darme de baja</button>
+            <button class="border-width border-danger-strong text-danger surface-danger-soft-hover radius-control px-4 py-2 type-body-small">Darme de baja</button>
           </form>
         {% else %}
-          <span class="text-emerald-600 font-medium inline-flex items-center gap-1"><i data-lucide="check" class="w-4 h-4"></i> Asistencia validada</span>
+          <span class="text-success weight-medium inline-flex items-center gap-1"><i data-lucide="check" class="w-4 h-4"></i> Asistencia validada</span>
         {% endif %}
         
       </div>
     {% elif cupo.full %}
-      <span class="text-rose-500 font-medium">No quedan cupos disponibles.</span>
+      <span class="text-danger-bright weight-medium">No quedan cupos disponibles.</span>
     {% else %}
       <form method="post" action="{{ url_for('inscribir', actividad_id=a.id).path }}">
-        <button class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-6 py-2.5 font-medium">Inscribirme</button>
+        <button class="surface-brand surface-brand-hover text-on-contrast radius-control px-6 py-2.5 weight-medium">Inscribirme</button>
       </form>
     {% endif %}
   {% endif %}

@@ -1,22 +1,22 @@
 {% extends "base.html" %}
 {% block title %}{{ 'Editar carrera' if carrera else 'Nueva carrera' }}{% endblock %}
 {% block content %}
-<a href="{{ url_for('listar_carreras').path }}" class="text-sm text-indigo-600 hover:underline inline-flex items-center gap-1">
+<a href="{{ url_for('listar_carreras').path }}" class="type-body-small text-link hover-text-underline inline-flex items-center gap-1">
   <i data-lucide="arrow-left" class="w-4 h-4"></i> Panel de carreras
 </a>
 
-<div class="bg-white rounded-2xl shadow p-8 mt-3 max-w-2xl">
-  <h1 class="text-2xl font-bold mb-5">{{ 'Editar carrera' if carrera else 'Agregar carrera' }}</h1>
+<div class="surface-card radius-card elevation-card p-8 mt-3 max-w-2xl">
+  <h1 class="type-heading weight-bold mb-5">{{ 'Editar carrera' if carrera else 'Agregar carrera' }}</h1>
   <form method="post" action="{{ url_for('actualizar_carrera', carrera_id=carrera.id).path if carrera else url_for('crear_carrera').path }}" class="space-y-4">
     <div>
-      <label for="nombre" class="block text-sm font-medium mb-1">Nombre de la carrera</label>
+      <label for="nombre" class="block type-body-small weight-medium mb-1">Nombre de la carrera</label>
       <input id="nombre" name="nombre" type="text" required maxlength="50" autofocus
-             class="w-full border rounded-lg px-3 py-2"
+             class="w-full border-width radius-control px-3 py-2"
              value="{{ carrera.nombre if carrera else request.query_params.get('nombre', '') }}">
     </div>
     <div>
-      <label for="tipo" class="block text-sm font-medium mb-1">Tipo</label>
-      <select id="tipo" name="tipo" required class="w-full border rounded-lg px-3 py-2">
+      <label for="tipo" class="block type-body-small weight-medium mb-1">Tipo</label>
+      <select id="tipo" name="tipo" required class="w-full border-width radius-control px-3 py-2">
         {% if not carrera %}<option value="" disabled selected>Seleccioná un tipo</option>{% endif %}
         {% for tipo in tipos %}
           <option value="{{ tipo }}" {% if carrera and carrera.tipo.nombre == tipo %}selected{% endif %}>{{ tipo }}</option>
@@ -24,45 +24,45 @@
       </select>
     </div>
     <div>
-      <label for="creditos_requeridos" class="block text-sm font-medium mb-1">Créditos requeridos</label>
+      <label for="creditos_requeridos" class="block type-body-small weight-medium mb-1">Créditos requeridos</label>
       <input id="creditos_requeridos" name="creditos_requeridos" type="number" min="1" required
-             class="w-full border rounded-lg px-3 py-2"
+             class="w-full border-width radius-control px-3 py-2"
              value="{{ carrera.creditos_requeridos if carrera else request.query_params.get('creditos_requeridos', '') }}">
     </div>
     <div>
-      <label for="password" class="block text-sm font-medium mb-1">Contraseña de usuario</label>
+      <label for="password" class="block type-body-small weight-medium mb-1">Contraseña de usuario</label>
       <input id="password" name="password" type="password" required autocomplete="current-password"
-             class="w-full border rounded-lg px-3 py-2">
+             class="w-full border-width radius-control px-3 py-2">
     </div>
     <div class="flex gap-2 pt-2">
-      <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-6 py-2 font-medium">{{ 'Guardar cambios' if carrera else 'Guardar' }}</button>
-      <a href="{{ url_for('listar_carreras').path }}" class="text-slate-500 px-3 py-2 hover:underline">Cancelar</a>
+      <button type="submit" class="surface-brand surface-brand-hover text-on-contrast radius-control px-6 py-2 weight-medium">{{ 'Guardar cambios' if carrera else 'Guardar' }}</button>
+      <a href="{{ url_for('listar_carreras').path }}" class="text-muted px-3 py-2 hover-text-underline">Cancelar</a>
     </div>
   </form>
 
   {% if carrera %}
-    <div class="mt-8 border-t border-slate-200 pt-5">
-      <button type="button" id="mostrar-eliminacion" class="text-rose-600 hover:underline text-sm">
+    <div class="mt-8 border-top border-soft pt-5">
+      <button type="button" id="mostrar-eliminacion" class="text-danger hover-text-underline type-body-small">
         Eliminar carrera
       </button>
-      <div id="eliminacion-panel" class="hidden mt-3 rounded-lg border border-rose-200 bg-rose-50 p-4">
-        <p class="text-sm text-rose-800 mb-3">Ingresá tu contraseña para continuar con la eliminación.</p>
+      <div id="eliminacion-panel" class="hidden mt-3 radius-control border-width border-danger surface-danger-soft p-4">
+        <p class="type-body-small text-danger-contrast mb-3">Ingresá tu contraseña para continuar con la eliminación.</p>
         <form method="post" action="{{ url_for('verificar_eliminacion', carrera_id=carrera.id).path }}" class="flex flex-wrap gap-2">
-          <input name="password" type="password" required autocomplete="current-password" class="border rounded-lg px-3 py-2">
-          <button type="submit" class="bg-rose-600 hover:bg-rose-700 text-white rounded-lg px-4 py-2 text-sm font-medium">Verificar contraseña</button>
+          <input name="password" type="password" required autocomplete="current-password" class="border-width radius-control px-3 py-2">
+          <button type="submit" class="surface-danger-action surface-danger-action-hover text-on-contrast radius-control px-4 py-2 type-body-small weight-medium">Verificar contraseña</button>
         </form>
       </div>
     </div>
 
     {% if request.query_params.get('confirmar_eliminacion') == '1' %}
-      <div id="confirmacion-eliminacion" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 px-4" role="dialog" aria-modal="true">
-        <div class="bg-white rounded-xl shadow-xl p-6 max-w-md w-full">
-          <h2 class="text-lg font-bold mb-2">Confirmar eliminación</h2>
-          <p class="text-sm text-slate-600 mb-4">Esta acción eliminará la carrera y la quitará de las actividades asociadas.</p>
+      <div id="confirmacion-eliminacion" class="fixed inset-0 z-50 flex items-center justify-center surface-overlay px-4" role="dialog" aria-modal="true">
+        <div class="surface-card radius-panel elevation-overlay p-6 max-w-md w-full">
+          <h2 class="type-subheading weight-bold mb-2">Confirmar eliminación</h2>
+          <p class="type-body-small text-secondary mb-4">Esta acción eliminará la carrera y la quitará de las actividades asociadas.</p>
           <form method="post" action="{{ url_for('eliminar_carrera', carrera_id=carrera.id).path }}" class="flex justify-end gap-2">
             <input type="hidden" name="confirmar" value="eliminar">
-            <a href="{{ url_for('editar_carrera', carrera_id=carrera.id).path }}" class="text-slate-500 px-3 py-2 hover:underline">Volver</a>
-            <button type="submit" class="bg-rose-600 hover:bg-rose-700 text-white rounded-lg px-4 py-2 font-medium">Confirmar eliminación</button>
+            <a href="{{ url_for('editar_carrera', carrera_id=carrera.id).path }}" class="text-muted px-3 py-2 hover-text-underline">Volver</a>
+            <button type="submit" class="surface-danger-action surface-danger-action-hover text-on-contrast radius-control px-4 py-2 weight-medium">Confirmar eliminación</button>
           </form>
         </div>
       </div>

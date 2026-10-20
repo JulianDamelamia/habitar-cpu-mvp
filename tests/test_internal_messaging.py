@@ -75,9 +75,9 @@ def test_coordinator_can_send_broadcast_and_students_read_independently(
         second_page = second_client.get("/notificaciones")
         assert "Importante" in first_page.text
         assert "Importante" in second_page.text
-        assert 'id="notificaciones-no-leidas" class="ml-1 text-xs text-slate-500">1</span>' in first_page.text
-        assert 'id="mensajes-no-leidos" class="ml-1 text-xs text-slate-500">1</span>' in first_page.text
-        assert 'id="notificaciones-no-leidas" class="ml-1 text-xs text-slate-500">0</span>' in second_page.text
+        assert 'id="notificaciones-no-leidas" class="ml-1 type-caption text-muted">1</span>' in first_page.text
+        assert 'id="mensajes-no-leidos" class="ml-1 type-caption text-muted">1</span>' in first_page.text
+        assert 'id="notificaciones-no-leidas" class="ml-1 type-caption text-muted">0</span>' in second_page.text
         assert unread_count(db_session, first) == 1
         assert unread_count(db_session, second) == 1
 

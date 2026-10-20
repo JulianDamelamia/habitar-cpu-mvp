@@ -2,22 +2,22 @@
 {% block title %}Inscriptos{% endblock %}
 {% block content %}
 <div class="flex items-center justify-between mb-4">
-  <h1 class="text-2xl font-bold">Inscriptos por actividad</h1>
-  <a href="{{ url_for('crear_usuarios').path }}" class="text-sm text-indigo-600 hover:underline inline-flex items-center gap-1">Importar datos de estudiantes <i data-lucide="arrow-right" class="w-4 h-4"></i></a>
+  <h1 class="type-heading weight-bold">Inscriptos por actividad</h1>
+  <a href="{{ url_for('crear_usuarios').path }}" class="type-body-small text-link hover-text-underline inline-flex items-center gap-1">Importar datos de estudiantes <i data-lucide="arrow-right" class="w-4 h-4"></i></a>
 </div>
-<div class="bg-white rounded-2xl shadow overflow-x-auto">
-  <table class="w-full text-sm min-w-[560px]">
-    <thead class="bg-slate-100 text-slate-500 text-left"><tr><th class="px-4 py-3">Actividad</th><th>Fecha</th><th>Inscriptos</th><th></th></tr></thead>
+<div class="surface-card radius-card elevation-card overflow-x-auto">
+  <table class="w-full type-body-small min-width-wide">
+    <thead class="surface-muted text-muted text-align-left"><tr><th class="px-4 py-3">Actividad</th><th>Fecha</th><th>Inscriptos</th><th></th></tr></thead>
     <tbody>
     {% for r in rows %}
-      <tr class="border-t">
-        <td class="px-4 py-3 font-medium">{{ r.a.titulo }}</td>
-        <td class="text-slate-500">{{ r.a.fecha_inicio|fmt_dt }}</td>
+      <tr class="border-top">
+        <td class="px-4 py-3 weight-medium">{{ r.a.titulo }}</td>
+        <td class="text-muted">{{ r.a.fecha_inicio|fmt_dt }}</td>
         <td>{{ r.cupo.taken }}/{{ r.a.cupo_max }}</td>
-        <td class="px-4 py-3 text-right"><a href="{{ url_for('inscriptos_detail', actividad_id=r.a.id).path }}" class="text-indigo-600 hover:underline">Ver / exportar</a></td>
+        <td class="px-4 py-3 text-align-right"><a href="{{ url_for('inscriptos_detail', actividad_id=r.a.id).path }}" class="text-link hover-text-underline">Ver / exportar</a></td>
       </tr>
     {% else %}
-      <tr><td colspan="4" class="px-4 py-6 text-center text-slate-500">No hay actividades.</td></tr>
+      <tr><td colspan="4" class="px-4 py-6 text-align-center text-muted">No hay actividades.</td></tr>
     {% endfor %}
     </tbody>
   </table>

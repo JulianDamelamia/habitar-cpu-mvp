@@ -3,22 +3,22 @@
 
 {% block content %}
 <div class="mb-6">
-  <h1 class="text-2xl font-bold">Administrar usuarios</h1>
-  <p class="text-sm text-slate-500 mt-1">Creá cuentas y actualizá datos y créditos de estudiantes.</p>
+  <h1 class="type-heading weight-bold">Administrar usuarios</h1>
+  <p class="type-body-small text-muted mt-1">Creá cuentas y actualizá datos y créditos de estudiantes.</p>
 </div>
 
 {% if form_error %}
-<div role="alert" class="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm">{{ form_error }}</div>
+<div role="alert" class="mb-6 p-4 radius-panel surface-danger-soft border-width border-danger text-danger-contrast type-body-small">{{ form_error }}</div>
 {% endif %}
 
-<section class="bg-white rounded-2xl shadow p-6 mb-6">
-  <h2 class="text-lg font-semibold mb-4">Buscar estudiantes</h2>
+<section class="surface-card radius-card elevation-card p-6 mb-6">
+  <h2 class="type-subheading weight-semibold mb-4">Buscar estudiantes</h2>
   <form method="get" action="{{ url_for('crear_usuarios').path }}" class="flex flex-col sm:flex-row gap-3">
     <label for="busqueda-usuarios" class="sr-only">Nombre, apellido o email</label>
     <input id="busqueda-usuarios" type="search" name="q" value="{{ busqueda }}" maxlength="120"
            placeholder="Nombre, apellido o email"
-           class="flex-1 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-5 py-2 text-sm font-medium">
+           class="flex-1 border-width border-field radius-control px-3 py-2 type-body-small focus-no-outline focus:focus-ring-width focus-ring-brand">
+    <button type="submit" class="surface-brand surface-brand-hover text-on-contrast radius-control px-5 py-2 type-body-small weight-medium">
       Buscar
     </button>
   </form>
@@ -26,14 +26,14 @@
   {% if busqueda %}
   <div class="mt-5 space-y-4">
     {% for estudiante in estudiantes %}
-    <article class="border border-slate-200 rounded-xl p-4">
+    <article class="border-width border-soft radius-panel p-4">
       <div class="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
         <div>
-          <h3 class="font-semibold">{{ estudiante.nombre_completo }}</h3>
-          <p class="text-sm text-slate-500">{{ estudiante.email }}</p>
-          <p class="text-xs text-slate-500 mt-1">
+          <h3 class="weight-semibold">{{ estudiante.nombre_completo }}</h3>
+          <p class="type-body-small text-muted">{{ estudiante.email }}</p>
+          <p class="type-caption text-muted mt-1">
             Créditos requeridos actuales:
-            <span data-current-credits="{{ estudiante.id }}" class="font-semibold text-slate-700">
+            <span data-current-credits="{{ estudiante.id }}" class="weight-semibold text-emphasis">
               {{ estudiante.estudiante.creditos_requeridos }}
             </span>
           </p>
@@ -43,19 +43,19 @@
               class="grid sm:grid-cols-2 gap-3 w-full md:max-w-2xl">
           <input type="hidden" name="q" value="{{ busqueda }}">
           <div>
-            <label for="nombre-{{ estudiante.id }}" class="block text-xs font-medium text-slate-600 mb-1">Nombre</label>
+            <label for="nombre-{{ estudiante.id }}" class="block type-caption weight-medium text-secondary mb-1">Nombre</label>
             <input id="nombre-{{ estudiante.id }}" name="nombre" value="{{ estudiante.nombre }}" maxlength="120" required
-                   class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                   class="w-full border-width border-field radius-control px-3 py-2 type-body-small focus-no-outline focus:focus-ring-width focus-ring-brand">
           </div>
           <div>
-            <label for="apellido-{{ estudiante.id }}" class="block text-xs font-medium text-slate-600 mb-1">Apellido</label>
+            <label for="apellido-{{ estudiante.id }}" class="block type-caption weight-medium text-secondary mb-1">Apellido</label>
             <input id="apellido-{{ estudiante.id }}" name="apellido" value="{{ estudiante.apellido }}" maxlength="120" required
-                   class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                   class="w-full border-width border-field radius-control px-3 py-2 type-body-small focus-no-outline focus:focus-ring-width focus-ring-brand">
           </div>
           <div>
-            <label for="carrera-{{ estudiante.id }}" class="block text-xs font-medium text-slate-600 mb-1">Carrera</label>
+            <label for="carrera-{{ estudiante.id }}" class="block type-caption weight-medium text-secondary mb-1">Carrera</label>
             <select id="carrera-{{ estudiante.id }}" name="carrera_id"
-                    class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                    class="w-full border-width border-field radius-control px-3 py-2 type-body-small surface-card focus-no-outline focus:focus-ring-width focus-ring-brand">
               <option value="">Sin carrera</option>
               {% for carrera in carreras %}
               <option value="{{ carrera.id }}" {% if estudiante.carrera_id == carrera.id %}selected{% endif %}>
@@ -65,7 +65,7 @@
             </select>
           </div>
           <div class="flex items-end">
-            <button type="submit" class="w-full bg-slate-800 hover:bg-slate-700 text-white rounded-lg px-4 py-2 text-sm font-medium">
+            <button type="submit" class="w-full surface-dark-strong surface-dark-hover text-on-contrast radius-control px-4 py-2 type-body-small weight-medium">
               Guardar datos
             </button>
           </div>
@@ -74,67 +74,67 @@
 
       <form data-credit-form
             data-endpoint="{{ url_for('actualizar_creditos_requeridos', estudiante_id=estudiante.id).path }}"
-            class="mt-4 pt-4 border-t border-slate-100 flex flex-col sm:flex-row sm:items-end gap-3">
+            class="mt-4 pt-4 border-top border-subtle flex flex-col sm:flex-row sm:items-end gap-3">
         <div>
-          <label for="creditos-{{ estudiante.id }}" class="block text-xs font-medium text-slate-600 mb-1">
+          <label for="creditos-{{ estudiante.id }}" class="block type-caption weight-medium text-secondary mb-1">
             Créditos requeridos
           </label>
           <input id="creditos-{{ estudiante.id }}" name="creditos_requeridos" type="number" min="0.5" step="0.5"
                  value="{{ estudiante.estudiante.creditos_requeridos }}" required
-                 class="w-full sm:w-40 border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                 class="w-full sm:w-40 border-width border-field radius-control px-3 py-2 type-body-small focus-no-outline focus:focus-ring-width focus-ring-brand">
         </div>
-        <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2 text-sm font-medium">
+        <button type="submit" class="surface-brand surface-brand-hover text-on-contrast radius-control px-4 py-2 type-body-small weight-medium">
           Guardar créditos
         </button>
-        <p data-credit-status role="status" aria-live="polite" class="text-sm text-slate-500"></p>
+        <p data-credit-status role="status" aria-live="polite" class="type-body-small text-muted"></p>
       </form>
     </article>
     {% else %}
-    <p class="rounded-lg bg-slate-50 p-4 text-sm text-slate-500">No se encontraron estudiantes.</p>
+    <p class="radius-control surface-page p-4 type-body-small text-muted">No se encontraron estudiantes.</p>
     {% endfor %}
     {% if estudiantes|length == 50 %}
-    <p class="text-xs text-slate-500">Se muestran hasta 50 coincidencias. Afiná la búsqueda para encontrar otros resultados.</p>
+    <p class="type-caption text-muted">Se muestran hasta 50 coincidencias. Afiná la búsqueda para encontrar otros resultados.</p>
     {% endif %}
   </div>
   {% endif %}
 </section>
 
-<section class="bg-white rounded-2xl shadow p-6">
-  <h2 class="text-lg font-semibold mb-2">Agregar usuarios</h2>
-  <p class="text-sm text-slate-500 mb-5">Carga masiva de estudiantes desde un archivo CSV o XLSX.</p>
+<section class="surface-card radius-card elevation-card p-6">
+  <h2 class="type-subheading weight-semibold mb-2">Agregar usuarios</h2>
+  <p class="type-body-small text-muted mb-5">Carga masiva de estudiantes desde un archivo CSV o XLSX.</p>
 
   <form method="post" action="{{ url_for('generacion_usuarios').path }}" enctype="multipart/form-data" class="space-y-4">
     <div>
-      <label for="archivo-usuarios" class="block text-sm font-medium mb-1 text-slate-700">Archivo CSV o XLSX</label>
+      <label for="archivo-usuarios" class="block type-body-small weight-medium mb-1 text-emphasis">Archivo CSV o XLSX</label>
       <input id="archivo-usuarios" type="file" name="archivo" accept=".csv,.xlsx" required
-             class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500">
-      <p class="text-xs text-slate-400 mt-1">
+             class="w-full border-width border-field radius-control px-3 py-2 type-body-small focus-no-outline focus:focus-ring-width focus-ring-brand">
+      <p class="type-caption text-subtle mt-1">
         Columnas esperadas: <code>email</code>, <code>carrera</code>, <code>nombre</code>, <code>apellido</code>.
       </p>
     </div>
-    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-5 py-2 text-sm font-medium transition-colors inline-flex items-center gap-2">
+    <button type="submit" class="surface-brand surface-brand-hover text-on-contrast radius-control px-5 py-2 type-body-small weight-medium transition-color inline-flex items-center gap-2">
       <i data-lucide="upload-cloud" class="w-4 h-4"></i> Importar usuarios
     </button>
   </form>
 
   {% if errores %}
-  <div class="border-t border-slate-200 pt-6 mt-6">
-    <div class="flex items-center gap-2 mb-4 text-rose-700 font-semibold">
+  <div class="border-top border-soft pt-6 mt-6">
+    <div class="flex items-center gap-2 mb-4 text-danger-strong weight-semibold">
       <i data-lucide="alert-triangle" class="w-5 h-5"></i>
       <h3>Filas con errores que requieren atención ({{ errores|length }})</h3>
     </div>
-    <div class="overflow-x-auto rounded-xl border border-slate-200">
-      <table class="w-full text-left text-sm text-slate-600">
-        <thead class="bg-slate-50 text-slate-700 font-medium border-b border-slate-200">
+    <div class="overflow-x-auto radius-panel border-width border-soft">
+      <table class="w-full text-align-left type-body-small text-secondary">
+        <thead class="surface-page text-emphasis weight-medium border-bottom border-soft">
           <tr><th class="px-4 py-3">Fila</th><th class="px-4 py-3">Email</th><th class="px-4 py-3">Detalle del error</th></tr>
         </thead>
-        <tbody class="divide-y divide-slate-100 bg-white">
+        <tbody class="divide-rows divide-subtle surface-card">
           {% for e in errores %}
-          <tr class="hover:bg-slate-50">
-            <td class="px-4 py-3 font-mono text-center font-semibold text-slate-500">#{{ e.fila + 2 }}</td>
-            <td class="px-4 py-3 font-mono text-xs text-slate-800">{{ e.email if e.email else '-' }}</td>
+          <tr class="surface-page-hover">
+            <td class="px-4 py-3 weight-monospace text-align-center weight-semibold text-muted">#{{ e.fila + 2 }}</td>
+            <td class="px-4 py-3 weight-monospace type-caption text-primary">{{ e.email if e.email else '-' }}</td>
             <td class="px-4 py-3">
-              <ul class="list-disc list-inside text-rose-600 text-xs space-y-0.5">
+              <ul class="list-disc list-inside text-danger type-caption space-y-0.5">
                 {% for err_msg in e.errores %}<li>{{ err_msg }}</li>{% endfor %}
               </ul>
             </td>
@@ -178,10 +178,10 @@
         form.closest("article").querySelector(`[data-current-credits="${result.id}"]`).textContent =
           result.creditos_requeridos;
         status.textContent = "Créditos actualizados.";
-        status.className = "text-sm text-emerald-700";
+        status.className = "type-body-small text-success-strong";
       } catch (error) {
         status.textContent = error.message;
-        status.className = "text-sm text-rose-700";
+        status.className = "type-body-small text-danger-strong";
       } finally {
         button.disabled = false;
       }

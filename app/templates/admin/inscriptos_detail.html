@@ -1,38 +1,38 @@
 {% extends "base.html" %}
 {% block title %}Inscriptos - {{ a.titulo }}{% endblock %}
 {% block content %}
-<a href="{{ url_for('inscriptos_index').path }}" class="text-sm text-indigo-600 hover:underline inline-flex items-center gap-1"><i data-lucide="arrow-left" class="w-4 h-4"></i> Inscriptos</a>
+<a href="{{ url_for('inscriptos_index').path }}" class="type-body-small text-link hover-text-underline inline-flex items-center gap-1"><i data-lucide="arrow-left" class="w-4 h-4"></i> Inscriptos</a>
 <div class="flex items-center justify-between mt-2 mb-4 flex-wrap gap-3">
   <div>
-    <h1 class="text-2xl font-bold">{{ a.titulo }}</h1>
-    <p class="text-slate-500 text-sm"><i data-lucide="calendar" class="inline-block w-4 h-4 align-[-3px]"></i> {{ a.fecha_inicio|fmt_dt }}, {{ inscriptos|length }} inscriptos</p>
+    <h1 class="type-heading weight-bold">{{ a.titulo }}</h1>
+    <p class="text-muted type-body-small"><i data-lucide="calendar" class="inline-block w-4 h-4 icon-baseline-align"></i> {{ a.fecha_inicio|fmt_dt }}, {{ inscriptos|length }} inscriptos</p>
   </div>
   <div class="flex gap-2">
-    <a href="{{ url_for('export_csv', actividad_id=a.id).path }}" class="border rounded-lg px-3 py-2 text-sm hover:bg-slate-50 inline-flex items-center gap-1"><i data-lucide="download" class="w-4 h-4"></i> CSV</a>
-    <a href="{{ url_for('export_xlsx', actividad_id=a.id).path }}" class="border rounded-lg px-3 py-2 text-sm hover:bg-slate-50 inline-flex items-center gap-1"><i data-lucide="download" class="w-4 h-4"></i> Excel</a>
+    <a href="{{ url_for('export_csv', actividad_id=a.id).path }}" class="border-width radius-control px-3 py-2 type-body-small surface-page-hover inline-flex items-center gap-1"><i data-lucide="download" class="w-4 h-4"></i> CSV</a>
+    <a href="{{ url_for('export_xlsx', actividad_id=a.id).path }}" class="border-width radius-control px-3 py-2 type-body-small surface-page-hover inline-flex items-center gap-1"><i data-lucide="download" class="w-4 h-4"></i> Excel</a>
   </div>
 </div>
 
-<div class="bg-white rounded-2xl shadow overflow-x-auto">
-  <table class="w-full text-sm min-w-[640px]">
-    <thead class="bg-slate-100 text-slate-500 text-left"><tr><th>Estudiante</th><th>Email</th><th>Asistencia</th><th></th></tr></thead>
+<div class="surface-card radius-card elevation-card overflow-x-auto">
+  <table class="w-full type-body-small min-width-extra-wide">
+    <thead class="surface-muted text-muted text-align-left"><tr><th>Estudiante</th><th>Email</th><th>Asistencia</th><th></th></tr></thead>
     <tbody>
     {% for e in inscriptos %}
-      <tr class="border-t">
-        <td class="font-medium">{{ e.user.nombre_completo }}</td>
-        <td class="text-slate-500">{{ e.user.email }}</td>
+      <tr class="border-top">
+        <td class="weight-medium">{{ e.user.nombre_completo }}</td>
+        <td class="text-muted">{{ e.user.email }}</td>
         <td>
-          {% if e.user_id in present %}<span class="text-emerald-600 font-medium inline-flex items-center gap-1"><i data-lucide="check" class="w-4 h-4"></i> Presente</span>
-          {% else %}<span class="text-slate-400">Sin registrar</span>{% endif %}
+          {% if e.user_id in present %}<span class="text-success weight-medium inline-flex items-center gap-1"><i data-lucide="check" class="w-4 h-4"></i> Presente</span>
+          {% else %}<span class="text-subtle">Sin registrar</span>{% endif %}
         </td>
-        <td class="px-4 py-3 text-right">
+        <td class="px-4 py-3 text-align-right">
           {% if e.user_id not in present %}
-          <form method="post" action="{{ url_for('docente_mark', actividad_id=a.id, student_id=e.user_id).path }}"><button class="text-xs border rounded-lg px-2 py-1 hover:bg-slate-50">Validar asistencia</button></form>
+          <form method="post" action="{{ url_for('docente_mark', actividad_id=a.id, student_id=e.user_id).path }}"><button class="type-caption border-width radius-control px-2 py-1 surface-page-hover">Validar asistencia</button></form>
           {% endif %}
         </td>
       </tr>
     {% else %}
-      <tr><td colspan="5" class="px-4 py-6 text-center text-slate-500">Sin inscriptos.</td></tr>
+      <tr><td colspan="5" class="px-4 py-6 text-align-center text-muted">Sin inscriptos.</td></tr>
     {% endfor %}
     </tbody>
   </table>

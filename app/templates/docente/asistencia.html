@@ -1,36 +1,36 @@
 {% extends "base.html" %}
 {% block title %}Asistencia - {{ a.titulo }}{% endblock %}
 {% block content %}
-<a href="{{ url_for('docente_home').path }}" class="text-sm text-indigo-600 hover:underline inline-flex items-center gap-1"><i data-lucide="arrow-left" class="w-4 h-4"></i> Mis actividades</a>
-<h1 class="text-2xl font-bold mt-2 mb-1">{{ a.titulo }}</h1>
-<p class="text-slate-500 mb-5 text-sm"><i data-lucide="calendar" class="inline-block w-4 h-4 align-[-3px]"></i> {{ a.fecha_inicio|fmt_dt }}, <i data-lucide="map-pin" class="inline-block w-4 h-4 align-[-3px]"></i> {{ a.lugar }}</p>
+<a href="{{ url_for('docente_home').path }}" class="type-body-small text-link hover-text-underline inline-flex items-center gap-1"><i data-lucide="arrow-left" class="w-4 h-4"></i> Mis actividades</a>
+<h1 class="type-heading weight-bold mt-2 mb-1">{{ a.titulo }}</h1>
+<p class="text-muted mb-5 type-body-small"><i data-lucide="calendar" class="inline-block w-4 h-4 icon-baseline-align"></i> {{ a.fecha_inicio|fmt_dt }}, <i data-lucide="map-pin" class="inline-block w-4 h-4 icon-baseline-align"></i> {{ a.lugar }}</p>
 
 <div class="grid md:grid-cols-2 gap-6">
   <!-- Rotating QR -->
-  <div class="bg-white rounded-2xl shadow p-6 text-center">
-    <h2 class="font-semibold mb-3">Mostrá este código a los estudiantes</h2>
-    <img id="qr" alt="QR de asistencia" class="mx-auto w-56 h-56 border rounded-lg">
-    <p class="mt-3 text-4xl font-mono font-bold tracking-widest" id="code">------</p>
-    <p class="text-xs text-slate-400 mt-1">Se renueva en <span id="count">-</span>s</p>
+  <div class="surface-card radius-card elevation-card p-6 text-align-center">
+    <h2 class="weight-semibold mb-3">Mostrá este código a los estudiantes</h2>
+    <img id="qr" alt="QR de asistencia" class="mx-auto w-56 h-56 border-width radius-control">
+    <p class="mt-3 type-display weight-monospace weight-bold tracking-widest" id="code">------</p>
+    <p class="type-caption text-subtle mt-1">Se renueva en <span id="count">-</span>s</p>
   </div>
 
   <!-- Inscriptos -->
-  <div class="bg-white rounded-2xl shadow p-6">
-    <h2 class="font-semibold mb-3">Inscriptos ({{ inscriptos|length }})</h2>
+  <div class="surface-card radius-card elevation-card p-6">
+    <h2 class="weight-semibold mb-3">Inscriptos ({{ inscriptos|length }})</h2>
     <div class="space-y-2 max-h-96 overflow-auto">
       {% for e in inscriptos %}
-      <div class="flex items-center justify-between border rounded-lg px-3 py-2">
-        <span class="text-sm">{{ e.user.nombre_completo }}</span>
+      <div class="flex items-center justify-between border-width radius-control px-3 py-2">
+        <span class="type-body-small">{{ e.user.nombre_completo }}</span>
         {% if e.user_id in present %}
-          <span class="text-emerald-600 text-sm font-medium inline-flex items-center gap-1"><i data-lucide="check" class="w-4 h-4"></i> Presente</span>
+          <span class="text-success type-body-small weight-medium inline-flex items-center gap-1"><i data-lucide="check" class="w-4 h-4"></i> Presente</span>
         {% else %}
           <form method="post" action="{{ url_for('docente_mark', actividad_id=a.id, student_id=e.user_id).path }}">
-            <button class="text-xs border rounded-lg px-2 py-1 hover:bg-slate-50">Marcar presente</button>
+            <button class="type-caption border-width radius-control px-2 py-1 surface-page-hover">Marcar presente</button>
           </form>
         {% endif %}
       </div>
       {% else %}
-      <p class="text-slate-500 text-sm">Todavía no hay inscriptos.</p>
+      <p class="text-muted type-body-small">Todavía no hay inscriptos.</p>
       {% endfor %}
     </div>
   </div>

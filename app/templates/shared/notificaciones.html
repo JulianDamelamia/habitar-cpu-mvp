@@ -2,58 +2,58 @@
 {% block title %}Notificaciones{% endblock %}
 {% block content %}
 <div class="flex items-center justify-between mb-4">
-  <h1 class="text-2xl font-bold">Notificaciones</h1>
+  <h1 class="type-heading weight-bold">Notificaciones</h1>
   {% if user.rol == 'coordinacion' %}
-    <a href="{{ url_for('admin_mensajes').path }}" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2 text-sm font-medium">Enviar mensaje</a>
+    <a href="{{ url_for('admin_mensajes').path }}" class="surface-brand surface-brand-hover text-on-contrast radius-control px-4 py-2 type-body-small weight-medium">Enviar mensaje</a>
   {% endif %}
 </div>
-<div class="border-b border-slate-200 mb-4" role="tablist" aria-label="Bandeja">
+<div class="border-bottom border-soft mb-4" role="tablist" aria-label="Bandeja">
   <button id="tab-notificaciones" type="button" role="tab" aria-controls="panel-notificaciones" aria-selected="true"
-          class="px-4 py-2 border-b-2 border-indigo-600 text-indigo-700 font-medium">
-    Notificaciones <span id="notificaciones-no-leidas" class="ml-1 text-xs text-slate-500">{{ notificaciones_no_leidas }}</span>
+          class="px-4 py-2 border-bottom-strong border-selected text-link-strong weight-medium">
+    Notificaciones <span id="notificaciones-no-leidas" class="ml-1 type-caption text-muted">{{ notificaciones_no_leidas }}</span>
   </button>
   <button id="tab-mensajes" type="button" role="tab" aria-controls="panel-mensajes" aria-selected="false" tabindex="-1"
-          class="px-4 py-2 border-b-2 border-transparent text-slate-500 hover:text-slate-800">
-    Mensajes <span id="mensajes-no-leidos" class="ml-1 text-xs text-slate-500">{{ mensajes_no_leidos }}</span>
+          class="px-4 py-2 border-bottom-strong border-invisible text-muted hover-text-primary">
+    Mensajes <span id="mensajes-no-leidos" class="ml-1 type-caption text-muted">{{ mensajes_no_leidos }}</span>
   </button>
 </div>
 
-<section id="panel-notificaciones" role="tabpanel" aria-labelledby="tab-notificaciones" class="bg-white rounded-2xl shadow divide-y">
+<section id="panel-notificaciones" role="tabpanel" aria-labelledby="tab-notificaciones" class="surface-card radius-card elevation-card divide-rows">
   {% if not items %}
-    <p class="p-6 text-slate-500 text-sm">No tenés notificaciones.</p>
+    <p class="p-6 text-muted type-body-small">No tenés notificaciones.</p>
   {% endif %}
   {% for n in items %}
     <article class="p-4">
-      <p class="text-sm">{{ n.mensaje }}</p>
-      <p class="text-xs text-slate-400 mt-1">{{ n.created_at|fmt_dt }}</p>
+      <p class="type-body-small">{{ n.mensaje }}</p>
+      <p class="type-caption text-subtle mt-1">{{ n.created_at|fmt_dt }}</p>
     </article>
   {% endfor %}
 </section>
 
-<section id="panel-mensajes" role="tabpanel" aria-labelledby="tab-mensajes" class="hidden bg-white rounded-2xl shadow divide-y">
+<section id="panel-mensajes" role="tabpanel" aria-labelledby="tab-mensajes" class="hidden surface-card radius-card elevation-card divide-rows">
   {% if not mensajes %}
-    <p class="p-6 text-slate-500 text-sm">No tenés mensajes.</p>
+    <p class="p-6 text-muted type-body-small">No tenés mensajes.</p>
   {% endif %}
   {% for mensaje in mensajes %}
     {% set leido = lecturas[mensaje.id] %}
-    <details class="message-item group {% if not leido %}bg-indigo-50/50{% endif %}"
+    <details class="message-item group {% if not leido %}surface-brand-subtle{% endif %}"
              data-read-url="{{ url_for('leer_mensaje', mensaje_id=mensaje.id).path }}"
              data-read="{{ 'true' if leido else 'false' }}">
-      <summary class="list-none cursor-pointer p-4 flex items-start gap-3">
-        <span class="message-unread mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-indigo-600 {% if leido %}hidden{% endif %}" aria-label="No leído"></span>
+      <summary class="list-none cursor-interactive p-4 flex items-start gap-3">
+        <span class="message-unread mt-1.5 h-2.5 w-2.5 shrink-0 radius-pill surface-brand {% if leido %}hidden{% endif %}" aria-label="No leído"></span>
         <span class="min-w-0 flex-1">
           <span class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-            <span class="font-semibold {% if leido %}text-slate-700{% else %}text-slate-900{% endif %}">{{ mensaje.asunto }}</span>
-            <time class="text-xs text-slate-400">{{ mensaje.created_at|fmt_dt }}</time>
+            <span class="weight-semibold {% if leido %}text-emphasis{% else %}text-heading{% endif %}">{{ mensaje.asunto }}</span>
+            <time class="type-caption text-subtle">{{ mensaje.created_at|fmt_dt }}</time>
           </span>
-          <span class="block text-xs text-slate-500 mt-1">
+          <span class="block type-caption text-muted mt-1">
             De {{ mensaje.remitente.nombre_completo }}
-            {% if mensaje.destinatario_id is none %}<span class="text-slate-400">· Mensaje general</span>{% endif %}
+            {% if mensaje.destinatario_id is none %}<span class="text-subtle">· Mensaje general</span>{% endif %}
           </span>
         </span>
-        <span class="text-slate-400 group-open:rotate-180 transition-transform" aria-hidden="true">⌄</span>
+        <span class="text-subtle group-open:rotate-180 transition-position" aria-hidden="true">⌄</span>
       </summary>
-      <div class="px-10 pb-4 text-sm text-slate-700 whitespace-pre-wrap">{{ mensaje.cuerpo }}</div>
+      <div class="px-10 pb-4 type-body-small text-emphasis text-pre-wrap">{{ mensaje.cuerpo }}</div>
     </details>
   {% endfor %}
 </section>

@@ -2,27 +2,27 @@
 {% block title %}Panel de actividades{% endblock %}
 {% block content %}
 <div class="flex items-center justify-between mb-4">
-  <h1 class="text-2xl font-bold">Panel de actividades</h1>
-  <a href="{{ url_for('nueva').path }}" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2 text-sm font-medium transition-colors">+ Nueva actividad</a>
+  <h1 class="type-heading weight-bold">Panel de actividades</h1>
+  <a href="{{ url_for('nueva').path }}" class="surface-brand surface-brand-hover text-on-contrast radius-control px-4 py-2 type-body-small weight-medium transition-color">+ Nueva actividad</a>
 </div>
 
 <!-- Tarjetas de resumen -->
 <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-  <div class="bg-white rounded-xl shadow p-4"><p class="text-xs text-slate-400">Publicadas</p><p class="text-2xl font-bold text-emerald-600">{{ resumen.publicadas }}</p></div>
-  <div class="bg-white rounded-xl shadow p-4"><p class="text-xs text-slate-400">Realizadas</p><p class="text-2xl font-bold text-indigo-600">{{ resumen.realizadas }}</p></div>
-  <div class="bg-white rounded-xl shadow p-4"><p class="text-xs text-slate-400">Canceladas</p><p class="text-2xl font-bold text-amber-500">{{ resumen.canceladas }}</p></div>
-  <div class="bg-white rounded-xl shadow p-4"><p class="text-xs text-slate-400">Total actividades</p><p class="text-2xl font-bold">{{ resumen.total }}</p></div>
+  <div class="surface-card radius-panel elevation-card p-4"><p class="type-caption text-subtle">Publicadas</p><p class="type-heading weight-bold text-success">{{ resumen.publicadas }}</p></div>
+  <div class="surface-card radius-panel elevation-card p-4"><p class="type-caption text-subtle">Finalizadas</p><p class="type-heading weight-bold text-link">{{ resumen.finalizadas }}</p></div>
+  <div class="surface-card radius-panel elevation-card p-4"><p class="type-caption text-subtle">Canceladas</p><p class="type-heading weight-bold text-rating-strong">{{ resumen.canceladas }}</p></div>
+  <div class="surface-card radius-panel elevation-card p-4"><p class="type-caption text-subtle">Vencidas</p><p class="type-heading weight-bold text-danger">{{ resumen.vencidas }}</p></div>
 </div>
 
 <!-- Barra de Filtros (Multiselect) -->
-<div class="bg-white rounded-2xl shadow p-4 mb-4">
+<div class="surface-card radius-card elevation-card p-4 mb-4">
   <form method="get" action="{{ url_for('panel').path }}" data-auto-submit="true" class="flex flex-col gap-3">
     <input type="hidden" name="sort" value="{{ sort }}">
     <input type="hidden" name="direction" value="{{ direction }}">
-    <label class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Filtrar por Carreras:</label>
+    <label class="type-caption weight-semibold text-muted uppercase tracking-wider">Filtrar por Carreras:</label>
     
     <div class="flex flex-wrap items-center gap-3">
-      <select id="carrera-select" class="border border-slate-200 rounded-lg text-sm px-3 py-2 bg-slate-50 focus:bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 transition-all min-w-[260px]">
+      <select id="carrera-select" class="border-width border-soft radius-control type-body-small px-3 py-2 surface-page focus:surface-card focus-no-outline focus:focus-ring-width focus-ring-brand transition-layout min-width-medium">
         <option value="">-- Seleccionar carrera para filtrar --</option>
         <option value="todas">-- TODAS LAS CARRERAS --</option>
         {% for carrera in lista_carreras %}
@@ -33,7 +33,7 @@
       </select>
 
       {% if carreras_seleccionadas %}
-        <a href="{{ url_for('panel').path }}" class="text-xs text-rose-600 hover:text-rose-800 font-medium underline">
+        <a href="{{ url_for('panel').path }}" class="type-caption text-danger hover-text-danger-contrast weight-medium text-underline">
           Limpiar filtros
         </a>
       {% endif %}
@@ -59,83 +59,89 @@
 </div>
 
 <!-- Tabla de Actividades -->
-<div class="bg-white rounded-2xl shadow overflow-x-auto">
-  <table class="w-full text-sm min-w-[640px]">
-    <thead class="bg-slate-100 text-slate-500 text-left">
+<div class="surface-card radius-card elevation-card overflow-x-auto">
+  <table class="w-full type-body-small min-width-extra-wide">
+    <thead class="surface-muted text-muted text-align-left">
       <tr>
         <th class="px-4 py-3" aria-sort="{{ 'ascending' if sort == 'nombre' and direction == 'asc' else 'descending' if sort == 'nombre' else 'none' }}">
-          <a href="{{ sort_links.nombre }}" class="inline-flex items-center gap-1 hover:text-slate-800">
-            Actividad <span class="{{ 'text-indigo-600' if sort == 'nombre' else 'text-slate-400' }}">{{ '▲' if sort == 'nombre' and direction == 'asc' else '▼' if sort == 'nombre' else '△' }}</span>
+          <a href="{{ sort_links.nombre }}" class="inline-flex items-center gap-1 hover-text-primary">
+            Actividad <span class="{{ 'text-link' if sort == 'nombre' else 'text-subtle' }}">{{ '▲' if sort == 'nombre' and direction == 'asc' else '▼' if sort == 'nombre' else '△' }}</span>
           </a>
         </th>
         <th class="px-4 py-3">Carreras asociadas</th>
         <th aria-sort="{{ 'ascending' if sort == 'fecha' and direction == 'asc' else 'descending' if sort == 'fecha' else 'none' }}">
-          <a href="{{ sort_links.fecha }}" class="inline-flex items-center gap-1 hover:text-slate-800">
-            Fecha <span class="{{ 'text-indigo-600' if sort == 'fecha' else 'text-slate-400' }}">{{ '▲' if sort == 'fecha' and direction == 'asc' else '▼' if sort == 'fecha' else '△' }}</span>
+          <a href="{{ sort_links.fecha }}" class="inline-flex items-center gap-1 hover-text-primary">
+            Fecha <span class="{{ 'text-link' if sort == 'fecha' else 'text-subtle' }}">{{ '▲' if sort == 'fecha' and direction == 'asc' else '▼' if sort == 'fecha' else '△' }}</span>
           </a>
         </th>
         <th aria-sort="{{ 'ascending' if sort == 'estado' and direction == 'asc' else 'descending' if sort == 'estado' else 'none' }}">
-          <a href="{{ sort_links.estado }}" class="inline-flex items-center gap-1 hover:text-slate-800">
-            Estado <span class="{{ 'text-indigo-600' if sort == 'estado' else 'text-slate-400' }}">{{ '▲' if sort == 'estado' and direction == 'asc' else '▼' if sort == 'estado' else '△' }}</span>
+          <a href="{{ sort_links.estado }}" class="inline-flex items-center gap-1 hover-text-primary">
+            Estado <span class="{{ 'text-link' if sort == 'estado' else 'text-subtle' }}">{{ '▲' if sort == 'estado' and direction == 'asc' else '▼' if sort == 'estado' else '△' }}</span>
           </a>
         </th>
         <th aria-sort="{{ 'ascending' if sort == 'cupo' and direction == 'asc' else 'descending' if sort == 'cupo' else 'none' }}">
-          <a href="{{ sort_links.cupo }}" class="inline-flex items-center gap-1 hover:text-slate-800">
-            Cupo <span class="{{ 'text-indigo-600' if sort == 'cupo' else 'text-slate-400' }}">{{ '▲' if sort == 'cupo' and direction == 'asc' else '▼' if sort == 'cupo' else '△' }}</span>
+          <a href="{{ sort_links.cupo }}" class="inline-flex items-center gap-1 hover-text-primary">
+            Cupo <span class="{{ 'text-link' if sort == 'cupo' else 'text-subtle' }}">{{ '▲' if sort == 'cupo' and direction == 'asc' else '▼' if sort == 'cupo' else '△' }}</span>
           </a>
         </th>
-        <th class="text-right px-4">Acciones</th>
+        <th class="text-align-right px-4">Acciones</th>
       </tr>
     </thead>
-    <tbody class="divide-y divide-slate-100">
+    <tbody class="divide-rows divide-subtle">
     {% for r in rows %}
-      <tr class="hover:bg-slate-50/50 transition-colors">
-        <td class="px-4 py-3 font-medium">
+      <tr class="surface-page-translucent-hover transition-color">
+        <td class="px-4 py-3 weight-medium">
           {{ r.a.titulo }}
-          <span class="block text-xs text-slate-400 font-normal">{{ r.a.tipo }}</span>
+          <span class="block type-caption text-subtle weight-regular">{{ r.a.tipo }}</span>
         </td>
-        <td class="px-4 py-3 max-w-[220px]">
+        <td class="px-4 py-3 max-width-compact">
           <div class="flex flex-wrap gap-1">
-            {% for carrera in r.a.carreras_asociadas %}
-              <span class="inline-block bg-slate-100 text-slate-700 text-[11px] px-2 py-0.5 rounded-full font-medium border border-slate-200">
+            {% if lista_carreras and r.a.carreras_asociadas|length == lista_carreras|length %}
+              <span class="inline-block surface-muted text-emphasis text-compact px-2 py-0.5 radius-pill weight-medium border-width border-soft">
+                Todas las carreras
+              </span>
+            {% elif r.a.carreras_asociadas %}
+              {% for carrera in r.a.carreras_asociadas %}
+              <span class="inline-block surface-muted text-emphasis text-compact px-2 py-0.5 radius-pill weight-medium border-width border-soft">
                 {{ carrera.tipo.nombre }} {{ carrera.nombre }}
               </span>
+              {% endfor %}
             {% else %}
-              <span class="text-xs text-slate-400 italic">Sin asignación</span>
-            {% endfor %}
+              <span class="type-caption text-subtle text-italic">Sin asignación</span>
+            {% endif %}
           </div>
         </td>
-        <td class="text-slate-500 whitespace-nowrap">{{ r.a.fecha_inicio|fmt_dt }}</td>
+        <td class="text-muted text-no-wrap">{{ r.a.fecha_inicio|fmt_dt }}</td>
         <td>
-          {% if r.a.estado=='publicada' and not r.a.finalizada %}<span class="text-xs px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 font-medium">publicada</span>
-          {% elif r.a.estado=='publicada' and r.a.finalizada %}<span class="text-xs px-2.5 py-1 rounded-full bg-brand-softer text-fg-brand-strong font-medium">finalizada</span>
-          {% elif r.a.estado=='borrador' %}<span class="text-xs px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 font-medium">borrador</span>
-          {% else %}<span class="text-xs px-2.5 py-1 rounded-full bg-slate-200 text-slate-600 font-medium">cancelada</span>{% endif %}
+          {% if r.a.estado=='publicada' and not r.a.finalizada %}<span class="type-caption px-2.5 py-1 radius-pill surface-success text-success-strong weight-medium">publicada</span>
+          {% elif r.a.estado=='publicada' and r.a.finalizada %}<span class="type-caption px-2.5 py-1 radius-pill surface-brand-soft text-link-strong weight-medium">finalizada</span>
+          {% elif r.a.estado=='borrador' %}<span class="type-caption px-2.5 py-1 radius-pill surface-warning text-warning weight-medium">borrador</span>
+          {% else %}<span class="type-caption px-2.5 py-1 radius-pill surface-track text-secondary weight-medium">cancelada</span>{% endif %}
         </td>
-        <td class="text-slate-500 whitespace-nowrap">{{ r.cupo.taken }}/{{ r.a.cupo_max }}</td>
+        <td class="text-muted text-no-wrap">{{ r.cupo.taken }}/{{ r.a.cupo_max }}</td>
         <td class="px-4 py-3">
-          <div class="flex gap-2 justify-end flex-wrap text-xs">
-            <a href="{{ url_for('preview', actividad_id=r.a.id).path }}" class="text-slate-600 hover:underline">Vista previa</a>
-            <a href="{{ url_for('editar', actividad_id=r.a.id).path }}" class="text-indigo-600 hover:underline">Editar</a>
-            <a href="{{ url_for('inscriptos_detail', actividad_id=r.a.id).path }}" class="text-indigo-600 hover:underline">Inscriptos</a>
-            <a href="{{ url_for('docente_asistencia', actividad_id=r.a.id).path }}" class="text-indigo-600 hover:underline">Asistencia</a>
+          <div class="flex gap-2 justify-end flex-wrap type-caption">
+            <a href="{{ url_for('preview', actividad_id=r.a.id).path }}" class="text-secondary hover-text-underline">Vista previa</a>
+            <a href="{{ url_for('editar', actividad_id=r.a.id).path }}" class="text-link hover-text-underline">Editar</a>
+            <a href="{{ url_for('inscriptos_detail', actividad_id=r.a.id).path }}" class="text-link hover-text-underline">Inscriptos</a>
+            <a href="{{ url_for('docente_asistencia', actividad_id=r.a.id).path }}" class="text-link hover-text-underline">Asistencia</a>
             {% if r.a.estado != 'publicada' %}
               {% if r.a.carreras_asociadas %}
-                <form method="post" action="{{ url_for('publicar', actividad_id=r.a.id).path }}"><button class="text-emerald-600 hover:underline">Publicar</button></form>
+                <form method="post" action="{{ url_for('publicar', actividad_id=r.a.id).path }}"><button class="text-success hover-text-underline">Publicar</button></form>
               {% else %}
                 <span class="inline-flex" data-tooltip="No se puede publicar una actividad sin carreras asociadas.">
-                  <button type="button" disabled class="text-slate-400 cursor-not-allowed">Publicar</button>
+                  <button type="button" disabled class="text-subtle cursor-disabled">Publicar</button>
                 </span>
               {% endif %}
             {% else %}
-              <form method="post" action="{{ url_for('cancelar', actividad_id=r.a.id).path }}" onsubmit="return confirm('¿Cancelar esta actividad?')"><button class="text-rose-600 hover:underline">Cancelar</button></form>
+              <form method="post" action="{{ url_for('cancelar', actividad_id=r.a.id).path }}" onsubmit="return confirm('¿Cancelar esta actividad?')"><button class="text-danger hover-text-underline">Cancelar</button></form>
             {% endif %}
           </div>
         </td>
       </tr>
     {% else %}
       <tr>
-        <td colspan="6" class="px-4 py-8 text-center text-slate-500">
+        <td colspan="6" class="px-4 py-8 text-align-center text-muted">
           {% if carrera_id_seleccionada %}
             No hay actividades registradas para la carrera seleccionada.
           {% else %}
@@ -158,7 +164,7 @@
       tooltip = document.createElement('div');
       tooltip.setAttribute('role', 'tooltip');
       tooltip.textContent = trigger.dataset.tooltip;
-      tooltip.className = 'fixed z-50 w-64 rounded-lg bg-slate-900 px-3 py-2 text-center text-xs font-medium text-white shadow-lg';
+      tooltip.className = 'fixed z-50 w-64 radius-control surface-navigation px-3 py-2 text-align-center type-caption weight-medium text-on-contrast elevation-floating';
       document.body.appendChild(tooltip);
 
       const triggerBox = trigger.getBoundingClientRect();

@@ -5,89 +5,46 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ app_name }}{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    const cssPalette = (name, shades) => Object.fromEntries(
-      shades.map((shade) => [
-        shade,
-        `rgb(var(--app-color-${name}-${shade}) / <alpha-value>)`,
-      ]),
-    );
-
-    tailwind.config = {
-      theme: {
-        extend: {
-          colors: {
-            white: "rgb(var(--app-color-white) / <alpha-value>)",
-            slate: cssPalette("slate", [50, 100, 200, 300, 400, 500, 600, 700, 800, 900]),
-            gray: cssPalette("gray", [50, 100, 200, 400]),
-            amber: cssPalette("amber", [100, 300, 400, 500, 700, 800, 900]),
-            emerald: cssPalette("emerald", [50, 100, 200, 500, 600, 700, 800]),
-            indigo: cssPalette("indigo", [100, 500, 600, 700]),
-            rose: cssPalette("rose", [50, 100, 200, 300, 500, 600, 700, 800]),
-            sky: cssPalette("sky", [50, 200, 800]),
-            brand: {
-              softer: "rgb(var(--app-color-brand-softer) / <alpha-value>)",
-            },
-            "fg-brand-strong": "rgb(var(--app-color-brand-strong) / <alpha-value>)",
-          },
-          borderRadius: {
-            DEFAULT: "var(--app-radius-default)",
-            md: "var(--app-radius-md)",
-            lg: "var(--app-radius-lg)",
-            xl: "var(--app-radius-xl)",
-            "2xl": "var(--app-radius-2xl)",
-            full: "var(--app-radius-full)",
-          },
-          boxShadow: {
-            sm: "var(--app-shadow-sm)",
-            DEFAULT: "var(--app-shadow)",
-            lg: "var(--app-shadow-lg)",
-            xl: "var(--app-shadow-xl)",
-          },
-        },
-      },
-    };
-  </script>
   <link rel="stylesheet" href="{{ url_for('static', path='/theme.css').path }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
 </head>
-<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+<body class="surface-page text-primary min-h-screen flex flex-col">
   {% if user %}
-  <header class="bg-slate-900 text-white">
+  <header class="surface-navigation text-on-contrast">
     <nav class="max-w-5xl mx-auto px-4 py-3 flex items-center gap-4 flex-wrap">
-      <a href="{{ url_for('root').path }}" class="font-semibold text-lg flex items-center gap-2"><i data-lucide="graduation-cap" class="w-5 h-5"></i> {{ app_name }}</a>
-      <button type="button" id="nav-toggle" class="ml-auto inline-flex md:hidden items-center justify-center rounded border border-slate-600 p-2 text-white" aria-controls="site-navigation" aria-expanded="false" aria-label="Abrir menú">
+      <a href="{{ url_for('root').path }}" class="weight-semibold type-subheading flex items-center gap-2"><i data-lucide="graduation-cap" class="w-5 h-5"></i> {{ app_name }}</a>
+      <button type="button" id="nav-toggle" class="ml-auto inline-flex md:hidden items-center justify-center radius-small border-width border-dark p-2 text-on-contrast" aria-controls="site-navigation" aria-expanded="false" aria-label="Abrir menú">
         <span class="flex flex-col gap-1" aria-hidden="true">
-          <span class="h-0.5 w-5 bg-current"></span>
-          <span class="h-0.5 w-5 bg-current"></span>
-          <span class="h-0.5 w-5 bg-current"></span>
+          <span class="h-0.5 w-5 surface-current"></span>
+          <span class="h-0.5 w-5 surface-current"></span>
+          <span class="h-0.5 w-5 surface-current"></span>
         </span>
       </button>
       <div id="site-navigation" class="hidden w-full flex-col gap-3 md:flex md:w-auto md:flex-1 md:flex-row md:items-center md:justify-end md:gap-4">
       {% if user.rol == 'estudiante' %}
-        <a href="{{ url_for('home').path }}" class="hover:underline">Inicio</a>
-        <a href="{{ url_for('list_actividades').path }}" class="hover:underline">Actividades</a>
-        <a href="{{ url_for('checkin_page').path }}" class="hover:underline">Registrar asistencia</a>
-        <a href="{{ url_for('faq_list').path }}" class="hover:underline">Ayuda</a>
+        <a href="{{ url_for('home').path }}" class="hover-text-underline">Inicio</a>
+        <a href="{{ url_for('list_actividades').path }}" class="hover-text-underline">Actividades</a>
+        <a href="{{ url_for('checkin_page').path }}" class="hover-text-underline">Registrar asistencia</a>
+        <a href="{{ url_for('faq_list').path }}" class="hover-text-underline">Ayuda</a>
       {% elif user.rol == 'coordinacion' %}
-        <a href="{{ url_for('panel').path }}" class="hover:underline">Actividades</a>
-        <a href="{{ url_for('inscriptos_index').path }}" class="hover:underline">Inscriptos</a>
-        <a href="{{ url_for('crear_usuarios').path }}" class="hover:underline">Usuarios</a>
-        <a href="{{ url_for('admin_mensajes').path }}" class="hover:underline">Mensajes</a>
-        <a href="{{ url_for('dashboard').path }}" class="hover:underline">Analítica</a>
-        <a href="{{ url_for('faq_admin').path }}" class="hover:underline">FAQ</a>
-        <a href="{{ url_for('listar_carreras').path }}" class="hover:underline">Carreras</a>
+        <a href="{{ url_for('panel').path }}" class="hover-text-underline">Actividades</a>
+        <a href="{{ url_for('inscriptos_index').path }}" class="hover-text-underline">Inscriptos</a>
+        <a href="{{ url_for('crear_usuarios').path }}" class="hover-text-underline">Usuarios</a>
+        <a href="{{ url_for('admin_mensajes').path }}" class="hover-text-underline">Mensajes</a>
+        <a href="{{ url_for('dashboard').path }}" class="hover-text-underline">Analítica</a>
+        <a href="{{ url_for('faq_admin').path }}" class="hover-text-underline">FAQ</a>
+        <a href="{{ url_for('listar_carreras').path }}" class="hover-text-underline">Carreras</a>
       {% elif user.rol == 'docente' %}
-        <a href="{{ url_for('docente_home').path }}" class="hover:underline">Mis actividades</a>
+        <a href="{{ url_for('docente_home').path }}" class="hover-text-underline">Mis actividades</a>
       {% elif user.rol == 'director' %}
-        <a href="{{ url_for('dashboard').path }}" class="hover:underline">Analítica</a>
+        <a href="{{ url_for('dashboard').path }}" class="hover-text-underline">Analítica</a>
       {% endif %}
-      <a href="{{ url_for('notificaciones').path }}" class="relative hover:underline">
+      <a href="{{ url_for('notificaciones').path }}" class="relative hover-text-underline">
         Notificaciones
-        {% if unread %}<span class="absolute -top-2 -right-3 bg-rose-500 text-xs rounded-full px-1.5">{{ unread }}</span>{% endif %}
+        {% if unread %}<span class="absolute -top-2 -right-3 surface-danger-strong type-caption radius-pill px-1.5">{{ unread }}</span>{% endif %}
       </a>
-      <a href="{{ url_for('perfil').path }}" class="text-slate-300 hover:text-white text-sm">{{ user.nombre_completo }}</a>
-      <a href="{{ url_for('logout').path }}" class="bg-slate-700 hover:bg-slate-600 px-3 py-1 rounded text-sm">Salir</a>
+      <a href="{{ url_for('perfil').path }}" class="text-on-dark-muted hover-text-on-contrast type-body-small">{{ user.nombre_completo }}</a>
+      <a href="{{ url_for('logout').path }}" class="surface-dark surface-dark-subtle-hover px-3 py-1 radius-small type-body-small">Salir</a>
     </nav>
   </header>
   {% endif %}
@@ -96,27 +53,27 @@
     {% set msg = request.query_params.get('msg') %}
     {% set err = request.query_params.get('err') %}
     {% if msg %}
-      <div class="mb-6 p-4 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 text-sm flex items-center gap-2">
-        <i data-lucide="check-circle" class="w-5 h-5 text-emerald-600 shrink-0"></i>
+      <div class="mb-6 p-4 radius-panel surface-success-soft border-width border-success text-success-contrast type-body-small flex items-center gap-2">
+        <i data-lucide="check-circle" class="w-5 h-5 text-success shrink-0"></i>
         <span>{{ msg }}</span>
       </div>
     {% endif %}
     {% set notice = request.query_params.get('notice') %}
     {% if notice %}
-      <div role="status" class="mb-6 p-4 rounded-xl bg-sky-50 border border-sky-200 text-sky-800 text-sm">
+      <div role="status" class="mb-6 p-4 radius-panel surface-info border-width border-info text-info type-body-small">
         {{ notice }}
       </div>
     {% endif %}
     {% if err %}
-      <div class="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 text-rose-800 text-sm flex items-center gap-2">
-        <i data-lucide="alert-circle" class="w-5 h-5 text-rose-600 shrink-0"></i>
+      <div class="mb-6 p-4 radius-panel surface-danger-soft border-width border-danger text-danger-contrast type-body-small flex items-center gap-2">
+        <i data-lucide="alert-circle" class="w-5 h-5 text-danger shrink-0"></i>
         <span>{{ err }}</span>
       </div>
     {% endif %}
     {% block content %}{% endblock %}
   </main>
 
-  <footer class="text-center text-xs text-slate-400 py-6">
+  <footer class="text-align-center type-caption text-subtle py-6">
     Módulo Habitar, CPU - ECyT UNSAM, Grupo 10
   </footer>
   <script src="https://unpkg.com/lucide@0.460.0/dist/umd/lucide.min.js"></script>

@@ -187,12 +187,39 @@ def test_admin_activities_crud_lifecycle(admin_actividades_client):
     assert redirect_query(publish_response, "msg").startswith("Actividad publicada")
     db_session.refresh(actividad)
     assert actividad.estado == ESTADO_PUBLICADA
-
     cancel_response = client.post(f"/admin/actividades/{actividad.id}/cancelar")
     assert cancel_response.status_code == 303
     assert redirect_query(cancel_response, "msg").startswith("Actividad cancelada")
     db_session.refresh(actividad)
     assert actividad.estado == ESTADO_CANCELADA
+
+
+def test_panel_shows_single_badge_when_activity_includes_all_careers(
+    admin_actividades_client, carrera_factory
+):
+    client, _db_session, docente, carrera = admin_actividades_client
+    otra_carrera = carrera_factory(nombre="Psicología")
+    data = actividad_form_data(docente.docente_id, carrera.id)
+    data["carreras_asociadas"] = [str(carrera.id), str(otra_carrera.id)]
+
+    create_response = client.post("/admin/actividades", data=data)
+    assert create_response.status_code == 303
+
+    partial_data = actividad_form_data(
+        docente.docente_id, carrera.id, titulo="Actividad parcial"
+    )
+    partial_response = client.post("/admin/actividades", data=partial_data)
+    assert partial_response.status_code == 303
+
+    panel_response = client.get("/admin/actividades")
+    assert panel_response.status_code == 200
+    activity_row = panel_response.text.split("Actividad nueva", 1)[1].split("</tr>", 1)[0]
+    assert "Todas las carreras" in activity_row
+    assert "Arquitectura" not in activity_row
+    assert "Psicología" not in activity_row
+    partial_row = panel_response.text.split("Actividad parcial", 1)[1].split("</tr>", 1)[0]
+    assert "Arquitectura" in partial_row
+    assert "Todas las carreras" not in partial_row
 
 
 def test_create_activity_rejects_credits_not_in_half_point_steps(admin_actividades_client):

@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% block title %}Sin acceso{% endblock %}
 {% block content %}
-<div class="bg-white rounded-xl shadow p-8 text-center">
-  <h1 class="text-2xl font-bold mb-2">Acceso denegado</h1>
-  <p class="text-slate-600">Tu rol no tiene acceso a esta sección.</p>
-  <a href="{{ url_for('root').path }}" class="inline-block mt-4 text-indigo-600 hover:underline">Volver al inicio</a>
+<div class="surface-card radius-panel elevation-card p-8 text-align-center">
+  <h1 class="type-heading weight-bold mb-2">Acceso denegado</h1>
+  <p class="text-secondary">Tu rol no tiene acceso a esta sección.</p>
+  <a href="{{ url_for('root').path }}" class="inline-block mt-4 text-link hover-text-underline">Volver al inicio</a>
 </div>
 {% endblock %}

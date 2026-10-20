@@ -1,8 +1,8 @@
-<section class="bg-white rounded-2xl shadow divide-y mb-6">
+<section class="surface-card radius-card elevation-card divide-rows mb-6">
   <div class="px-5 py-4">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-1 mb-4">
-      <h2 class="font-semibold">Consultas de estudiantes</h2>
-      <span class="text-xs text-slate-500">
+      <h2 class="weight-semibold">Consultas de estudiantes</h2>
+      <span class="type-caption text-muted">
         <span id="consultas-no-leidas">{{ consultas_no_leidas }}</span>
         sin leer
       </span>
@@ -12,77 +12,77 @@
       <input type="hidden" name="tab" value="mensajes">
       {% endif %}
       <div class="w-full sm:w-auto">
-        <label for="filter-lectura" class="block text-xs text-slate-600 mb-1">Lectura</label>
-        <select id="filter-lectura" name="lectura" class="w-full sm:w-auto border border-slate-300 rounded-lg px-3 py-2 text-sm">
+        <label for="filter-lectura" class="block type-caption text-secondary mb-1">Lectura</label>
+        <select id="filter-lectura" name="lectura" class="w-full sm:w-auto border-width border-field radius-control px-3 py-2 type-body-small">
           <option value="todas" {% if lectura == "todas" %}selected{% endif %}>Todos</option>
           <option value="no_leidos" {% if lectura == "no_leidos" %}selected{% endif %}>No vistos</option>
           <option value="leidos" {% if lectura == "leidos" %}selected{% endif %}>Vistos</option>
         </select>
       </div>
       <div class="w-full sm:w-auto">
-        <label for="filter-respuesta" class="block text-xs text-slate-600 mb-1">Respuesta</label>
-        <select id="filter-respuesta" name="respuesta" class="w-full sm:w-auto border border-slate-300 rounded-lg px-3 py-2 text-sm">
+        <label for="filter-respuesta" class="block type-caption text-secondary mb-1">Respuesta</label>
+        <select id="filter-respuesta" name="respuesta" class="w-full sm:w-auto border-width border-field radius-control px-3 py-2 type-body-small">
           <option value="todas" {% if respuesta == "todas" %}selected{% endif %}>Todas</option>
           <option value="no_respondidos" {% if respuesta == "no_respondidos" %}selected{% endif %}>No respondidos</option>
           <option value="respondidos" {% if respuesta == "respondidos" %}selected{% endif %}>Respondidos</option>
         </select>
       </div>
       <div class="w-full sm:w-auto">
-        <label for="filter-orden" class="block text-xs text-slate-600 mb-1">Fecha</label>
-        <select id="filter-orden" name="orden" class="w-full sm:w-auto border border-slate-300 rounded-lg px-3 py-2 text-sm">
+        <label for="filter-orden" class="block type-caption text-secondary mb-1">Fecha</label>
+        <select id="filter-orden" name="orden" class="w-full sm:w-auto border-width border-field radius-control px-3 py-2 type-body-small">
           <option value="desc" {% if orden == "desc" %}selected{% endif %}>Nuevas a antiguas</option>
           <option value="asc" {% if orden == "asc" %}selected{% endif %}>Antiguas a nuevas</option>
         </select>
       </div>
-      <button class="w-full sm:w-auto bg-slate-700 hover:bg-slate-800 text-white rounded-lg px-4 py-2 text-sm">Aplicar</button>
+      <button class="w-full sm:w-auto surface-dark surface-dark-strong-hover text-on-contrast radius-control px-4 py-2 type-body-small">Aplicar</button>
     </form>
   </div>
   {% for mensaje in recibidos %}
     {% set respuestas = respuestas_por_mensaje.get(mensaje.id, []) %}
-    <details class="message-item px-4 sm:px-5 py-4 {% if not mensaje.leido %}bg-indigo-50/50{% endif %}"
+    <details class="message-item px-4 sm:px-5 py-4 {% if not mensaje.leido %}surface-brand-subtle{% endif %}"
       data-read="{{ 'true' if mensaje.leido else 'false' }}"
       data-read-url="{{ url_for('leer_mensaje', mensaje_id=mensaje.id).path }}">
-      <summary class="cursor-pointer flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-3">
-        <span class="min-w-0 break-words font-medium {% if not mensaje.leido %}text-slate-900{% else %}text-slate-700{% endif %}">
+      <summary class="cursor-interactive flex flex-col sm:flex-row sm:justify-between gap-1 sm:gap-3">
+        <span class="min-w-0 break-words weight-medium {% if not mensaje.leido %}text-heading{% else %}text-emphasis{% endif %}">
           {{ mensaje.asunto }}
-          {% if not mensaje.leido %}<span class="message-unread ml-2 rounded-full bg-indigo-600 px-2 py-0.5 text-xs text-white">Nuevo</span>{% endif %}
-          {% if respuestas %}<span class="ml-2 rounded-full bg-emerald-100 px-2 py-0.5 text-xs text-emerald-800">Respondido</span>
-          {% else %}<span class="ml-2 rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-600">Sin responder</span>{% endif %}
+          {% if not mensaje.leido %}<span class="message-unread ml-2 radius-pill surface-brand px-2 py-0.5 type-caption text-on-contrast">Nuevo</span>{% endif %}
+          {% if respuestas %}<span class="ml-2 radius-pill surface-success px-2 py-0.5 type-caption text-success-contrast">Respondido</span>
+          {% else %}<span class="ml-2 radius-pill surface-muted px-2 py-0.5 type-caption text-secondary">Sin responder</span>{% endif %}
         </span>
-        <time class="shrink-0 text-xs text-slate-400">{{ mensaje.created_at|fmt_dt }}</time>
+        <time class="shrink-0 type-caption text-subtle">{{ mensaje.created_at|fmt_dt }}</time>
       </summary>
-      <p class="text-xs text-slate-500 mt-2">De {{ mensaje.remitente.nombre_completo }} · {{ mensaje.remitente.email }}</p>
-      <p class="text-sm text-slate-600 mt-2 whitespace-pre-wrap">{{ mensaje.cuerpo }}</p>
+      <p class="type-caption text-muted mt-2">De {{ mensaje.remitente.nombre_completo }} · {{ mensaje.remitente.email }}</p>
+      <p class="type-body-small text-secondary mt-2 text-pre-wrap">{{ mensaje.cuerpo }}</p>
       {% if respuestas %}
-        <div class="mt-4 ml-2 sm:ml-4 border-l-2 border-slate-200 pl-3 sm:pl-4 space-y-3">
+        <div class="mt-4 ml-2 sm:ml-4 border-left-strong border-soft pl-3 sm:pl-4 space-y-3">
           {% for respuesta_mensaje in respuestas %}
             <div>
-              <p class="text-xs text-slate-500">
+              <p class="type-caption text-muted">
                 Respuesta de {{ respuesta_mensaje.remitente.nombre_completo }} ·
                 {{ respuesta_mensaje.created_at|fmt_dt }}
               </p>
-              <p class="text-sm text-slate-700 mt-1 whitespace-pre-wrap">{{ respuesta_mensaje.cuerpo }}</p>
+              <p class="type-body-small text-emphasis mt-1 text-pre-wrap">{{ respuesta_mensaje.cuerpo }}</p>
             </div>
           {% endfor %}
         </div>
       {% endif %}
       <form method="post" action="{{ url_for('responder_mensaje', mensaje_id=mensaje.id).path }}"
-        class="mt-4 border-t border-slate-200 pt-4 space-y-2">
+        class="mt-4 border-top border-soft pt-4 space-y-2">
         <input type="hidden" name="return_to" value="{{ reply_return_to }}">
         <input type="hidden" name="lectura" value="{{ lectura }}">
         <input type="hidden" name="respuesta" value="{{ respuesta }}">
         <input type="hidden" name="orden" value="{{ orden }}">
-        <label for="reply-{{ mensaje.id }}" class="block text-sm text-slate-700">
+        <label for="reply-{{ mensaje.id }}" class="block type-body-small text-emphasis">
           {% if respuestas %}Responder nuevamente{% else %}Responder al estudiante{% endif %}
         </label>
         <textarea id="reply-{{ mensaje.id }}" name="cuerpo" rows="3" required
-          class="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm"></textarea>
-        <button type="submit" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2 text-sm font-medium">
+          class="w-full border-width border-field radius-control px-3 py-2 type-body-small"></textarea>
+        <button type="submit" class="w-full sm:w-auto surface-brand surface-brand-hover text-on-contrast radius-control px-4 py-2 type-body-small weight-medium">
           Enviar respuesta
         </button>
       </form>
     </details>
   {% else %}
-    <p class="px-5 py-4 text-sm text-slate-500">No hay consultas que coincidan con los filtros.</p>
+    <p class="px-5 py-4 type-body-small text-muted">No hay consultas que coincidan con los filtros.</p>
   {% endfor %}
 </section>

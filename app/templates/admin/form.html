@@ -2,12 +2,12 @@
 {% block title %}{{ 'Editar' if a else 'Nueva' }} actividad{% endblock %}
 
 {% block content %}
-<a href="{{ url_for('panel').path }}" class="text-sm text-indigo-600 hover:underline inline-flex items-center gap-1">
+<a href="{{ url_for('panel').path }}" class="type-body-small text-link hover-text-underline inline-flex items-center gap-1">
   <i data-lucide="arrow-left" class="w-4 h-4"></i> Panel
 </a>
 
-<div class="bg-white rounded-2xl shadow p-8 mt-3 max-w-2xl">
-  <h1 class="text-2xl font-bold mb-5">
+<div class="surface-card radius-card elevation-card p-8 mt-3 max-w-2xl">
+  <h1 class="type-heading weight-bold mb-5">
     {{ 'Editar actividad' if a else 'Nueva actividad' }}
   </h1>
 
@@ -19,32 +19,32 @@
   >
 
     <div>
-      <label class="block text-sm font-medium mb-1">Título</label>
+      <label class="block type-body-small weight-medium mb-1">Título</label>
       <input
         name="titulo"
         value="{{ a.titulo if a else '' }}"
         required
-        class="w-full border rounded-lg px-3 py-2"
+        class="w-full border-width radius-control px-3 py-2"
       >
     </div>
 
     <div>
-      <label class="block text-sm font-medium mb-1">Descripción</label>
+      <label class="block type-body-small weight-medium mb-1">Descripción</label>
       <textarea
         name="descripcion"
         rows="3"
-        class="w-full border rounded-lg px-3 py-2"
+        class="w-full border-width radius-control px-3 py-2"
       >{{ a.descripcion if a else '' }}</textarea>
     </div>
 
     <div class="grid sm:grid-cols-2 gap-3">
 
       <div class="mb-4">
-        <label class="block text-sm font-medium mb-1">Carreras asociadas</label>
+        <label class="block type-body-small weight-medium mb-1">Carreras asociadas</label>
 
         <select
           id="carrera-select"
-          class="w-full border rounded-lg px-3 py-2 bg-white"
+          class="w-full border-width radius-control px-3 py-2 surface-card"
         >
           <option value="">-- Seleccionar carrera para agregar --</option>
           <option value="todas">-- TODAS LAS CARRERAS --</option>
@@ -61,9 +61,9 @@
 
         <div
           id="carreras-tags-container"
-          class="activity-instructors-container mt-2 min-h-[42px] p-2 border rounded-lg bg-gray-50 border-gray-200"
+          class="activity-instructors-container mt-2 min-height-control-large p-2 border-width radius-control surface-gray border-neutral"
         >
-          <span id="carreras-empty-msg" class="text-xs text-gray-400">
+          <span id="carreras-empty-msg" class="type-caption text-neutral-subtle">
             No hay carreras seleccionadas
           </span>
         </div>
@@ -84,8 +84,8 @@
       </div>
 
       <div>
-        <label class="block text-sm font-medium mb-1">Tipo</label>
-        <select name="tipo" class="w-full border rounded-lg px-3 py-2">
+        <label class="block type-body-small weight-medium mb-1">Tipo</label>
+        <select name="tipo" class="w-full border-width radius-control px-3 py-2">
           {% for t in tipos %}
             <option
               value="{{ t }}"
@@ -98,17 +98,17 @@
       </div>
 
       <div>
-        <label class="block text-sm font-medium mb-1">Docentes</label>
-        <select name="docentes_ids" multiple class="w-full border rounded-lg px-3 py-2 min-h-28">
+        <label class="block type-body-small weight-medium mb-1">Docentes</label>
+        <select name="docentes_ids" multiple class="w-full border-width radius-control px-3 py-2 min-h-28">
           {% for d in docentes %}
             <option value="{{ d.id }}" {% if a and d in a.docentes %}selected{% endif %}>
               {{ d.nombre_completo }}
             </option>
           {% endfor %}
         </select>
-        <p class="text-xs text-slate-500 mt-1">Usá Ctrl o Cmd para seleccionar varios.</p>
+        <p class="type-caption text-muted mt-1">Usá Ctrl o Cmd para seleccionar varios.</p>
         <div id="docentes-nuevos" class="space-y-2 mt-3"></div>
-        <button type="button" id="agregar-docente" class="text-sm text-indigo-600 hover:underline mt-2">
+        <button type="button" id="agregar-docente" class="type-body-small text-link hover-text-underline mt-2">
           Agregar docente sin usuario
         </button>
       </div>
@@ -121,7 +121,7 @@
       <div>
         <label
           for="fecha_inicio"
-          class="block text-sm font-medium mb-1"
+          class="block type-body-small weight-medium mb-1"
         >
           Inicio
         </label>
@@ -133,7 +133,7 @@
           value="{{ a.fecha_inicio|fmt_input if a else '' }}"
           required
           autocomplete="off"
-          class="w-full border rounded-lg px-3 py-2"
+          class="w-full border-width radius-control px-3 py-2"
         >
       </div>
 
@@ -144,18 +144,18 @@
           <label
             id="finalizacion-label"
             for="duracion"
-            class="block text-sm font-medium"
+            class="block type-body-small weight-medium"
           >
             Duración
           </label>
 
           <div
-            class="inline-flex rounded-lg bg-slate-100 p-0.5"
+            class="inline-flex radius-control surface-muted p-0.5"
             role="group"
             aria-label="Modo de finalización"
           >
 
-            <label class="cursor-pointer">
+            <label class="cursor-interactive">
               <input
                 id="modo-duracion"
                 type="radio"
@@ -166,17 +166,17 @@
               >
 
               <span
-                class="block rounded-md px-2.5 py-1 text-xs font-medium
-                       text-slate-600
-                       peer-checked:bg-white
-                       peer-checked:text-indigo-700
-                       peer-checked:shadow-sm"
+                class="block radius-control-compact px-2.5 py-1 type-caption weight-medium
+                       text-secondary
+                       peer-selected-surface
+                       peer-selected-brand-text
+                       peer-selected-elevation"
               >
                 Duración
               </span>
             </label>
 
-            <label class="cursor-pointer">
+            <label class="cursor-interactive">
               <input
                 id="modo-fecha"
                 type="radio"
@@ -187,11 +187,11 @@
               >
 
               <span
-                class="block rounded-md px-2.5 py-1 text-xs font-medium
-                       text-slate-600
-                       peer-checked:bg-white
-                       peer-checked:text-indigo-700
-                       peer-checked:shadow-sm"
+                class="block radius-control-compact px-2.5 py-1 type-caption weight-medium
+                       text-secondary
+                       peer-selected-surface
+                       peer-selected-brand-text
+                       peer-selected-elevation"
               >
                 Fecha
               </span>
@@ -209,7 +209,7 @@
           placeholder="HH:MM"
           value="{{ duracion_inicial }}"
           required
-          class="w-full border rounded-lg px-3 py-2"
+          class="w-full border-width radius-control px-3 py-2"
         >
 
         <input
@@ -218,25 +218,25 @@
           name="fecha_fin"
           value="{{ a.fecha_fin|fmt_input if a else '' }}"
           autocomplete="off"
-          class="hidden w-full border rounded-lg px-3 py-2"
+          class="hidden w-full border-width radius-control px-3 py-2"
         >
 
       </div>
     </div>
 
     <div>
-      <label class="block text-sm font-medium mb-1">Lugar</label>
+      <label class="block type-body-small weight-medium mb-1">Lugar</label>
       <input
         name="lugar"
         value="{{ a.lugar if a else '' }}"
-        class="w-full border rounded-lg px-3 py-2"
+        class="w-full border-width radius-control px-3 py-2"
       >
     </div>
 
     <div class="grid sm:grid-cols-2 gap-3">
 
       <div>
-        <label class="block text-sm font-medium mb-1">Créditos</label>
+        <label class="block type-body-small weight-medium mb-1">Créditos</label>
         <input
           type="number"
           name="creditos"
@@ -244,25 +244,25 @@
           step="0.5"
           value="{{ a.creditos if a else 1 }}"
           required
-          class="w-full border rounded-lg px-3 py-2"
+          class="w-full border-width radius-control px-3 py-2"
         >
       </div>
 
       <div>
-        <label class="block text-sm font-medium mb-1">Cupo máximo</label>
+        <label class="block type-body-small weight-medium mb-1">Cupo máximo</label>
         <input
           type="number"
           name="cupo_max"
           min="1"
           value="{{ a.cupo_max if a else 30 }}"
           required
-          class="w-full border rounded-lg px-3 py-2"
+          class="w-full border-width radius-control px-3 py-2"
         >
       </div>
 
       <div>
-        <label class="block text-sm font-medium mb-1">Encuesta post-actividad</label>
-        <select name="encuesta_obligatoria" class="w-full border rounded-lg px-3 py-2">
+        <label class="block type-body-small weight-medium mb-1">Encuesta post-actividad</label>
+        <select name="encuesta_obligatoria" class="w-full border-width radius-control px-3 py-2">
           <option value="true" {% if not a or a.encuesta_obligatoria %}selected{% endif %}>
             Obligatoria para acreditar créditos
           </option>
@@ -276,14 +276,14 @@
 
     <div class="flex gap-2 pt-2">
       <button
-        class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-6 py-2 font-medium"
+        class="surface-brand surface-brand-hover text-on-contrast radius-control px-6 py-2 weight-medium"
       >
         Guardar
       </button>
 
       <a
         href="{{ url_for('panel').path }}"
-        class="text-slate-500 px-3 py-2 hover:underline"
+        class="text-muted px-3 py-2 hover-text-underline"
       >
         Cancelar
       </a>
@@ -405,8 +405,8 @@
     const fila = document.createElement('div');
     fila.className = 'grid grid-cols-2 gap-2';
     fila.innerHTML = `
-      <input name="docentes_nombres" placeholder="Nombre" required class="border rounded-lg px-3 py-2">
-      <input name="docentes_apellidos" placeholder="Apellido" required class="border rounded-lg px-3 py-2">
+      <input name="docentes_nombres" placeholder="Nombre" required class="border-width radius-control px-3 py-2">
+      <input name="docentes_apellidos" placeholder="Apellido" required class="border-width radius-control px-3 py-2">
     `;
     docentesNuevos.appendChild(fila);
   });

@@ -1,18 +1,18 @@
 {% extends "base.html" %}
 {% block title %}Mis actividades{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-bold mb-4">Actividades para tomar asistencia</h1>
+<h1 class="type-heading weight-bold mb-4">Actividades para tomar asistencia</h1>
 {% if not actividades %}
-  <p class="text-slate-500">No tenés actividades asignadas.</p>
+  <p class="text-muted">No tenés actividades asignadas.</p>
 {% endif %}
 <div class="space-y-3">
   {% for a in actividades %}
-  <div class="bg-white rounded-xl shadow p-4 flex items-center justify-between">
+  <div class="surface-card radius-panel elevation-card p-4 flex items-center justify-between">
     <div>
-      <p class="font-semibold">{{ a.titulo }}</p>
-      <p class="text-sm text-slate-500"><i data-lucide="calendar" class="inline-block w-4 h-4 align-[-3px]"></i> {{ a.fecha_inicio|fmt_dt }}, <i data-lucide="map-pin" class="inline-block w-4 h-4 align-[-3px]"></i> {{ a.lugar }}</p>
+      <p class="weight-semibold">{{ a.titulo }}</p>
+      <p class="type-body-small text-muted"><i data-lucide="calendar" class="inline-block w-4 h-4 icon-baseline-align"></i> {{ a.fecha_inicio|fmt_dt }}, <i data-lucide="map-pin" class="inline-block w-4 h-4 icon-baseline-align"></i> {{ a.lugar }}</p>
     </div>
-    <a href="{{ url_for('docente_asistencia', actividad_id=a.id).path }}" class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2 text-sm">Tomar asistencia</a>
+    <a href="{{ url_for('docente_asistencia', actividad_id=a.id).path }}" class="surface-brand surface-brand-hover text-on-contrast radius-control px-4 py-2 type-body-small">Tomar asistencia</a>
   </div>
   {% endfor %}
 </div>

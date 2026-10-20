@@ -1,54 +1,54 @@
 {% extends "base.html" %}
 {% block title %}Preguntas frecuentes{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-bold mb-4">Preguntas frecuentes</h1>
-<label for="faq-search" class="block text-sm font-medium mb-1">Buscar respuestas</label>
+<h1 class="type-heading weight-bold mb-4">Preguntas frecuentes</h1>
+<label for="faq-search" class="block type-body-small weight-medium mb-1">Buscar respuestas</label>
 <input id="faq-search" type="search" placeholder="Escribí una pregunta o palabra clave"
-  class="w-full border border-slate-300 rounded-lg px-3 py-2 mb-4">
-<p id="faq-empty" class="hidden text-slate-500 mb-4">No encontramos preguntas relacionadas.</p>
+  class="w-full border-width border-field radius-control px-3 py-2 mb-4">
+<p id="faq-empty" class="hidden text-muted mb-4">No encontramos preguntas relacionadas.</p>
 
 <div id="faq-results" class="space-y-3">
   {% for f in items %}
-  <details class="faq-item bg-white rounded-xl shadow p-4" data-search="{{ (f.pregunta ~ ' ' ~ f.respuesta ~ ' ' ~ f.tags ~ ' ' ~ (f.categoria.nombre if f.categoria else ''))|lower }}">
-    <summary class="font-medium cursor-pointer">{{ f.pregunta }}</summary>
-    {% if f.categoria %}<p class="text-xs text-slate-500 mt-1">{{ f.categoria.nombre }}</p>{% endif %}
-    <p class="text-slate-600 text-sm mt-2">{{ f.respuesta }}</p>
+  <details class="faq-item surface-card radius-panel elevation-card p-4" data-search="{{ (f.pregunta ~ ' ' ~ f.respuesta ~ ' ' ~ f.tags ~ ' ' ~ (f.categoria.nombre if f.categoria else ''))|lower }}">
+    <summary class="weight-medium cursor-interactive">{{ f.pregunta }}</summary>
+    {% if f.categoria %}<p class="type-caption text-muted mt-1">{{ f.categoria.nombre }}</p>{% endif %}
+    <p class="text-secondary type-body-small mt-2">{{ f.respuesta }}</p>
   </details>
   {% else %}
-  <p id="faq-no-items" class="text-slate-500">Todavía no hay preguntas cargadas.</p>
+  <p id="faq-no-items" class="text-muted">Todavía no hay preguntas cargadas.</p>
   {% endfor %}
 </div>
 
 {% if user.rol == 'estudiante' %}
-<section id="faq-contact-cta" class="hidden mt-6 bg-slate-100 border border-slate-200 rounded-xl p-4">
-  <p class="text-sm text-slate-600 mb-2">¿No encontraste tu respuesta?</p>
-  <button id="faq-contact-open" type="button" class="text-slate-700 hover:underline">
+<section id="faq-contact-cta" class="hidden mt-6 surface-muted border-width border-soft radius-panel p-4">
+  <p class="type-body-small text-secondary mb-2">¿No encontraste tu respuesta?</p>
+  <button id="faq-contact-open" type="button" class="text-emphasis hover-text-underline">
     Contactar a coordinación
   </button>
 </section>
 
 <form id="faq-contact-form" method="post" action="{{ url_for('faq_contacto').path }}"
-  class="hidden mt-3 bg-slate-100 border border-slate-200 rounded-xl p-5 space-y-4">
+  class="hidden mt-3 surface-muted border-width border-soft radius-panel p-5 space-y-4">
   <input id="faq-search-context" type="hidden" name="busqueda">
   <input id="categoria_id" type="hidden" name="categoria_id">
 
   <div>
-    <label for="faq-category-search" class="block text-sm font-normal text-slate-600 mb-1">Tema / Categoría</label>
+    <label for="faq-category-search" class="block type-body-small weight-regular text-secondary mb-1">Tema / Categoría</label>
     <div class="relative">
       <input id="faq-category-search" type="text" placeholder="Seleccioná o buscá un tema..." autocomplete="off"
         role="combobox" aria-autocomplete="list" aria-controls="faq-category-dropdown" aria-expanded="false"
         aria-describedby="faq-category-empty" required
-        class="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-slate-400">
+        class="w-full border-width border-field radius-control px-3 py-2 surface-card focus-no-outline focus:focus-ring-width focus-ring-neutral">
       <ul id="faq-category-dropdown" role="listbox"
-        class="hidden absolute z-10 w-full mt-1 bg-white border border-slate-300 rounded-lg shadow-lg max-h-48 overflow-y-auto divide-y divide-slate-100">
+        class="hidden absolute z-10 w-full mt-1 surface-card border-width border-field radius-control elevation-floating max-h-48 overflow-y-auto divide-rows divide-subtle">
         {% for categoria in categories %}
-        <li class="category-option px-3 py-2 text-sm cursor-pointer hover:bg-slate-100"
+        <li class="category-option px-3 py-2 type-body-small cursor-interactive surface-muted-hover"
             role="option" aria-selected="false" tabindex="-1"
             data-id="{{ categoria.id }}" data-name="{{ categoria.nombre }}">
           {{ categoria.nombre }}
         </li>
         {% endfor %}
-        <li id="faq-category-empty" class="hidden px-3 py-2 text-sm text-slate-500" role="presentation">
+        <li id="faq-category-empty" class="hidden px-3 py-2 type-body-small text-muted" role="presentation">
           No hay categorías coincidentes.
         </li>
       </ul>
@@ -56,16 +56,16 @@
   </div>
 
   <div>
-    <label for="faq-contact-body" class="block text-sm font-normal text-slate-600 mb-1">Mensaje</label>
+    <label for="faq-contact-body" class="block type-body-small weight-regular text-secondary mb-1">Mensaje</label>
     <textarea id="faq-contact-body" name="cuerpo" rows="5" required
-      class="w-full border border-slate-300 rounded-lg px-3 py-2 bg-white"></textarea>
+      class="w-full border-width border-field radius-control px-3 py-2 surface-card"></textarea>
   </div>
 
   <div class="flex gap-3">
-    <button type="submit" class="bg-slate-700 hover:bg-slate-800 text-white rounded-lg px-5 py-2 text-sm font-normal">
+    <button type="submit" class="surface-dark surface-dark-strong-hover text-on-contrast radius-control px-5 py-2 type-body-small weight-regular">
       Enviar mensaje
     </button>
-    <button id="faq-contact-cancel" type="button" class="text-slate-600 hover:underline font-normal">Cancelar</button>
+    <button id="faq-contact-cancel" type="button" class="text-secondary hover-text-underline weight-regular">Cancelar</button>
   </div>
 </form>
 {% endif %}

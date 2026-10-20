@@ -1,66 +1,66 @@
 {% extends "base.html" %}
 {% block title %}Actividades{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-bold mb-4">Actividades disponibles</h1>
+<h1 class="type-heading weight-bold mb-4">Actividades disponibles</h1>
 
-<form method="get" action="{{ url_for('list_actividades').path }}" class="bg-white rounded-xl shadow p-4 mb-6 grid sm:grid-cols-5 gap-3 items-end">
+<form method="get" action="{{ url_for('list_actividades').path }}" class="surface-card radius-panel elevation-card p-4 mb-6 grid sm:grid-cols-5 gap-3 items-end">
   <input type="hidden" name="sort" value="{{ sort }}">
   <input type="hidden" name="direction" value="{{ direction }}">
   <div>
-    <label class="block text-xs font-medium mb-1">Tipo</label>
-    <select name="tipo" class="w-full border rounded-lg px-2 py-2">
+    <label class="block type-caption weight-medium mb-1">Tipo</label>
+    <select name="tipo" class="w-full border-width radius-control px-2 py-2">
       <option value="">Todos</option>
       {% for t in tipos %}<option value="{{ t }}" {% if filtros.tipo==t %}selected{% endif %}>{{ t|capitalize }}</option>{% endfor %}
     </select>
   </div>
   <div>
-    <label class="block text-xs font-medium mb-1">Fecha</label>
-    <input type="date" name="fecha" value="{{ filtros.fecha }}" class="w-full border rounded-lg px-2 py-2">
+    <label class="block type-caption weight-medium mb-1">Fecha</label>
+    <input type="date" name="fecha" value="{{ filtros.fecha }}" class="w-full border-width radius-control px-2 py-2">
   </div>
   <div>
-    <label class="block text-xs font-medium mb-1">Créditos mín.</label>
-    <input type="number" name="min_creditos" min="0.5" step="0.5" value="{{ filtros.min_creditos }}" class="w-full border rounded-lg px-2 py-2">
+    <label class="block type-caption weight-medium mb-1">Créditos mín.</label>
+    <input type="number" name="min_creditos" min="0.5" step="0.5" value="{{ filtros.min_creditos }}" class="w-full border-width radius-control px-2 py-2">
   </div>
-  <label class="flex items-center gap-2 text-sm">
+  <label class="flex items-center gap-2 type-body-small">
     <input type="checkbox" name="solo_disponibles" value="1" {% if filtros.solo_disponibles %}checked{% endif %}> Con cupo
   </label>
   <div class="flex gap-2">
-    <button class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2 text-sm">Filtrar</button>
-    <a href="{{ url_for('list_actividades').path }}" class="text-slate-500 px-2 py-2 text-sm hover:underline">Limpiar</a>
+    <button class="surface-brand surface-brand-hover text-on-contrast radius-control px-4 py-2 type-body-small">Filtrar</button>
+    <a href="{{ url_for('list_actividades').path }}" class="text-muted px-2 py-2 type-body-small hover-text-underline">Limpiar</a>
   </div>
 </form>
 
-<nav aria-label="Ordenar actividades" class="flex flex-wrap items-center gap-2 mb-4 text-sm">
-  <span class="text-slate-500 font-medium mr-1">Ordenar:</span>
+<nav aria-label="Ordenar actividades" class="flex flex-wrap items-center gap-2 mb-4 type-body-small">
+  <span class="text-muted weight-medium mr-1">Ordenar:</span>
   {% for key, label in [('nombre', 'Actividad'), ('fecha', 'Fecha'), ('cupo', 'Cupo')] %}
     <a href="{{ sort_links[key] }}"
        aria-label="Ordenar por {{ label }}{% if sort == key %}, {{ 'ascendente' if direction == 'asc' else 'descendente' }}{% endif %}"
        aria-pressed="{{ 'true' if sort == key else 'false' }}"
-       class="inline-flex items-center gap-1 rounded-lg border px-3 py-1.5 {{ 'border-indigo-300 bg-indigo-50 text-indigo-700 font-semibold' if sort == key else 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50' }}">
+       class="inline-flex items-center gap-1 radius-control border-width px-3 py-1.5 {{ 'border-brand-soft surface-brand-faint text-link-strong weight-semibold' if sort == key else 'border-soft surface-card text-secondary surface-page-hover' }}">
       {{ label }} <span>{{ '▲' if sort == key and direction == 'asc' else '▼' if sort == key else '△' }}</span>
     </a>
   {% endfor %}
 </nav>
 
 {% if not rows %}
-  <p class="text-slate-500">No hay actividades que coincidan con los filtros.</p>
+  <p class="text-muted">No hay actividades que coincidan con los filtros.</p>
 {% endif %}
 
 <div class="space-y-3">
   {% for r in rows %}
-  <div class="bg-white rounded-xl shadow p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+  <div class="surface-card radius-panel elevation-card p-4 flex flex-col sm:flex-row sm:items-center gap-3">
     <div class="flex-1">
       <div class="flex items-center gap-2">
-        <h2 class="font-semibold text-lg">{{ r.a.titulo }}</h2>
-        <span class="text-xs px-2 py-0.5 rounded-full {% if r.a.tipo=='virtual' %}bg-sky-100 text-sky-700{% else %}bg-amber-100 text-amber-700{% endif %}">{{ r.a.tipo }}</span>
+        <h2 class="weight-semibold type-subheading">{{ r.a.titulo }}</h2>
+        <span class="type-caption px-2 py-0.5 radius-pill {% if r.a.tipo=='virtual' %}surface-info-strong text-info-strong{% else %}surface-warning text-warning{% endif %}">{{ r.a.tipo }}</span>
       </div>
-      <p class="text-sm text-slate-500"><i data-lucide="calendar" class="inline-block w-4 h-4 align-[-3px]"></i> {{ r.a.fecha_inicio|fmt_dt }}, <i data-lucide="map-pin" class="inline-block w-4 h-4 align-[-3px]"></i> {{ r.a.lugar }}</p>
-      <p class="text-sm text-slate-600 mt-1"><i data-lucide="star" class="inline-block w-4 h-4 align-[-3px]"></i> {{ r.a.creditos|fmt_creditos }} créditos, cupos: {{ r.cupo.free }}/{{ r.a.cupo_max }}</p>
+      <p class="type-body-small text-muted"><i data-lucide="calendar" class="inline-block w-4 h-4 icon-baseline-align"></i> {{ r.a.fecha_inicio|fmt_dt }}, <i data-lucide="map-pin" class="inline-block w-4 h-4 icon-baseline-align"></i> {{ r.a.lugar }}</p>
+      <p class="type-body-small text-secondary mt-1"><i data-lucide="star" class="inline-block w-4 h-4 icon-baseline-align"></i> {{ r.a.creditos|fmt_creditos }} créditos, cupos: {{ r.cupo.free }}/{{ r.a.cupo_max }}</p>
     </div>
     <div class="flex items-center gap-2">
-      {% if r.enrolled %}<span class="text-emerald-600 text-sm font-medium inline-flex items-center gap-1"><i data-lucide="check" class="w-4 h-4"></i> Inscripto</span>{% endif %}
-      {% if r.cupo.full and not r.enrolled %}<span class="text-rose-500 text-sm">Sin cupo</span>{% endif %}
-      <a href="{{ url_for('actividad_detail', actividad_id=r.a.id).path }}" class="bg-slate-800 hover:bg-slate-700 text-white rounded-lg px-4 py-2 text-sm">Ver detalle</a>
+      {% if r.enrolled %}<span class="text-success type-body-small weight-medium inline-flex items-center gap-1"><i data-lucide="check" class="w-4 h-4"></i> Inscripto</span>{% endif %}
+      {% if r.cupo.full and not r.enrolled %}<span class="text-danger-bright type-body-small">Sin cupo</span>{% endif %}
+      <a href="{{ url_for('actividad_detail', actividad_id=r.a.id).path }}" class="surface-dark-strong surface-dark-hover text-on-contrast radius-control px-4 py-2 type-body-small">Ver detalle</a>
     </div>
   </div>
   {% endfor %}

@@ -2,38 +2,38 @@
 {% block title %}Notificaciones{% endblock %}
 {% block content %}
 <div class="flex items-center justify-between mb-4">
-  <h1 class="text-2xl font-bold">Notificaciones</h1>
+  <h1 class="type-heading weight-bold">Notificaciones</h1>
   <a href="{{ url_for('admin_mensajes').path }}"
-    class="bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg px-4 py-2 text-sm font-medium">
+    class="surface-brand surface-brand-hover text-on-contrast radius-control px-4 py-2 type-body-small weight-medium">
     Enviar mensaje
   </a>
 </div>
-<div class="border-b border-slate-200 mb-4" role="tablist" aria-label="Bandeja">
+<div class="border-bottom border-soft mb-4" role="tablist" aria-label="Bandeja">
   <button id="tab-notificaciones" type="button" role="tab" aria-controls="panel-notificaciones"
     aria-selected="{{ 'true' if tab == 'notificaciones' else 'false' }}"
     {% if tab != 'notificaciones' %}tabindex="-1"{% endif %}
-    class="px-4 py-2 border-b-2 {% if tab == 'notificaciones' %}border-indigo-600 text-indigo-700 font-medium{% else %}border-transparent text-slate-500 hover:text-slate-800{% endif %}">
+    class="px-4 py-2 border-bottom-strong {% if tab == 'notificaciones' %}border-selected text-link-strong weight-medium{% else %}border-invisible text-muted hover-text-primary{% endif %}">
     Notificaciones
-    <span id="notificaciones-no-leidas" class="ml-1 text-xs text-slate-500">{{ notificaciones_no_leidas }}</span>
+    <span id="notificaciones-no-leidas" class="ml-1 type-caption text-muted">{{ notificaciones_no_leidas }}</span>
   </button>
   <button id="tab-mensajes" type="button" role="tab" aria-controls="panel-mensajes"
     aria-selected="{{ 'true' if tab == 'mensajes' else 'false' }}"
     {% if tab != 'mensajes' %}tabindex="-1"{% endif %}
-    class="px-4 py-2 border-b-2 {% if tab == 'mensajes' %}border-indigo-600 text-indigo-700 font-medium{% else %}border-transparent text-slate-500 hover:text-slate-800{% endif %}">
+    class="px-4 py-2 border-bottom-strong {% if tab == 'mensajes' %}border-selected text-link-strong weight-medium{% else %}border-invisible text-muted hover-text-primary{% endif %}">
     Consultas
-    <span id="mensajes-no-leidos" class="ml-1 text-xs text-slate-500">{{ mensajes_no_leidos }}</span>
+    <span id="mensajes-no-leidos" class="ml-1 type-caption text-muted">{{ mensajes_no_leidos }}</span>
   </button>
 </div>
 
 <section id="panel-notificaciones" role="tabpanel" aria-labelledby="tab-notificaciones"
-  class="{% if tab != 'notificaciones' %}hidden {% endif %}bg-white rounded-2xl shadow divide-y">
+  class="{% if tab != 'notificaciones' %}hidden {% endif %}surface-card radius-card elevation-card divide-rows">
   {% if not items %}
-    <p class="p-6 text-slate-500 text-sm">No tenés notificaciones.</p>
+    <p class="p-6 text-muted type-body-small">No tenés notificaciones.</p>
   {% endif %}
   {% for n in items %}
     <article class="p-4">
-      <p class="text-sm">{{ n.mensaje }}</p>
-      <p class="text-xs text-slate-400 mt-1">{{ n.created_at|fmt_dt }}</p>
+      <p class="type-body-small">{{ n.mensaje }}</p>
+      <p class="type-caption text-subtle mt-1">{{ n.created_at|fmt_dt }}</p>
     </article>
   {% endfor %}
 </section>

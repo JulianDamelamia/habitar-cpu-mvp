@@ -1,40 +1,40 @@
 {% extends "base.html" %}
 {% block title %}Analítica{% endblock %}
 {% block content %}
-<h1 class="text-2xl font-bold mb-1">Analítica del Módulo Habitar</h1>
-<p class="text-slate-500 mb-6 text-sm">Métricas de cohorte para coordinación y dirección.</p>
+<h1 class="type-heading weight-bold mb-1">Analítica del Módulo Habitar</h1>
+<p class="text-muted mb-6 type-body-small">Métricas de cohorte para coordinación y dirección.</p>
 
 <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-  <div class="bg-white rounded-xl shadow p-4"><p class="text-xs text-slate-400">Actividades publicadas</p><p class="text-2xl font-bold">{{ overview.actividades_publicadas }}</p></div>
-  <div class="bg-white rounded-xl shadow p-4"><p class="text-xs text-slate-400">Inscripciones</p><p class="text-2xl font-bold text-indigo-600">{{ overview.inscripciones }}</p></div>
-  <div class="bg-white rounded-xl shadow p-4"><p class="text-xs text-slate-400">Asistencias</p><p class="text-2xl font-bold text-emerald-600">{{ overview.asistencias }}</p></div>
-  <div class="bg-white rounded-xl shadow p-4"><p class="text-xs text-slate-400">Tasa de asistencia</p><p class="text-2xl font-bold">{{ overview.asistencia_rate }}%</p></div>
+  <div class="surface-card radius-panel elevation-card p-4"><p class="type-caption text-subtle">Actividades publicadas</p><p class="type-heading weight-bold">{{ overview.actividades_publicadas }}</p></div>
+  <div class="surface-card radius-panel elevation-card p-4"><p class="type-caption text-subtle">Inscripciones</p><p class="type-heading weight-bold text-link">{{ overview.inscripciones }}</p></div>
+  <div class="surface-card radius-panel elevation-card p-4"><p class="type-caption text-subtle">Asistencias</p><p class="type-heading weight-bold text-success">{{ overview.asistencias }}</p></div>
+  <div class="surface-card radius-panel elevation-card p-4"><p class="type-caption text-subtle">Tasa de asistencia</p><p class="type-heading weight-bold">{{ overview.asistencia_rate }}%</p></div>
 </div>
 
 <div class="grid md:grid-cols-2 gap-6 mb-6">
-  <div class="bg-white rounded-2xl shadow p-5">
-    <h2 class="font-semibold mb-3">Inscriptos vs. asistencias</h2>
+  <div class="surface-card radius-card elevation-card p-5">
+    <h2 class="weight-semibold mb-3">Inscriptos vs. asistencias</h2>
     {% if per_actividad %}<canvas id="chartAsistencia" height="220"></canvas>
-    {% else %}<p class="text-slate-500 text-sm">Sin actividades con inscriptos todavía.</p>{% endif %}
+    {% else %}<p class="text-muted type-body-small">Sin actividades con inscriptos todavía.</p>{% endif %}
   </div>
-  <div class="bg-white rounded-2xl shadow p-5">
-    <h2 class="font-semibold mb-3">Actividades más elegidas</h2>
+  <div class="surface-card radius-card elevation-card p-5">
+    <h2 class="weight-semibold mb-3">Actividades más elegidas</h2>
     {% if top %}<canvas id="chartTop" height="220"></canvas>
-    {% else %}<p class="text-slate-500 text-sm">Sin inscripciones todavía.</p>{% endif %}
+    {% else %}<p class="text-muted type-body-small">Sin inscripciones todavía.</p>{% endif %}
   </div>
 </div>
 
-<div class="bg-white rounded-2xl shadow p-5">
-  <h2 class="font-semibold mb-3">Satisfacción por actividad</h2>
+<div class="surface-card radius-card elevation-card p-5">
+  <h2 class="weight-semibold mb-3">Satisfacción por actividad</h2>
   {% if not surveys %}
-    <p class="text-slate-500 text-sm">Todavía no hay respuestas de encuestas.</p>
+    <p class="text-muted type-body-small">Todavía no hay respuestas de encuestas.</p>
   {% else %}
   <div class="overflow-x-auto">
-  <table class="w-full text-sm min-w-[420px]">
-    <thead class="text-left text-slate-400 border-b"><tr><th class="py-2">Actividad</th><th>Promedio</th><th>Respuestas</th></tr></thead>
+  <table class="w-full type-body-small min-width-table">
+    <thead class="text-align-left text-subtle border-bottom"><tr><th class="py-2">Actividad</th><th>Promedio</th><th>Respuestas</th></tr></thead>
     <tbody>
     {% for s in surveys %}
-      <tr class="border-b last:border-0"><td class="py-2 font-medium">{{ s.titulo }}</td><td><i data-lucide="star" class="inline-block w-4 h-4 align-[-3px] text-amber-400 fill-amber-400"></i> {{ s.promedio }}</td><td class="text-slate-500">{{ s.respuestas }}</td></tr>
+      <tr class="border-bottom last-no-border"><td class="py-2 weight-medium">{{ s.titulo }}</td><td><i data-lucide="star" class="inline-block w-4 h-4 icon-baseline-align text-rating icon-rating"></i> {{ s.promedio }}</td><td class="text-muted">{{ s.respuestas }}</td></tr>
     {% endfor %}
     </tbody>
   </table>
