@@ -9,7 +9,7 @@
 <!-- Tarjetas de resumen -->
 <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
   <div class="bg-white rounded-xl shadow p-4"><p class="text-xs text-slate-400">Publicadas</p><p class="text-2xl font-bold text-emerald-600">{{ resumen.publicadas }}</p></div>
-  <div class="bg-white rounded-xl shadow p-4"><p class="text-xs text-slate-400">Realizadas</p><p class="text-2xl font-bold text-indigo-600">{{ resumen.completadas }}</p></div>
+  <div class="bg-white rounded-xl shadow p-4"><p class="text-xs text-slate-400">Realizadas</p><p class="text-2xl font-bold text-indigo-600">{{ resumen.realizadas }}</p></div>
   <div class="bg-white rounded-xl shadow p-4"><p class="text-xs text-slate-400">Canceladas</p><p class="text-2xl font-bold text-amber-500">{{ resumen.canceladas }}</p></div>
   <div class="bg-white rounded-xl shadow p-4"><p class="text-xs text-slate-400">Total actividades</p><p class="text-2xl font-bold">{{ resumen.total }}</p></div>
 </div>
@@ -107,7 +107,8 @@
         </td>
         <td class="text-slate-500 whitespace-nowrap">{{ r.a.fecha_inicio|fmt_dt }}</td>
         <td>
-          {% if r.a.estado=='publicada' %}<span class="text-xs px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 font-medium">publicada</span>
+          {% if r.a.estado=='publicada' and not r.a.finalizada %}<span class="text-xs px-2.5 py-1 rounded-full bg-emerald-100 text-emerald-700 font-medium">publicada</span>
+          {% elif r.a.estado=='publicada' and r.a.finalizada %}<span class="text-xs px-2.5 py-1 rounded-full bg-brand-softer text-fg-brand-strong font-medium">finalizada</span>
           {% elif r.a.estado=='borrador' %}<span class="text-xs px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 font-medium">borrador</span>
           {% else %}<span class="text-xs px-2.5 py-1 rounded-full bg-slate-200 text-slate-600 font-medium">cancelada</span>{% endif %}
         </td>

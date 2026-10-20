@@ -11,10 +11,11 @@
     <span class="text-sm text-slate-500">{{ progreso.accumulated }} / {{ progreso.required }} créditos</span>
   </div>
   <div class="relative w-full bg-slate-200 rounded-full h-4 overflow-hidden">
-    <div class="bg-emerald-500 h-4 rounded-full transition-all" style="width: {{ progreso.pct }}%"></div>
+    <div class="progress-bar-fill bg-emerald-500 h-4 rounded-full transition-all"
+         style="--progress-width: {{ progreso.pct }}%"></div>
     {% if progreso.pending %}
-    <div class="absolute inset-y-0 bg-amber-400 transition-all"
-         style="left: {{ progreso.pct }}%; width: {{ progreso.pending_pct }}%"></div>
+    <div class="progress-bar-pending bg-amber-400 transition-all"
+         style="--progress-offset: {{ progreso.pct }}%; --progress-width: {{ progreso.pending_pct }}%"></div>
     {% endif %}
   </div>
   {% if progreso.pending %}

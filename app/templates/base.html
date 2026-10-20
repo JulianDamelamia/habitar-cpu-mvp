@@ -5,6 +5,50 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>{% block title %}{{ app_name }}{% endblock %}</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    const cssPalette = (name, shades) => Object.fromEntries(
+      shades.map((shade) => [
+        shade,
+        `rgb(var(--app-color-${name}-${shade}) / <alpha-value>)`,
+      ]),
+    );
+
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            white: "rgb(var(--app-color-white) / <alpha-value>)",
+            slate: cssPalette("slate", [50, 100, 200, 300, 400, 500, 600, 700, 800, 900]),
+            gray: cssPalette("gray", [50, 100, 200, 400]),
+            amber: cssPalette("amber", [100, 300, 400, 500, 700, 800, 900]),
+            emerald: cssPalette("emerald", [50, 100, 200, 500, 600, 700, 800]),
+            indigo: cssPalette("indigo", [100, 500, 600, 700]),
+            rose: cssPalette("rose", [50, 100, 200, 300, 500, 600, 700, 800]),
+            sky: cssPalette("sky", [50, 200, 800]),
+            brand: {
+              softer: "rgb(var(--app-color-brand-softer) / <alpha-value>)",
+            },
+            "fg-brand-strong": "rgb(var(--app-color-brand-strong) / <alpha-value>)",
+          },
+          borderRadius: {
+            DEFAULT: "var(--app-radius-default)",
+            md: "var(--app-radius-md)",
+            lg: "var(--app-radius-lg)",
+            xl: "var(--app-radius-xl)",
+            "2xl": "var(--app-radius-2xl)",
+            full: "var(--app-radius-full)",
+          },
+          boxShadow: {
+            sm: "var(--app-shadow-sm)",
+            DEFAULT: "var(--app-shadow)",
+            lg: "var(--app-shadow-lg)",
+            xl: "var(--app-shadow-xl)",
+          },
+        },
+      },
+    };
+  </script>
+  <link rel="stylesheet" href="{{ url_for('static', path='/theme.css').path }}">
   <link rel="preconnect" href="https://fonts.googleapis.com">
 </head>
 <body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">

@@ -7,19 +7,6 @@
   class="w-full border border-slate-300 rounded-lg px-3 py-2 mb-4">
 <p id="faq-empty" class="hidden text-slate-500 mb-4">No encontramos preguntas relacionadas.</p>
 
-{% if user.rol == 'estudiante' %}
-<style>
-  @keyframes faq-contact-fade-in {
-    from { opacity: 0; transform: translateY(0.5rem); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  .faq-contact-form-visible { animation: faq-contact-fade-in 300ms ease-out both; }
-  @media (prefers-reduced-motion: reduce) {
-    .faq-contact-form-visible { animation: none; }
-  }
-</style>
-{% endif %}
-
 <div id="faq-results" class="space-y-3">
   {% for f in items %}
   <details class="faq-item bg-white rounded-xl shadow p-4" data-search="{{ (f.pregunta ~ ' ' ~ f.respuesta ~ ' ' ~ f.tags ~ ' ' ~ (f.categoria.nombre if f.categoria else ''))|lower }}">

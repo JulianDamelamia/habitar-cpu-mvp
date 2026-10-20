@@ -47,6 +47,8 @@
 <script>
   const perActivity = {{ per_actividad|tojson }};
   const topActivities = {{ top|tojson }};
+  const appColors = getComputedStyle(document.documentElement);
+  const chartColor = (token) => `rgb(${appColors.getPropertyValue(token).trim()})`;
 
   if (window.Chart && perActivity.length) {
     new Chart(document.getElementById('chartAsistencia'), {
@@ -54,8 +56,8 @@
       data: {
         labels: perActivity.map(a => a.titulo),
         datasets: [
-          { label: 'Inscriptos', data: perActivity.map(a => a.inscriptos), backgroundColor: '#6366f1' },
-          { label: 'Asistencias', data: perActivity.map(a => a.asistencias), backgroundColor: '#10b981' },
+          { label: 'Inscriptos', data: perActivity.map(a => a.inscriptos), backgroundColor: chartColor('--app-chart-enrollments') },
+          { label: 'Asistencias', data: perActivity.map(a => a.asistencias), backgroundColor: chartColor('--app-chart-attendance') },
         ],
       },
       options: { responsive: true, scales: { y: { beginAtZero: true } } },
@@ -66,7 +68,7 @@
       type: 'bar',
       data: {
         labels: topActivities.map(a => a.titulo),
-        datasets: [{ label: 'Inscriptos', data: topActivities.map(a => a.inscriptos), backgroundColor: '#f59e0b' }],
+        datasets: [{ label: 'Inscriptos', data: topActivities.map(a => a.inscriptos), backgroundColor: chartColor('--app-chart-popularity') }],
       },
       options: { indexAxis: 'y', responsive: true, scales: { x: { beginAtZero: true } } },
     });

@@ -1,0 +1,103 @@
+:root {
+  --app-color-white: 255 255 255;
+  --app-color-slate-50: 248 250 252;
+  --app-color-slate-100: 241 245 249;
+  --app-color-slate-200: 226 232 240;
+  --app-color-slate-300: 203 213 225;
+  --app-color-slate-400: 148 163 184;
+  --app-color-slate-500: 100 116 139;
+  --app-color-slate-600: 71 85 105;
+  --app-color-slate-700: 51 65 85;
+  --app-color-slate-800: 30 41 59;
+  --app-color-slate-900: 15 23 42;
+  --app-color-gray-50: 249 250 251;
+  --app-color-gray-100: 243 244 246;
+  --app-color-gray-200: 229 231 235;
+  --app-color-gray-400: 156 163 175;
+  --app-color-amber-100: 254 243 199;
+  --app-color-amber-300: 252 211 77;
+  --app-color-amber-400: 251 191 36;
+  --app-color-amber-500: 245 158 11;
+  --app-color-amber-700: 180 83 9;
+  --app-color-amber-800: 146 64 14;
+  --app-color-amber-900: 120 53 15;
+  --app-color-emerald-50: 236 253 245;
+  --app-color-emerald-100: 209 250 229;
+  --app-color-emerald-200: 167 243 208;
+  --app-color-emerald-500: 16 185 129;
+  --app-color-emerald-600: 5 150 105;
+  --app-color-emerald-700: 4 120 87;
+  --app-color-emerald-800: 6 95 70;
+  --app-color-indigo-100: 224 231 255;
+  --app-color-indigo-500: 99 102 241;
+  --app-color-indigo-600: 79 70 229;
+  --app-color-indigo-700: 67 56 202;
+  --app-color-rose-50: 255 241 242;
+  --app-color-rose-100: 255 228 230;
+  --app-color-rose-200: 254 205 211;
+  --app-color-rose-300: 253 164 175;
+  --app-color-rose-500: 244 63 94;
+  --app-color-rose-600: 225 29 72;
+  --app-color-rose-700: 190 18 60;
+  --app-color-rose-800: 159 18 57;
+  --app-color-sky-50: 240 249 255;
+  --app-color-sky-200: 186 230 253;
+  --app-color-sky-800: 7 89 133;
+  --app-color-brand-softer: var(--app-color-indigo-100);
+  --app-color-brand-strong: var(--app-color-indigo-700);
+
+  --app-radius-default: 0.25rem;
+  --app-radius-md: 0.375rem;
+  --app-radius-lg: 0.5rem;
+  --app-radius-xl: 0.75rem;
+  --app-radius-2xl: 1rem;
+  --app-radius-full: 9999px;
+  --app-shadow-sm: 0 1px 2px 0 rgb(15 23 42 / 0.05);
+  --app-shadow: 0 1px 3px 0 rgb(15 23 42 / 0.1), 0 1px 2px -1px rgb(15 23 42 / 0.1);
+  --app-shadow-lg: 0 10px 15px -3px rgb(15 23 42 / 0.1), 0 4px 6px -4px rgb(15 23 42 / 0.1);
+  --app-shadow-xl: 0 20px 25px -5px rgb(15 23 42 / 0.1), 0 8px 10px -6px rgb(15 23 42 / 0.1);
+
+  --app-chart-enrollments: var(--app-color-indigo-500);
+  --app-chart-attendance: var(--app-color-emerald-500);
+  --app-chart-popularity: var(--app-color-amber-500);
+}
+
+.activity-instructors-container {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.progress-bar-fill {
+  width: var(--progress-width);
+}
+
+.progress-bar-pending {
+  position: absolute;
+  inset-block: 0;
+  left: var(--progress-offset);
+  width: var(--progress-width);
+}
+
+@keyframes faq-contact-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.5rem);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.faq-contact-form-visible {
+  animation: faq-contact-fade-in 300ms ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .faq-contact-form-visible {
+    animation: none;
+  }
+}

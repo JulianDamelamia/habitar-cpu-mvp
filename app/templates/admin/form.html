@@ -61,8 +61,7 @@
 
         <div
           id="carreras-tags-container"
-          class="mt-2 min-h-[42px] p-2 border rounded-lg bg-gray-50 border-gray-200"
-          style="display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center;"
+          class="activity-instructors-container mt-2 min-h-[42px] p-2 border rounded-lg bg-gray-50 border-gray-200"
         >
           <span id="carreras-empty-msg" class="text-xs text-gray-400">
             No hay carreras seleccionadas
@@ -72,7 +71,7 @@
         <div id="carreras-hidden-inputs"></div>
 
         {% if a and a.carreras_asociadas %}
-          <div style="display: none;">
+          <div class="hidden">
             {% for carrera in a.carreras_asociadas %}
               <span
                 class="preselected-carrera"
