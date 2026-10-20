@@ -113,7 +113,7 @@ def crear(
         inicio, fin = parse_intervalo_tiempo(fecha_inicio, fecha_fin, duracion, modo_finalizacion)
     except ValueError:
         return redirect_to(
-            request, "panel",
+            request, "nueva",
             query_params={"err": "Fechas inválidas: revisá inicio y fin."},
         )
     try:
@@ -122,8 +122,13 @@ def crear(
             db, docentes_ids=docentes_ids, nombres=docentes_nombres, apellidos=docentes_apellidos
         )
     except ValueError as exc:
-        return redirect_to(request, "panel", query_params={"err": str(exc)})
+        return redirect_to(request, "nueva", query_params={"err": str(exc)})
     carreras_asociadas_list = services.carreras.get_carreras_desde_dropdown(carreras_asociadas, db)
+    if not carreras_asociadas_list:
+        return redirect_to(
+            request, "nueva",
+            query_params={"err": "No se puede crear una actividad sin carreras asociadas."},
+        )
     services.actividades.create(
         db,
         titulo=titulo.strip(), descripcion=descripcion.strip(), tipo=tipo,
@@ -139,7 +144,7 @@ def crear(
         query_params={"msg": f"{titulo} publicada"},
     )
 
-@router.get("/{actividad_id}/editar")
+@router.get("/{actividad_id}/editar", name="editar")
 def editar(request: Request, actividad_id: int, user: User = Depends(REQUIERE_ADMIN), db: Session = Depends(get_db)):
     a = services.actividades.get(db, actividad_id)
     if a is None:
@@ -188,7 +193,7 @@ def actualizar(
         inicio, fin = parse_intervalo_tiempo(fecha_inicio, fecha_fin, duracion, modo_finalizacion)
     except ValueError:
         return redirect_to(
-            request, "panel",
+            request, "editar",
             query_params={"err": "Fechas inválidas: revisá inicio y fin."},
         )
     was_published = a.estado == ESTADO_PUBLICADA
@@ -199,8 +204,13 @@ def actualizar(
             db, docentes_ids=docentes_ids, nombres=docentes_nombres, apellidos=docentes_apellidos
         )
     except ValueError as exc:
-        return redirect_to(request, "panel", query_params={"err": str(exc)})
+        return redirect_to(request, "editar", query_params={"err": str(exc)})
     carreras_asociadas_list = services.carreras.get_carreras_desde_dropdown(carreras_asociadas, db)
+    if not carreras_asociadas_list:
+        return redirect_to(
+            request, "editar",
+            query_params={"err": "No se puede crear una actividad sin carreras asociadas."},
+        )
     services.actividades.update(
         db, a,
         titulo=titulo.strip(), descripcion=descripcion.strip(), tipo=tipo,
