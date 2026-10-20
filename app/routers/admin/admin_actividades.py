@@ -49,9 +49,9 @@ def panel(
     rows = [{"a": a, "cupo": services.actividades.cupo_info(db, a)} for a in items]
     resumen = {
         "publicadas": sum(1 for a in items if a.estado == ESTADO_PUBLICADA),
-        "borradores": sum(1 for a in items if a.estado == ESTADO_BORRADOR),
+        "completadas": sum(1 for a in items if a.finalizada and a.estado == ESTADO_PUBLICADA),
+        "canceladas": sum(1 for a in items if a.estado == ESTADO_CANCELADA),
         "total": len(items),
-        "inscripciones": sum(r["cupo"]["taken"] for r in rows),
     }
     lista_carreras = services.carreras.get_carreras(db)
     return render(
@@ -130,12 +130,12 @@ def crear(
         docentes=docentes,
         creditos=creditos_validados, cupo_max=cupo_max,
         encuesta_obligatoria=encuesta_obligatoria,
-        estado=ESTADO_BORRADOR, created_by=user.id,
+        estado=ESTADO_PUBLICADA, created_by=user.id,
         carreras_asociadas=carreras_asociadas_list,
     )
     return redirect_to(
         request, "panel",
-        query_params={"msg": "Actividad creada como borrador."},
+        query_params={"msg": f"{titulo} publicada"},
     )
 
 @router.get("/{actividad_id}/editar")
@@ -267,6 +267,14 @@ def publicar(request: Request, actividad_id: int, user: User = Depends(REQUIERE_
         return redirect_to(
             request, "panel",
             query_params={"err": "Actividad no encontrada."},
+        )
+    if a.finalizada:
+        return redirect_to(
+            request, "editar",
+            actividad_id=actividad_id,
+            query_params={
+                "err": "La actividad ya finalizó, para publicar modificá las fechas de inicio y cierre"
+            },
         )
     if not a.carreras_asociadas:
         return redirect_to(

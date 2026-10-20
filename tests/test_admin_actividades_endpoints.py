@@ -257,6 +257,30 @@ def test_activity_without_career_cannot_be_published(admin_actividades_client):
     assert actividad.estado == ESTADO_BORRADOR
 
 
+def test_publishing_finished_activity_redirects_to_edit_with_warning(
+    admin_actividades_client, actividad_factory
+):
+    client, db_session, _, carrera = admin_actividades_client
+    now = datetime.now()
+    activity = actividad_factory(
+        fecha_inicio=now - timedelta(days=2),
+        estado=ESTADO_BORRADOR,
+        carreras=[carrera],
+    )
+
+    response = client.post(f"/admin/actividades/{activity.id}/publicar")
+
+    assert response.status_code == 303
+    assert urlsplit(response.headers["location"]).path == (
+        f"/admin/actividades/{activity.id}/editar"
+    )
+    assert redirect_query(response, "err") == (
+        "La actividad ya finalizó, para publicar modificá las fechas de inicio y cierre"
+    )
+    db_session.refresh(activity)
+    assert activity.estado == ESTADO_BORRADOR
+
+
 def test_disabling_activity_survey_releases_pending_credits(
     admin_actividades_client, user_factory
 ):

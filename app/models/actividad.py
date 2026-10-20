@@ -54,3 +54,7 @@ class Actividad(Base):
         secondary=actividad_carrera,
         back_populates="actividades",
     )
+    @property
+    def finalizada(self) -> bool:
+        """Indica si la actividad ya finalizó (fecha_fin pasada)."""
+        return self.fecha_fin <= datetime.now(tz=self.fecha_fin.tzinfo)
