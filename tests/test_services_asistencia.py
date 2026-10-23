@@ -73,6 +73,67 @@ def test_check_in_registra_asistencia_para_usuario_inscripto(
     assert accumulated_credits(db_session, estudiante.id) == actividad.creditos
 
 
+def test_check_in_rechaza_codigo_valido_antes_de_30_minutos_del_inicio(
+    db_session, actividad_factory, user_factory, monkeypatch
+):
+    actividad = actividad_factory(
+        estado=ESTADO_PUBLICADA,
+        fecha_inicio=datetime.now(timezone.utc) + timedelta(days=2),
+    )
+    docente = user_factory(rol="docente")
+    estudiante = user_factory()
+    inscribir(db_session, actividad.id, estudiante.id)
+    hora = [actividad.fecha_inicio.replace(tzinfo=timezone.utc) - timedelta(minutes=31)]
+    monkeypatch.setattr(asistencia, "_now", lambda: hora[0])
+    sesion = open_or_rotate(db_session, actividad.id, docente.id)
+
+    with pytest.raises(AsistenciaError, match="no está abierta"):
+        check_in(db_session, sesion.token, estudiante.id)
+
+
+def test_check_in_acepta_codigo_valido_dentro_de_ventana_hasta_seis_horas_del_fin(
+    db_session, actividad_factory, user_factory, monkeypatch
+):
+    actividad = actividad_factory(
+        estado=ESTADO_PUBLICADA,
+        fecha_inicio=datetime.now(timezone.utc) + timedelta(days=2),
+    )
+    docente = user_factory(rol="docente")
+    estudiante = user_factory()
+    inscribir(db_session, actividad.id, estudiante.id)
+    hora = [
+        actividad.fecha_fin.replace(tzinfo=timezone.utc) + timedelta(hours=5)
+    ]
+    monkeypatch.setattr(asistencia, "_now", lambda: hora[0])
+    sesion = open_or_rotate(db_session, actividad.id, docente.id)
+
+    resultado = check_in(db_session, sesion.token, estudiante.id)
+
+    assert resultado.id == actividad.id
+    assert present_user_ids(db_session, actividad.id) == {estudiante.id}
+
+
+def test_check_in_rechaza_codigo_valido_despues_de_seis_horas_del_fin(
+    db_session, actividad_factory, user_factory, monkeypatch
+):
+    actividad = actividad_factory(
+        estado=ESTADO_PUBLICADA,
+        fecha_inicio=datetime.now(timezone.utc) + timedelta(days=2),
+    )
+    docente = user_factory(rol="docente")
+    estudiante = user_factory()
+    inscribir(db_session, actividad.id, estudiante.id)
+    hora = [
+        actividad.fecha_fin.replace(tzinfo=timezone.utc)
+        + timedelta(hours=6, seconds=1)
+    ]
+    monkeypatch.setattr(asistencia, "_now", lambda: hora[0])
+    sesion = open_or_rotate(db_session, actividad.id, docente.id)
+
+    with pytest.raises(AsistenciaError, match="no está abierta"):
+        check_in(db_session, sesion.token, estudiante.id)
+
+
 def test_check_in_defers_credits_until_survey_then_releases_once(
     db_session, actividad_factory, user_factory
 ):

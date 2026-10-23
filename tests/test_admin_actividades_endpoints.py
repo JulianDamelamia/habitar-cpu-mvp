@@ -264,6 +264,48 @@ def test_create_activity_with_invalid_dates_redirects_with_error(admin_actividad
     assert db_session.query(Actividad).count() == 0
 
 
+@pytest.mark.parametrize(
+    ("invalid_field", "expected_error"),
+    [
+        ("fecha_fin", "Fechas inválidas: revisá inicio y fin."),
+        ("creditos", "múltiplo de 0,5"),
+        ("carreras_asociadas", "No se puede crear una actividad sin carreras asociadas."),
+    ],
+)
+def test_update_activity_validation_errors_render_on_edit_form(
+    admin_actividades_client, invalid_field, expected_error
+):
+    client, db_session, docente, carrera = admin_actividades_client
+    create_response = client.post(
+        "/admin/actividades",
+        data=actividad_form_data(docente.docente_id, carrera.id),
+    )
+    assert create_response.status_code == 303
+    actividad = db_session.query(Actividad).one()
+
+    update_data = actividad_form_data(
+        docente.docente_id, carrera.id, titulo="Cambios sin guardar"
+    )
+    if invalid_field == "fecha_fin":
+        update_data["fecha_fin"] = "2030-01-10T09:00"
+    elif invalid_field == "creditos":
+        update_data["creditos"] = "1.3"
+    else:
+        update_data.pop("carreras_asociadas")
+    response = client.post(f"/admin/actividades/{actividad.id}", data=update_data)
+
+    assert response.status_code == 200
+    assert "location" not in response.headers
+    assert "Editar actividad" in response.text
+    assert 'role="alert"' in response.text
+    assert expected_error in response.text
+    assert "Cambios sin guardar" in response.text
+    if invalid_field == "fecha_fin":
+        assert 'value="2030-01-10T09:00"' in response.text
+    db_session.refresh(actividad)
+    assert actividad.titulo == "Actividad nueva"
+
+
 def test_activity_without_career_cannot_be_published(admin_actividades_client):
     client, db_session, docente, _ = admin_actividades_client
     data = actividad_form_data(docente.id, 0)

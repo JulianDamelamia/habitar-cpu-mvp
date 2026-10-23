@@ -21,7 +21,7 @@ from app.models import (
 from app.services.encuestas import estudiante_completo_encuesta
 from app.services.consultas_comunes import is_enrolled
 
-TOKEN_TTL_SECONDS = 90
+TOKEN_TTL_SECONDS = 6*60*60 #6hs
 
 
 class AsistenciaError(Exception):
@@ -167,6 +167,26 @@ def _unique_token(db: Session) -> str:
             return token
     return secrets.token_hex(4)
 
+def _ventana_abierta(db: Session, sess: SesionAsistencia) -> bool:
+    """Return True if the activity is currently open for check-in."""
+    exp = sess.expires_at
+    if exp.tzinfo is None:
+        exp = exp.replace(tzinfo=timezone.utc)
+    actividad = db.get(Actividad, sess.actividad_id)
+    if actividad is None:
+        return False
+    inicio = actividad.fecha_inicio
+    fin = actividad.fecha_fin
+    if inicio.tzinfo is None:
+        inicio = inicio.replace(tzinfo=timezone.utc)
+    if fin.tzinfo is None:
+        fin = fin.replace(tzinfo=timezone.utc)
+    ahora = _now()
+    return (
+        inicio - timedelta(minutes=30) < ahora
+        and ahora < exp
+        and ahora < fin + timedelta(hours=6)
+    )
 
 def check_in(db: Session, token: str, user_id: int) -> Actividad:
     """Validate a scanned token and mark the student present. Raises AsistenciaError."""
@@ -174,12 +194,10 @@ def check_in(db: Session, token: str, user_id: int) -> Actividad:
     sess = db.query(SesionAsistencia).filter(SesionAsistencia.token == token).first()
     if sess is None:
         raise AsistenciaError("Código inválido.")
-    exp = sess.expires_at
-    if exp.tzinfo is None:
-        exp = exp.replace(tzinfo=timezone.utc)
-    if exp <= _now():
-        raise AsistenciaError("El código expiró. Pedile al docente que muestre uno nuevo.")
-
+    
+    if not _ventana_abierta(db, sess):
+        raise AsistenciaError("La actividad no está abierta para registrar asistencia.")
+    
     if not is_enrolled(db, sess.actividad_id, user_id):
         raise AsistenciaError("No estás inscripto en esta actividad.")
 

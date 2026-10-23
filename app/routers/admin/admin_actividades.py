@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from datetime import date
 from fastapi import APIRouter, Depends, Form, Query, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import RedirectResponse, Response
 from sqlalchemy.orm import Session
 from starlette.templating import _TemplateResponse
 
@@ -18,6 +18,7 @@ from app.models import (
     ESTADO_PUBLICADA,
     TIPO_PRESENCIAL,
     TIPO_VIRTUAL,
+    Actividad,
     User
 )
 from app.services.consultas_comunes import get_docentes
@@ -88,6 +89,29 @@ def nueva(request: Request, user: User = Depends(REQUIERE_ADMIN), db: Session = 
     )
 
 
+def _render_edit_form(
+    request: Request,
+    actividad: Actividad,
+    user: User,
+    db: Session,
+    *,
+    error: str | None = None,
+    form_data: dict[str, object] | None = None,
+) -> _TemplateResponse:
+    values = form_data or {}
+    return render(
+        request, "admin/form.html", user=user, db=db,
+        a=actividad, docentes=get_docentes(db), tipos=[TIPO_PRESENCIAL, TIPO_VIRTUAL],
+        lista_carreras=services.carreras.get_carreras(db),
+        duracion_inicial=values.get(
+            "duracion", formatear_duracion(actividad.fecha_inicio, actividad.fecha_fin)
+        ),
+        fecha_hoy=date.today().isoformat(),
+        error=error,
+        form_data=values,
+    )
+
+
 @router.post("")
 def crear(
     request: Request,
@@ -152,13 +176,7 @@ def editar(request: Request, actividad_id: int, user: User = Depends(REQUIERE_AD
             request, "panel",
             query_params={"err": "Actividad no encontrada."},
         )
-    return render(
-        request, "admin/form.html", user=user, db=db,
-        a=a, docentes=get_docentes(db), tipos=[TIPO_PRESENCIAL, TIPO_VIRTUAL],
-        lista_carreras=services.carreras.get_carreras(db),
-        duracion_inicial=formatear_duracion(a.fecha_inicio, a.fecha_fin),
-        fecha_hoy=date.today().isoformat(),
-    )
+    return _render_edit_form(request, a, user, db)
 
 
 @router.post("/{actividad_id}", name="actualizar_actividad")
@@ -182,19 +200,37 @@ def actualizar(
     user: User = Depends(REQUIERE_ADMIN),
     db: Session = Depends(get_db),
     carreras_asociadas: list[str] = Form([])
-) -> RedirectResponse:
+) -> Response:
     a = services.actividades.get(db, actividad_id)
     if a is None:
         return redirect_to(
             request, "panel",
             query_params={"err": "Actividad no encontrada."},
         )
+    form_data = {
+        "titulo": titulo,
+        "descripcion": descripcion,
+        "tipo": tipo,
+        "fecha_inicio": fecha_inicio,
+        "fecha_fin": fecha_fin,
+        "duracion": duracion,
+        "modo_finalizacion": modo_finalizacion,
+        "lugar": lugar,
+        "docentes_ids": [str(docente_id) for docente_id in docentes_ids],
+        "docentes_nombres": docentes_nombres,
+        "docentes_apellidos": docentes_apellidos,
+        "creditos": creditos,
+        "cupo_max": cupo_max,
+        "encuesta_obligatoria": encuesta_obligatoria,
+        "carreras_asociadas": carreras_asociadas,
+    }
     try:
         inicio, fin = parse_intervalo_tiempo(fecha_inicio, fecha_fin, duracion, modo_finalizacion)
     except ValueError:
-        return redirect_to(
-            request, "editar",
-            query_params={"err": "Fechas inválidas: revisá inicio y fin."},
+        return _render_edit_form(
+            request, a, user, db,
+            error="Fechas inválidas: revisá inicio y fin.",
+            form_data=form_data,
         )
     was_published = a.estado == ESTADO_PUBLICADA
     fecha_cambio = a.fecha_inicio != inicio
@@ -204,12 +240,17 @@ def actualizar(
             db, docentes_ids=docentes_ids, nombres=docentes_nombres, apellidos=docentes_apellidos
         )
     except ValueError as exc:
-        return redirect_to(request, "editar", query_params={"err": str(exc)})
+        return _render_edit_form(
+            request, a, user, db,
+            error=str(exc),
+            form_data=form_data,
+        )
     carreras_asociadas_list = services.carreras.get_carreras_desde_dropdown(carreras_asociadas, db)
     if not carreras_asociadas_list:
-        return redirect_to(
-            request, "editar",
-            query_params={"err": "No se puede crear una actividad sin carreras asociadas."},
+        return _render_edit_form(
+            request, a, user, db,
+            error="No se puede crear una actividad sin carreras asociadas.",
+            form_data=form_data,
         )
     services.actividades.update(
         db, a,

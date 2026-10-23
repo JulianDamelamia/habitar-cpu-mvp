@@ -2,6 +2,7 @@
 {% block title %}{{ 'Editar' if a else 'Nueva' }} actividad{% endblock %}
 
 {% block content %}
+{% set valores_formulario = form_data|default({}) %}
 <a href="{{ url_for('panel').path }}" class="type-body-small text-link hover-text-underline inline-flex items-center gap-1">
   <i data-lucide="arrow-left" class="w-4 h-4"></i> Panel
 </a>
@@ -10,6 +11,12 @@
   <h1 class="type-heading weight-bold mb-5">
     {{ 'Editar actividad' if a else 'Nueva actividad' }}
   </h1>
+
+  {% if error %}
+    <div role="alert" class="mb-5 p-4 radius-panel surface-danger-soft border-width border-danger text-danger-contrast type-body-small">
+      {{ error }}
+    </div>
+  {% endif %}
 
   <form
     method="post"
@@ -22,7 +29,7 @@
       <label class="block type-body-small weight-medium mb-1">Título</label>
       <input
         name="titulo"
-        value="{{ a.titulo if a else '' }}"
+        value="{{ valores_formulario.get('titulo', a.titulo if a else '') }}"
         required
         class="w-full border-width radius-control px-3 py-2"
       >
@@ -34,7 +41,7 @@
         name="descripcion"
         rows="3"
         class="w-full border-width radius-control px-3 py-2"
-      >{{ a.descripcion if a else '' }}</textarea>
+      >{{ valores_formulario.get('descripcion', a.descripcion if a else '') }}</textarea>
     </div>
 
     <div class="grid sm:grid-cols-2 gap-3">
@@ -70,7 +77,19 @@
 
         <div id="carreras-hidden-inputs"></div>
 
-        {% if a and a.carreras_asociadas %}
+        {% if valores_formulario %}
+          <div class="hidden">
+            {% for carrera in lista_carreras %}
+              {% if carrera.id|string in valores_formulario.get('carreras_asociadas', []) %}
+                <span
+                  class="preselected-carrera"
+                  data-id="{{ carrera.id }}"
+                  data-nombre="{{ carrera.tipo.nombre }} {{ carrera.nombre }}"
+                ></span>
+              {% endif %}
+            {% endfor %}
+          </div>
+        {% elif a and a.carreras_asociadas %}
           <div class="hidden">
             {% for carrera in a.carreras_asociadas %}
               <span
@@ -89,7 +108,7 @@
           {% for t in tipos %}
             <option
               value="{{ t }}"
-              {% if a and a.tipo==t %}selected{% endif %}
+              {% if valores_formulario.get('tipo', a.tipo if a else tipos[0])==t %}selected{% endif %}
             >
               {{ t|capitalize }}
             </option>
@@ -101,13 +120,20 @@
         <label class="block type-body-small weight-medium mb-1">Docentes</label>
         <select name="docentes_ids" multiple class="w-full border-width radius-control px-3 py-2 min-h-28">
           {% for d in docentes %}
-            <option value="{{ d.id }}" {% if a and d in a.docentes %}selected{% endif %}>
+            <option value="{{ d.id }}" {% if d.id|string in valores_formulario.get('docentes_ids', []) or not valores_formulario and a and d in a.docentes %}selected{% endif %}>
               {{ d.nombre_completo }}
             </option>
           {% endfor %}
         </select>
         <p class="type-caption text-muted mt-1">Usá Ctrl o Cmd para seleccionar varios.</p>
-        <div id="docentes-nuevos" class="space-y-2 mt-3"></div>
+        <div id="docentes-nuevos" class="space-y-2 mt-3">
+          {% for nombre in valores_formulario.get('docentes_nombres', []) %}
+            <div class="grid grid-cols-2 gap-2">
+              <input name="docentes_nombres" value="{{ nombre }}" placeholder="Nombre" required class="border-width radius-control px-3 py-2">
+              <input name="docentes_apellidos" value="{{ valores_formulario.get('docentes_apellidos', [])[loop.index0] if loop.index0 < valores_formulario.get('docentes_apellidos', [])|length else '' }}" placeholder="Apellido" required class="border-width radius-control px-3 py-2">
+            </div>
+          {% endfor %}
+        </div>
         <button type="button" id="agregar-docente" class="type-body-small text-link hover-text-underline mt-2">
           Agregar docente sin usuario
         </button>
@@ -130,7 +156,7 @@
           id="fecha_inicio"
           type="text"
           name="fecha_inicio"
-          value="{{ a.fecha_inicio|fmt_input if a else '' }}"
+          value="{{ valores_formulario.get('fecha_inicio', a.fecha_inicio|fmt_input if a else '') }}"
           required
           autocomplete="off"
           class="w-full border-width radius-control px-3 py-2"
@@ -162,7 +188,7 @@
                 name="modo_finalizacion"
                 value="duracion"
                 class="peer sr-only"
-                {% if not a or not a.fecha_fin %}checked{% endif %}
+                {% if valores_formulario.get('modo_finalizacion', 'fecha_fin' if a and a.fecha_fin else 'duracion')=='duracion' %}checked{% endif %}
               >
 
               <span
@@ -183,7 +209,7 @@
                 name="modo_finalizacion"
                 value="fecha_fin"
                 class="peer sr-only"
-                {% if a and a.fecha_fin %}checked{% endif %}
+                {% if valores_formulario.get('modo_finalizacion', 'fecha_fin' if a and a.fecha_fin else 'duracion')=='fecha_fin' %}checked{% endif %}
               >
 
               <span
@@ -216,7 +242,7 @@
           id="fecha_fin"
           type="text"
           name="fecha_fin"
-          value="{{ a.fecha_fin|fmt_input if a else '' }}"
+          value="{{ valores_formulario.get('fecha_fin', a.fecha_fin|fmt_input if a else '') }}"
           autocomplete="off"
           class="hidden w-full border-width radius-control px-3 py-2"
         >
@@ -228,7 +254,7 @@
       <label class="block type-body-small weight-medium mb-1">Lugar</label>
       <input
         name="lugar"
-        value="{{ a.lugar if a else '' }}"
+        value="{{ valores_formulario.get('lugar', a.lugar if a else '') }}"
         class="w-full border-width radius-control px-3 py-2"
       >
     </div>
@@ -242,7 +268,7 @@
           name="creditos"
           min="0.5"
           step="0.5"
-          value="{{ a.creditos if a else 1 }}"
+          value="{{ valores_formulario.get('creditos', a.creditos if a else 1) }}"
           required
           class="w-full border-width radius-control px-3 py-2"
         >
@@ -254,7 +280,7 @@
           type="number"
           name="cupo_max"
           min="1"
-          value="{{ a.cupo_max if a else 30 }}"
+          value="{{ valores_formulario.get('cupo_max', a.cupo_max if a else 30) }}"
           required
           class="w-full border-width radius-control px-3 py-2"
         >
@@ -263,10 +289,10 @@
       <div>
         <label class="block type-body-small weight-medium mb-1">Encuesta post-actividad</label>
         <select name="encuesta_obligatoria" class="w-full border-width radius-control px-3 py-2">
-          <option value="true" {% if not a or a.encuesta_obligatoria %}selected{% endif %}>
+          <option value="true" {% if valores_formulario.get('encuesta_obligatoria', a.encuesta_obligatoria if a else true) %}selected{% endif %}>
             Obligatoria para acreditar créditos
           </option>
-          <option value="false" {% if a and not a.encuesta_obligatoria %}selected{% endif %}>
+          <option value="false" {% if not valores_formulario.get('encuesta_obligatoria', a.encuesta_obligatoria if a else true) %}selected{% endif %}>
             No asociar encuesta
           </option>
         </select>
