@@ -11,5 +11,7 @@ services:
         generateValue: true
       - key: APP_NAME
         value: "Módulo Habitar"
+      - key: PUBLIC_BASE_URL
+        value: "https://habitar-cpu.onrender.com"
       - key: SESSION_HTTPS_ONLY
         value: "1"   # Render serves HTTPS; send the session cookie only over TLS

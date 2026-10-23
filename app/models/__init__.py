@@ -13,6 +13,7 @@ from .sesion_asistencia import SesionAsistencia
 from .survey_response import SurveyResponse
 from .tipo_carrera import TipoCarrera
 from .user import User
+from .ventana_asistencia import VentanaAsistencia
 
 
 __all__ = [
@@ -32,5 +33,6 @@ __all__ = [
 	"SurveyResponse",
 	"TipoCarrera",
 	"User",
+	"VentanaAsistencia",
 
 ]

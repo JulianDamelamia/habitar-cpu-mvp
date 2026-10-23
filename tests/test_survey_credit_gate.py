@@ -31,7 +31,7 @@ def test_manual_attendance_stays_valid_and_survey_submission_awards_credits(
     activity = actividad_factory(
         estado=ESTADO_PUBLICADA,
         creditos=4,
-        fecha_inicio=datetime.now(timezone.utc) + timedelta(days=1),
+        fecha_inicio=datetime.now(timezone.utc) + timedelta(days=2),
     )
     activity.docentes.append(teacher.docente)
     db_session.commit()
@@ -198,3 +198,54 @@ def test_revoking_credited_attendance_reverses_credits(
 
     assert db_session.query(Asistencia).count() == 0
     assert accumulated_credits(db_session, student.id) == 0
+
+
+def test_teacher_close_link_closes_window_without_login(
+    db_session, actividad_factory, monkeypatch
+):
+    activity = actividad_factory(
+        estado=ESTADO_PUBLICADA,
+        fecha_inicio=datetime.now(timezone.utc) + timedelta(days=2),
+    )
+    window = services_asistencia.ensure_attendance_window(
+        db_session, activity.id
+    )
+
+    def override_get_db():
+        yield db_session
+
+    monkeypatch.setattr(main_module, "_init_database", lambda: None)
+    app.dependency_overrides[get_db] = override_get_db
+    try:
+        with TestClient(app, follow_redirects=False) as client:
+            link = f"/docente/asistencia/cerrar/{window.codigo_cierre}"
+            page = client.get(link)
+            assert page.status_code == 200
+            assert "solo se puede cerrar desde el inicio" in page.text
+            assert "CERRAR PERÍODO DE ASISTENCIA" not in page.text
+
+            early_response = client.post(link)
+            assert early_response.status_code == 200
+            assert "solo se puede cerrar desde el inicio" in early_response.text
+            db_session.refresh(window)
+            assert not window.cerrada_manualmente
+
+            start = activity.fecha_inicio
+            if start.tzinfo is None:
+                start = start.replace(tzinfo=timezone.utc)
+            monkeypatch.setattr(
+                services_asistencia,
+                "_now",
+                lambda: start,
+            )
+            page = client.get(link)
+            assert "CERRAR PERÍODO DE ASISTENCIA" in page.text
+            response = client.post(link)
+    finally:
+        app.dependency_overrides.pop(get_db, None)
+
+    assert response.status_code == 200
+    assert "location" not in response.headers
+    assert "Período de asistencia cerrado." in response.text
+    db_session.refresh(window)
+    assert window.cerrada_manualmente

@@ -13,9 +13,9 @@ from app.services import asistencia
 from app.services.asistencia import (
     AsistenciaError,
     check_in,
-    current_session,
+    close_attendance_window,
+    ensure_attendance_window,
     mark_present_manual,
-    open_or_rotate,
     present_user_ids,
     acreditar_creditos_pendientes,
 )
@@ -24,52 +24,100 @@ from app.services.credits import accumulated_credits
 from app.services.inscripcion import inscribir
 
 
-def test_open_or_rotate_crea_y_reutiliza_sesion(db_session, actividad_factory, user_factory):
+def test_attendance_window_has_stable_activity_code(
+    db_session, actividad_factory
+):
     actividad = actividad_factory(estado=ESTADO_PUBLICADA)
-    docente = user_factory(rol="docente")
 
-    primera = open_or_rotate(db_session, actividad.id, docente.id)
-    segunda = open_or_rotate(db_session, actividad.id, docente.id)
+    primera = ensure_attendance_window(db_session, actividad.id)
+    segunda = ensure_attendance_window(db_session, actividad.id)
 
     assert primera.id == segunda.id
-    assert primera.token == segunda.token
-    assert current_session(db_session, actividad.id).id == primera.id
+    assert primera.codigo == segunda.codigo
+    assert primera.codigo_cierre == segunda.codigo_cierre
 
 
-def test_open_or_rotate_renueva_sesion_expirada(db_session, actividad_factory, user_factory):
-    actividad = actividad_factory(estado=ESTADO_PUBLICADA)
-    docente = user_factory(rol="docente")
-    sesion = open_or_rotate(db_session, actividad.id, docente.id)
-    token_anterior = sesion.token
-    sesion.expires_at = datetime.now(timezone.utc) - timedelta(seconds=1)
+def test_enrollment_closure_emails_roster_qr_code_and_close_link(
+    db_session, actividad_factory, user_factory, carrera_factory, monkeypatch
+):
+    from app.services import mailing
+
+    career = carrera_factory(nombre="Ingeniería")
+    teacher = user_factory(
+        rol="docente", email="docente@example.com"
+    )
+    student = user_factory(email="alumno@example.com")
+    student.nombre = "Ana"
+    student.apellido = "Pérez"
+    student.carrera_id = career.id
+    activity = actividad_factory(
+        estado=ESTADO_PUBLICADA,
+        fecha_inicio=datetime.now(timezone.utc) + timedelta(days=2),
+    )
+    activity.docentes.append(teacher.docente)
+    db_session.commit()
+    inscribir(db_session, activity.id, student.id)
+    activity.fecha_inicio = datetime.now(timezone.utc) + timedelta(hours=12)
     db_session.commit()
 
-    renovada = open_or_rotate(db_session, actividad.id, docente.id)
+    sent = []
 
-    assert renovada.id == sesion.id
-    assert renovada.token != token_anterior
-    expires_at = renovada.expires_at
-    if expires_at.tzinfo is None:
-        expires_at = expires_at.replace(tzinfo=timezone.utc)
-    assert expires_at > datetime.now(timezone.utc)
+    def record_email(to, subject, body, *, attachments=None):
+        sent.append((to, subject, body, attachments))
+        return True
+
+    monkeypatch.setattr(mailing, "send_email", record_email)
+    now = datetime.now(timezone.utc)
+    count = asistencia.process_closed_enrollment_attendance_emails(
+        db_session, now=now
+    )
+    second_count = asistencia.process_closed_enrollment_attendance_emails(
+        db_session, now=now
+    )
+
+    assert count == 1
+    assert second_count == 0
+    assert len(sent) == 1
+    to, subject, body, attachments = sent[0]
+    assert to == teacher.email
+    assert subject == f"Inscripción cerrada: {activity.titulo}"
+    assert "Nombre: Ana" in body
+    assert "Apellido: Pérez" in body
+    assert "Mail: alumno@example.com" in body
+    assert "Carrera: Grado Ingeniería" in body
+    window = (
+        db_session.query(asistencia.VentanaAsistencia)
+        .filter_by(actividad_id=activity.id)
+        .one()
+    )
+    assert window.codigo in body
+    assert window.codigo_cierre in body
+    assert len(attachments) == 1
+    assert attachments[0][0] == f"asistencia-{activity.id}.png"
+    assert attachments[0][2] == "image/png"
 
 
 def test_check_in_registra_asistencia_para_usuario_inscripto(
     db_session, actividad_factory, user_factory
 ):
     actividad = actividad_factory(
-        estado=ESTADO_PUBLICADA, encuesta_obligatoria=False
+        estado=ESTADO_PUBLICADA,
+        encuesta_obligatoria=False,
+        fecha_inicio=datetime.now(timezone.utc) + timedelta(days=2),
     )
     docente = user_factory(rol="docente")
     estudiante = user_factory()
     inscribir(db_session, actividad.id, estudiante.id)
-    sesion = open_or_rotate(db_session, actividad.id, docente.id)
+    actividad.fecha_inicio = datetime.now(timezone.utc) + timedelta(minutes=20)
+    actividad.fecha_fin = actividad.fecha_inicio + timedelta(hours=2)
+    db_session.commit()
+    window = ensure_attendance_window(db_session, actividad.id)
 
-    resultado = check_in(db_session, f"  {sesion.token}  ", estudiante.id)
+    resultado = check_in(db_session, f"  {window.codigo}  ", estudiante.id)
 
     assert resultado.id == actividad.id
     assert present_user_ids(db_session, actividad.id) == {estudiante.id}
-    assert db_session.query(Asistencia).one().validated_by == docente.id
+    assert db_session.query(Asistencia).one().validated_by is None
     assert accumulated_credits(db_session, estudiante.id) == actividad.creditos
 
 
@@ -83,12 +131,12 @@ def test_check_in_rechaza_codigo_valido_antes_de_30_minutos_del_inicio(
     docente = user_factory(rol="docente")
     estudiante = user_factory()
     inscribir(db_session, actividad.id, estudiante.id)
-    hora = [actividad.fecha_inicio.replace(tzinfo=timezone.utc) - timedelta(minutes=31)]
-    monkeypatch.setattr(asistencia, "_now", lambda: hora[0])
-    sesion = open_or_rotate(db_session, actividad.id, docente.id)
+    hora = actividad.fecha_inicio.replace(tzinfo=timezone.utc) - timedelta(minutes=31)
+    monkeypatch.setattr(asistencia, "_now", lambda: hora)
+    window = ensure_attendance_window(db_session, actividad.id)
 
     with pytest.raises(AsistenciaError, match="no está abierta"):
-        check_in(db_session, sesion.token, estudiante.id)
+        check_in(db_session, window.codigo, estudiante.id)
 
 
 def test_check_in_acepta_codigo_valido_dentro_de_ventana_hasta_seis_horas_del_fin(
@@ -101,13 +149,11 @@ def test_check_in_acepta_codigo_valido_dentro_de_ventana_hasta_seis_horas_del_fi
     docente = user_factory(rol="docente")
     estudiante = user_factory()
     inscribir(db_session, actividad.id, estudiante.id)
-    hora = [
-        actividad.fecha_fin.replace(tzinfo=timezone.utc) + timedelta(hours=5)
-    ]
-    monkeypatch.setattr(asistencia, "_now", lambda: hora[0])
-    sesion = open_or_rotate(db_session, actividad.id, docente.id)
+    hora = actividad.fecha_inicio.replace(tzinfo=timezone.utc) + timedelta(hours=5)
+    monkeypatch.setattr(asistencia, "_now", lambda: hora)
+    window = ensure_attendance_window(db_session, actividad.id)
 
-    resultado = check_in(db_session, sesion.token, estudiante.id)
+    resultado = check_in(db_session, window.codigo, estudiante.id)
 
     assert resultado.id == actividad.id
     assert present_user_ids(db_session, actividad.id) == {estudiante.id}
@@ -123,27 +169,33 @@ def test_check_in_rechaza_codigo_valido_despues_de_seis_horas_del_fin(
     docente = user_factory(rol="docente")
     estudiante = user_factory()
     inscribir(db_session, actividad.id, estudiante.id)
-    hora = [
-        actividad.fecha_fin.replace(tzinfo=timezone.utc)
-        + timedelta(hours=6, seconds=1)
-    ]
-    monkeypatch.setattr(asistencia, "_now", lambda: hora[0])
-    sesion = open_or_rotate(db_session, actividad.id, docente.id)
+    hora = actividad.fecha_inicio.replace(tzinfo=timezone.utc) + timedelta(
+        hours=6, seconds=1
+    )
+    monkeypatch.setattr(asistencia, "_now", lambda: hora)
+    window = ensure_attendance_window(db_session, actividad.id)
 
     with pytest.raises(AsistenciaError, match="no está abierta"):
-        check_in(db_session, sesion.token, estudiante.id)
+        check_in(db_session, window.codigo, estudiante.id)
 
 
 def test_check_in_defers_credits_until_survey_then_releases_once(
     db_session, actividad_factory, user_factory
 ):
-    actividad = actividad_factory(estado=ESTADO_PUBLICADA, creditos=3)
+    actividad = actividad_factory(
+        estado=ESTADO_PUBLICADA,
+        creditos=3,
+        fecha_inicio=datetime.now(timezone.utc) + timedelta(days=2),
+    )
     docente = user_factory(rol="docente")
     estudiante = user_factory()
     inscribir(db_session, actividad.id, estudiante.id)
-    sesion = open_or_rotate(db_session, actividad.id, docente.id)
+    actividad.fecha_inicio = datetime.now(timezone.utc) + timedelta(minutes=20)
+    actividad.fecha_fin = actividad.fecha_inicio + timedelta(hours=2)
+    db_session.commit()
+    window = ensure_attendance_window(db_session, actividad.id)
 
-    check_in(db_session, sesion.token, estudiante.id)
+    check_in(db_session, window.codigo, estudiante.id)
 
     asistencia = db_session.query(Asistencia).one()
     assert asistencia.estado_creditos == ESTADO_CREDITOS_PENDIENTE_ENCUESTA
@@ -179,14 +231,18 @@ def test_survey_not_required_credits_are_awarded_immediately(
     db_session, actividad_factory, user_factory
 ):
     actividad = actividad_factory(
-        estado=ESTADO_PUBLICADA, encuesta_obligatoria=False
+        estado=ESTADO_PUBLICADA,
+        encuesta_obligatoria=False,
+        fecha_inicio=datetime.now(timezone.utc) + timedelta(days=2),
     )
-    docente = user_factory(rol="docente")
     estudiante = user_factory()
     inscribir(db_session, actividad.id, estudiante.id)
-    sesion = open_or_rotate(db_session, actividad.id, docente.id)
+    actividad.fecha_inicio = datetime.now(timezone.utc) + timedelta(minutes=20)
+    actividad.fecha_fin = actividad.fecha_inicio + timedelta(hours=2)
+    db_session.commit()
+    window = ensure_attendance_window(db_session, actividad.id)
 
-    check_in(db_session, sesion.token, estudiante.id)
+    check_in(db_session, window.codigo, estudiante.id)
 
     asistencia = db_session.query(Asistencia).one()
     assert asistencia.estado_creditos == ESTADO_CREDITOS_ACREDITADO
@@ -202,40 +258,103 @@ def test_survey_not_required_credits_are_awarded_immediately(
 )
 def test_check_in_rechaza_token_invalido(db_session, actividad_factory, user_factory, token, mensaje):
     actividad = actividad_factory(estado=ESTADO_PUBLICADA)
-    docente = user_factory(rol="docente")
-    open_or_rotate(db_session, actividad.id, docente.id)
 
     with pytest.raises(AsistenciaError, match=mensaje):
         check_in(db_session, token, user_factory().id)
 
 
 def test_check_in_rechaza_expirado_no_inscripto_y_duplicado(
-    db_session, actividad_factory, user_factory
+    db_session, actividad_factory, user_factory, monkeypatch
 ):
-    actividad = actividad_factory(estado=ESTADO_PUBLICADA)
-    docente = user_factory(rol="docente")
+    actividad = actividad_factory(
+        estado=ESTADO_PUBLICADA,
+        fecha_inicio=datetime.now(timezone.utc) + timedelta(days=2),
+    )
     estudiante = user_factory()
-    sesion = open_or_rotate(db_session, actividad.id, docente.id)
-    sesion.expires_at = datetime.now(timezone.utc) - timedelta(seconds=1)
-    db_session.commit()
-
-    with pytest.raises(AsistenciaError, match="expiró"):
-        check_in(db_session, sesion.token, estudiante.id)
-
-    sesion.expires_at = datetime.now(timezone.utc) + timedelta(seconds=90)
-    db_session.commit()
     inscribir(db_session, actividad.id, estudiante.id)
-    check_in(db_session, sesion.token, estudiante.id)
+    ahora = actividad.fecha_inicio.replace(tzinfo=timezone.utc) - timedelta(minutes=10)
+    monkeypatch.setattr(asistencia, "_now", lambda: ahora)
+    window = ensure_attendance_window(db_session, actividad.id)
+    no_inscripto = user_factory()
+
+    with pytest.raises(AsistenciaError, match="No estás inscripto"):
+        check_in(db_session, window.codigo, no_inscripto.id)
+
+    check_in(db_session, window.codigo, estudiante.id)
 
     with pytest.raises(AsistenciaError, match="ya fue registrada"):
-        check_in(db_session, sesion.token, estudiante.id)
+        check_in(db_session, window.codigo, estudiante.id)
+
+
+def test_close_attendance_window_invalidates_activity_code(
+    db_session, actividad_factory, monkeypatch
+):
+    actividad = actividad_factory(
+        estado=ESTADO_PUBLICADA,
+        fecha_inicio=datetime.now(timezone.utc) + timedelta(days=2),
+    )
+    window = ensure_attendance_window(db_session, actividad.id)
+    ahora = actividad.fecha_inicio.replace(tzinfo=timezone.utc)
+    monkeypatch.setattr(asistencia, "_now", lambda: ahora)
+    assert asistencia.attendance_window_open(actividad, window)
+
+    assert close_attendance_window(db_session, window.codigo_cierre)
+
+    db_session.refresh(window)
+    assert not asistencia.attendance_window_open(actividad, window)
+    assert not close_attendance_window(db_session, window.codigo_cierre)
+
+
+def test_close_attendance_window_rejected_before_activity_starts(
+    db_session, actividad_factory
+):
+    actividad = actividad_factory(
+        estado=ESTADO_PUBLICADA,
+        fecha_inicio=datetime.now(timezone.utc) + timedelta(days=2),
+    )
+    window = ensure_attendance_window(db_session, actividad.id)
+    inicio = actividad.fecha_inicio.replace(tzinfo=timezone.utc)
+
+    assert not close_attendance_window(
+        db_session,
+        window.codigo_cierre,
+        now=inicio - timedelta(seconds=1),
+    )
+    db_session.refresh(window)
+    assert not window.cerrada_manualmente
+    assert close_attendance_window(
+        db_session, window.codigo_cierre, now=inicio
+    )
+
+
+def test_attendance_window_uses_start_time_boundaries(
+    db_session, actividad_factory
+):
+    actividad = actividad_factory(
+        estado=ESTADO_PUBLICADA,
+        fecha_inicio=datetime.now(timezone.utc) + timedelta(days=2),
+    )
+    window = ensure_attendance_window(db_session, actividad.id)
+    inicio = actividad.fecha_inicio.replace(tzinfo=timezone.utc)
+
+    assert asistencia.attendance_window_open(
+        actividad, window, now=inicio - timedelta(minutes=30)
+    )
+    assert asistencia.attendance_window_open(
+        actividad, window, now=inicio + timedelta(hours=5, minutes=59)
+    )
+    assert not asistencia.attendance_window_open(
+        actividad, window, now=inicio + timedelta(hours=6)
+    )
 
 
 def test_mark_present_manual_valida_estudiante_inscripto(
     db_session, actividad_factory, user_factory
 ):
     actividad = actividad_factory(
-        estado=ESTADO_PUBLICADA, encuesta_obligatoria=False
+        estado=ESTADO_PUBLICADA,
+        encuesta_obligatoria=False,
+        fecha_inicio=datetime.now(timezone.utc) + timedelta(days=2),
     )
     estudiante = user_factory()
     validador = user_factory(rol="docente")

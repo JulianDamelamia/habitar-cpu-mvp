@@ -15,6 +15,7 @@ from app.models import (
     INSCRIPCION_ALTA,
     Notification,
 )
+from app.services.asistencia import process_closed_enrollment_attendance_emails
 
 logger = logging.getLogger("habitar.scheduler")
 scheduler = BackgroundScheduler(timezone="UTC")
@@ -72,6 +73,19 @@ def send_reminders() -> None:
         db.close()
 
 
+def send_attendance_window_details() -> None:
+    db = SessionLocal()
+    try:
+        sent = process_closed_enrollment_attendance_emails(db)
+        if sent:
+            logger.info("Sent %d attendance-window emails", sent)
+    except Exception as exc:  # noqa: BLE001
+        logger.warning("Attendance-window email job failed: %s", exc)
+        db.rollback()
+    finally:
+        db.close()
+
+
 def start_scheduler() -> None:
     if scheduler.running:
         return
@@ -83,6 +97,15 @@ def start_scheduler() -> None:
         replace_existing=True,
         coalesce=True,            # collapse missed runs (after hibernation) into one
         misfire_grace_time=3600,  # still run a tick that fired late instead of skipping
+    )
+    scheduler.add_job(
+        send_attendance_window_details,
+        "interval",
+        minutes=5,
+        id="attendance-window-details",
+        replace_existing=True,
+        coalesce=True,
+        misfire_grace_time=3600,
     )
     scheduler.start()
     logger.info("Reminder scheduler started")

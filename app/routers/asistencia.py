@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import base64
 import io
-from datetime import datetime, timezone
 
 import qrcode
 from fastapi import APIRouter, Depends, Form, Request
@@ -20,8 +19,9 @@ from app.models import (
     ROL_COORDINACION,
     SurveyResponse,
     User,
+    VentanaAsistencia,
 )
-from app.security import current_user_required, requiere_roles
+from app.security import requiere_roles
 from app import services
 from app.templating import redirect_to, render
 
@@ -81,6 +81,88 @@ def checkin_submit(
         "survey_form" if actividad.encuesta_obligatoria else "home",
         **({"actividad_id": actividad.id} if actividad.encuesta_obligatoria else {}),
         query_params={"msg": f"¡Asistencia registrada! Sumaste {actividad.creditos} créditos."},
+    )
+
+
+@router.get("/docente/asistencia/cerrar/{codigo_cierre}")
+def attendance_window_close_page(
+    request: Request,
+    codigo_cierre: str,
+    db: Session = Depends(get_db),
+):
+    window = (
+        db.query(VentanaAsistencia)
+        .filter(VentanaAsistencia.codigo_cierre == codigo_cierre)
+        .one_or_none()
+    )
+    if window is None:
+        return render(
+            request,
+            "docente/cerrar_asistencia.html",
+            error="El enlace de cierre no es válido.",
+            window=None,
+        )
+    actividad = db.get(Actividad, window.actividad_id)
+    return render(
+        request,
+        "docente/cerrar_asistencia.html",
+        actividad=actividad,
+        window=window,
+        puede_cerrar=(
+            actividad is not None
+            and services.asistencia.can_close_attendance_window(actividad)
+            and not window.cerrada_manualmente
+        ),
+        error=(
+            "El período de asistencia solo se puede cerrar desde el inicio de la actividad."
+            if actividad is not None
+            and not window.cerrada_manualmente
+            and not services.asistencia.can_close_attendance_window(actividad)
+            else None
+        ),
+    )
+
+
+@router.post("/docente/asistencia/cerrar/{codigo_cierre}")
+def close_attendance_window_submit(
+    request: Request,
+    codigo_cierre: str,
+    db: Session = Depends(get_db),
+):
+    window = (
+        db.query(VentanaAsistencia)
+        .filter(VentanaAsistencia.codigo_cierre == codigo_cierre)
+        .one_or_none()
+    )
+    if window is None:
+        return render(
+            request,
+            "docente/cerrar_asistencia.html",
+            error="El enlace de cierre no es válido.",
+            window=None,
+        )
+    was_open = services.asistencia.close_attendance_window(db, codigo_cierre)
+    actividad = db.get(Actividad, window.actividad_id)
+    if actividad is not None and not was_open and not window.cerrada_manualmente:
+        return render(
+            request,
+            "docente/cerrar_asistencia.html",
+            actividad=actividad,
+            window=window,
+            puede_cerrar=False,
+            error="El período de asistencia solo se puede cerrar desde el inicio de la actividad.",
+        )
+    return render(
+        request,
+        "docente/cerrar_asistencia.html",
+        actividad=actividad,
+        window=window,
+        puede_cerrar=False,
+        mensaje=(
+            "Período de asistencia cerrado."
+            if was_open
+            else "El período de asistencia ya estaba cerrado."
+        ),
     )
 
 
@@ -224,10 +306,22 @@ def docente_token(
     actividad = db.get(Actividad, actividad_id)
     if actividad is None or not _can_manage(actividad, user):
         return JSONResponse({"error": "forbidden"}, status_code=403)
-    sess = services.asistencia.open_or_rotate(db, actividad_id, user.id)
-    exp = sess.expires_at if sess.expires_at.tzinfo else sess.expires_at.replace(tzinfo=timezone.utc)
-    seconds_left = max(int((exp - datetime.now(timezone.utc)).total_seconds()), 0)
-    return JSONResponse({"token": sess.token, "qr": _qr_data_uri(sess.token), "seconds_left": seconds_left})
+    if not actividad.inscripcion_cerrada:
+        return JSONResponse(
+            {"error": "El QR estará disponible al cerrar la inscripción."},
+            status_code=409,
+        )
+    window = services.asistencia.ensure_attendance_window(db, actividad_id)
+    return JSONResponse(
+        {
+            "token": window.codigo,
+            "qr": _qr_data_uri(window.codigo),
+            "is_open": services.asistencia.attendance_window_open(
+                actividad, window
+            ),
+            "closed_manually": window.cerrada_manualmente,
+        }
+    )
 
 
 @router.post("/docente/actividades/{actividad_id}/marcar/{student_id}")

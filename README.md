@@ -21,7 +21,7 @@ Alta de estudiante nuevo: usar un legajo del padrón demo (`1003`-`1008`, `2001`
 - **Backend:** FastAPI + SQLAlchemy 2 + Jinja2 (Python 3.13)
 - **DB:** PostgreSQL (Neon)
 - **Frontend:** Jinja2 + Tailwind (CDN) + Chart.js + html5-qrcode
-- **Jobs:** APScheduler (recordatorios 24 h)
+- **Jobs:** APScheduler (recordatorios 24 h, avisos de cierre de inscripción)
 - **Deploy:** Docker + Render (blueprint en `render.yaml`)
 
 ## Funcionalidad (10 épicas, profundidad MVP)
@@ -31,7 +31,7 @@ Alta de estudiante nuevo: usar un legajo del padrón demo (`1003`-`1008`, `2001`
 | E-02 Descubrimiento | Listado + filtros (fecha/tipo/créditos/cupo), detalle |
 | E-03 Inscripción | Inscripción 1-click, **control de cupo transaccional**, baja, confirmación mail+in-app |
 | E-04 Recordatorios | "Mis próximas actividades", recordatorio 24 h por mail, FAQ editable |
-| E-05 Asistencia QR | Sesión con QR/código rotativo del docente; check-in del estudiante validado |
+| E-05 Asistencia QR | QR estable por actividad tras el cierre de inscripción; check-in entre 30 min antes y 6 h después del inicio |
 | E-06 Encuesta | Encuesta de satisfacción post-asistencia |
 | E-07 Progreso | Créditos acumulados, barra de progreso, historial |
 | E-08 Gestión de actividades | ABM, vista previa, publicar, editar→notifica inscriptos |
@@ -52,7 +52,7 @@ Para registrarte como estudiante nuevo usá un legajo del padrón demo: `1003`-`
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-cp .env.example .env          # completá DATABASE_URL (Neon) y SECRET_KEY
+cp .env.example .env          # completá DATABASE_URL (Neon), SECRET_KEY y PUBLIC_BASE_URL
 uvicorn app.main:app --reload
 # http://localhost:8000
 ```
@@ -64,7 +64,8 @@ Para actualizar una base existente, ejecutá `alembic upgrade head` antes de des
 1. Push de este repo a GitHub.
 2. En Render → **New → Blueprint** → conectá el repo (detecta `render.yaml`).
 3. Setear la variable **`DATABASE_URL`** con la connection string de Neon
-   (`SECRET_KEY` se autogenera).
+   (`SECRET_KEY` se autogenera). Configurar **`PUBLIC_BASE_URL`** con URL pública
+   del servicio para que enlaces de cierre de asistencia enviados por correo funcionen.
 4. Deploy → la app queda en `https://<servicio>.onrender.com`.
 
 > Plan free: el servicio hiberna tras inactividad (~30 s de arranque en frío).

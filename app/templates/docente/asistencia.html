@@ -11,7 +11,7 @@
     <h2 class="weight-semibold mb-3">Mostrá este código a los estudiantes</h2>
     <img id="qr" alt="QR de asistencia" class="mx-auto w-56 h-56 border-width radius-control">
     <p class="mt-3 type-display weight-monospace weight-bold tracking-widest" id="code">------</p>
-    <p class="type-caption text-subtle mt-1">Se renueva en <span id="count">-</span>s</p>
+    <p class="type-caption text-subtle mt-1" id="window-status">Cargando estado de asistencia…</p>
   </div>
 
   <!-- Inscriptos -->
@@ -42,22 +42,30 @@
   async function refresh() {
     try {
       const r = await fetch(`/docente/actividades/${actividadId}/token`);
-      if (!r.ok) return;
+      const status = document.getElementById('window-status');
+      if (r.status === 409) {
+        status.textContent = 'El QR estará disponible al cerrar la inscripción.';
+        return;
+      }
+      if (!r.ok) {
+        status.textContent = 'No se pudo cargar el código de asistencia.';
+        return;
+      }
       const d = await r.json();
       document.getElementById('qr').src = d.qr;
       document.getElementById('code').textContent = d.token;
-      let left = d.seconds_left;
-      const countEl = document.getElementById('count');
-      countEl.textContent = left;
-      clearInterval(window._tick);
-      window._tick = setInterval(() => {
-        left -= 1;
-        countEl.textContent = Math.max(left, 0);
-        if (left <= 0) { clearInterval(window._tick); refresh(); }
-      }, 1000);
-    } catch (e) {}
+      status.textContent = d.closed_manually
+        ? 'Período de asistencia cerrado manualmente.'
+        : d.is_open
+          ? 'Ventana de asistencia abierta.'
+          : 'Código asociado a esta actividad. Se habilita 30 minutos antes del inicio y cierra 6 horas después.';
+    } catch (error) {
+      document.getElementById('window-status').textContent =
+        'No se pudo cargar el código de asistencia.';
+    }
   }
   refresh();
+  setInterval(refresh, 30000);
   // Refresh the present list periodically so manual checks stay current.
   setInterval(() => { if (document.visibilityState === 'visible') location.reload(); }, 30000);
 </script>

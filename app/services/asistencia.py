@@ -1,9 +1,12 @@
-"""Asistencia service (E-05). Docente opens a rotating-token session; student checks in."""
+"""Asistencia service: activity-bound QR validation and credit tracking."""
 from __future__ import annotations
 
+import io
+import json
 import secrets
 from datetime import datetime, timedelta, timezone
 
+import qrcode
 from sqlalchemy import update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -13,16 +16,14 @@ from app.models import (
     Asistencia,
     ESTADO_CREDITOS_ACREDITADO,
     ESTADO_CREDITOS_PENDIENTE_ENCUESTA,
+    ESTADO_PUBLICADA,
     Estudiante,
-    SesionAsistencia,
     ROL_ESTUDIANTE,
     User,
+    VentanaAsistencia,
 )
 from app.services.encuestas import estudiante_completo_encuesta
 from app.services.consultas_comunes import is_enrolled
-
-TOKEN_TTL_SECONDS = 6*60*60 #6hs
-
 
 class AsistenciaError(Exception):
     pass
@@ -120,109 +121,233 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def _new_token() -> str:
-    # 6-digit code embedded in the QR; short, human-typable as fallback.
-    return f"{secrets.randbelow(1_000_000):06d}"
-
-
-def current_session(db: Session, actividad_id: int) -> SesionAsistencia | None:
-    sess = (
-        db.query(SesionAsistencia)
-        .filter(SesionAsistencia.actividad_id == actividad_id)
-        .order_by(SesionAsistencia.created_at.desc())
-        .first()
+def ensure_attendance_window(
+    db: Session, actividad_id: int
+) -> VentanaAsistencia:
+    window = (
+        db.query(VentanaAsistencia)
+        .filter(VentanaAsistencia.actividad_id == actividad_id)
+        .one_or_none()
     )
-    return sess
-
-
-def open_or_rotate(db: Session, actividad_id: int, docente_id: int) -> SesionAsistencia:
-    """Return a live session, rotating the token if expired or absent."""
-    sess = current_session(db, actividad_id)
-    expires = _now() + timedelta(seconds=TOKEN_TTL_SECONDS)
-    if sess is None:
-        sess = SesionAsistencia(
-            actividad_id=actividad_id,
-            token=_unique_token(db),
-            expires_at=expires,
-            created_by=docente_id,
+    if window is not None:
+        return window
+    window = VentanaAsistencia(
+        actividad_id=actividad_id,
+        codigo=_unique_attendance_code(db),
+        codigo_cierre=secrets.token_urlsafe(48),
+    )
+    db.add(window)
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        window = (
+            db.query(VentanaAsistencia)
+            .filter(VentanaAsistencia.actividad_id == actividad_id)
+            .one_or_none()
         )
-        db.add(sess)
-    else:
-        exp = sess.expires_at
-        if exp.tzinfo is None:
-            exp = exp.replace(tzinfo=timezone.utc)
-        if exp <= _now():
-            sess.token = _unique_token(db)
-            sess.expires_at = expires
-            sess.created_by = docente_id
-    db.commit()
-    db.refresh(sess)
-    return sess
+        if window is None:
+            raise
+    db.refresh(window)
+    return window
 
 
-def _unique_token(db: Session) -> str:
-    for _ in range(10):
-        token = _new_token()
-        if not db.query(SesionAsistencia).filter(SesionAsistencia.token == token).first():
-            return token
-    return secrets.token_hex(4)
+def _unique_attendance_code(db: Session) -> str:
+    for _ in range(100):
+        code = f"{secrets.randbelow(1_000_000):06d}"
+        if not db.query(VentanaAsistencia).filter(
+            VentanaAsistencia.codigo == code
+        ).first():
+            return code
+    raise RuntimeError("No se pudo generar un código de asistencia único.")
 
-def _ventana_abierta(db: Session, sess: SesionAsistencia) -> bool:
-    """Return True if the activity is currently open for check-in."""
-    exp = sess.expires_at
-    if exp.tzinfo is None:
-        exp = exp.replace(tzinfo=timezone.utc)
-    actividad = db.get(Actividad, sess.actividad_id)
-    if actividad is None:
+
+def close_attendance_window(
+    db: Session,
+    close_code: str,
+    *,
+    now: datetime | None = None,
+) -> bool:
+    window = (
+        db.query(VentanaAsistencia)
+        .filter(VentanaAsistencia.codigo_cierre == close_code)
+        .one_or_none()
+    )
+    if window is None or window.cerrada_manualmente:
         return False
+    actividad = db.get(Actividad, window.actividad_id)
+    if actividad is None or not can_close_attendance_window(actividad, now=now):
+        return False
+    window.cerrada_manualmente = True
+    db.commit()
+    return True
+
+
+def can_close_attendance_window(
+    actividad: Actividad, *, now: datetime | None = None
+) -> bool:
     inicio = actividad.fecha_inicio
-    fin = actividad.fecha_fin
     if inicio.tzinfo is None:
         inicio = inicio.replace(tzinfo=timezone.utc)
-    if fin.tzinfo is None:
-        fin = fin.replace(tzinfo=timezone.utc)
-    ahora = _now()
-    return (
-        inicio - timedelta(minutes=30) < ahora
-        and ahora < exp
-        and ahora < fin + timedelta(hours=6)
+    current = now or _now()
+    if current.tzinfo is None:
+        current = current.replace(tzinfo=timezone.utc)
+    else:
+        current = current.astimezone(timezone.utc)
+    return current >= inicio
+
+
+def attendance_window_open(
+    actividad: Actividad,
+    window: VentanaAsistencia,
+    *,
+    now: datetime | None = None,
+) -> bool:
+    if window.cerrada_manualmente:
+        return False
+    start = actividad.fecha_inicio
+    if start.tzinfo is None:
+        start = start.replace(tzinfo=timezone.utc)
+    current = now or _now()
+    if current.tzinfo is None:
+        current = current.replace(tzinfo=timezone.utc)
+    else:
+        current = current.astimezone(timezone.utc)
+    return actividad.estado == ESTADO_PUBLICADA and (
+        start - timedelta(minutes=30) <= current < start + timedelta(hours=6)
     )
+
+
+def process_closed_enrollment_attendance_emails(
+    db: Session, *, now: datetime | None = None
+) -> int:
+    from app.config import settings
+    from app.models import ESTADO_PUBLICADA, INSCRIPCION_ALTA, Inscripcion
+    from app.services.mailing import send_email
+
+    current = now or _now()
+    if current.tzinfo is None:
+        current = current.replace(tzinfo=timezone.utc)
+    else:
+        current = current.astimezone(timezone.utc)
+    activities = db.query(Actividad).filter(
+        Actividad.estado == ESTADO_PUBLICADA
+    ).all()
+    delivered = 0
+    for activity in activities:
+        start = activity.fecha_inicio
+        if start.tzinfo is None:
+            start = start.replace(tzinfo=timezone.utc)
+        if start > current + timedelta(hours=24):
+            continue
+        window = ensure_attendance_window(db, activity.id)
+        notified_emails = set(json.loads(window.correos_enviados))
+        teachers = {
+            teacher_user.email: teacher_user
+            for docente in activity.docentes
+            for teacher_user in docente.usuarios
+            if teacher_user.email
+        }
+        if not teachers:
+            continue
+        if set(teachers).issubset(notified_emails):
+            continue
+        enrollments = (
+            db.query(Inscripcion)
+            .filter(
+                Inscripcion.actividad_id == activity.id,
+                Inscripcion.estado == INSCRIPCION_ALTA,
+            )
+            .all()
+        )
+        roster = []
+        for enrollment in enrollments:
+            student = enrollment.user
+            career = student.carrera
+            career_name = (
+                f"{career.tipo.nombre} {career.nombre}" if career else "Sin carrera"
+            )
+            roster.append(
+                f"- Nombre: {student.nombre}\n"
+                f"  Apellido: {student.apellido}\n"
+                f"  Mail: {student.email}\n"
+                f"  Carrera: {career_name}"
+            )
+        close_url = (
+            f"{settings.PUBLIC_BASE_URL}/docente/asistencia/cerrar/"
+            f"{window.codigo_cierre}"
+        )
+        body = (
+            f"Inscripción cerrada para '{activity.titulo}'.\n\n"
+            f"Inicio: {activity.fecha_inicio.strftime('%d/%m/%Y %H:%M')}\n"
+            f"Código de validación: {window.codigo}\n"
+            f"Ventana de asistencia: desde 30 minutos antes del inicio hasta "
+            "6 horas después del inicio.\n"
+            f"Cierre manual: {close_url}\n\n"
+            "Inscriptos:\n"
+            + ("\n".join(roster) if roster else "- No hay inscriptos.")
+        )
+        qr_buffer = io.BytesIO()
+        qrcode.make(window.codigo).save(qr_buffer, format="PNG")
+        attachment = (
+            f"asistencia-{activity.id}.png",
+            qr_buffer.getvalue(),
+            "image/png",
+        )
+        for email in teachers:
+            if email in notified_emails:
+                continue
+            if send_email(
+                email,
+                f"Inscripción cerrada: {activity.titulo}",
+                body,
+                attachments=[attachment],
+            ):
+                notified_emails.add(email)
+                window.correos_enviados = json.dumps(sorted(notified_emails))
+                db.commit()
+                delivered += 1
+    return delivered
+
 
 def check_in(db: Session, token: str, user_id: int) -> Actividad:
     """Validate a scanned token and mark the student present. Raises AsistenciaError."""
     token = token.strip()
-    sess = db.query(SesionAsistencia).filter(SesionAsistencia.token == token).first()
-    if sess is None:
+    window = (
+        db.query(VentanaAsistencia)
+        .filter(VentanaAsistencia.codigo == token)
+        .one_or_none()
+    )
+    if window is None:
         raise AsistenciaError("Código inválido.")
-    
-    if not _ventana_abierta(db, sess):
+    actividad = db.get(Actividad, window.actividad_id)
+    if actividad is None or not attendance_window_open(actividad, window):
         raise AsistenciaError("La actividad no está abierta para registrar asistencia.")
-    
-    if not is_enrolled(db, sess.actividad_id, user_id):
+    if not is_enrolled(db, window.actividad_id, user_id):
         raise AsistenciaError("No estás inscripto en esta actividad.")
 
     already = (
         db.query(Asistencia)
-        .filter(Asistencia.actividad_id == sess.actividad_id, Asistencia.user_id == user_id)
+        .filter(
+            Asistencia.actividad_id == window.actividad_id,
+            Asistencia.user_id == user_id,
+        )
         .first()
     )
     if already:
         raise AsistenciaError("Tu asistencia ya fue registrada.")
-    actividad = db.get(Actividad, sess.actividad_id)
-    if actividad is None:
-        raise AsistenciaError("No se pudo actualizar el registro de créditos del estudiante.")
 
     db.add(
         Asistencia(
-            actividad_id=sess.actividad_id,
+            actividad_id=window.actividad_id,
             user_id=user_id,
-            validated_by=sess.created_by,
+            validated_by=None,
             estado_creditos=ESTADO_CREDITOS_PENDIENTE_ENCUESTA,
         )
     )
     try:
         db.flush()
-        _acreditar_creditos(db, sess.actividad_id, user_id, actividad.creditos)
+        _acreditar_creditos(db, window.actividad_id, user_id, actividad.creditos)
         db.commit()
     except IntegrityError:
         # Concurrent double-scan: the unique constraint already recorded it.

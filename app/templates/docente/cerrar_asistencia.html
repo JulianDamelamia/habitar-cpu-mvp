@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Cerrar asistencia{% endblock %}
+{% block content %}
+<div class="surface-card radius-card elevation-card p-6 max-w-xl mx-auto mt-8">
+  <h1 class="type-heading weight-bold mb-3">Cerrar período de asistencia</h1>
+  {% if error %}
+    <div role="alert" class="mb-4 p-4 radius-panel surface-danger-soft border-width border-danger text-danger-contrast type-body-small">{{ error }}</div>
+  {% elif mensaje %}
+    <div role="status" class="mb-4 p-4 radius-panel surface-success text-success-strong type-body-small">{{ mensaje }}</div>
+  {% elif actividad and window.cerrada_manualmente %}
+    <p class="type-body-small">El período de asistencia de «{{ actividad.titulo }}» ya está cerrado.</p>
+  {% elif actividad and window and not puede_cerrar %}
+    <p class="type-body-small mb-5">El cierre estará disponible desde el inicio de «{{ actividad.titulo }}» ({{ actividad.fecha_inicio|fmt_dt }}).</p>
+  {% elif actividad and window %}
+    <p class="type-body-small mb-5">Vas a cerrar la validación de asistencia de «{{ actividad.titulo }}». Esta acción no se puede deshacer.</p>
+    <form method="post">
+      <button class="surface-danger-soft border-width border-danger text-danger-contrast radius-control px-5 py-2 weight-medium">CERRAR PERÍODO DE ASISTENCIA</button>
+    </form>
+  {% endif %}
+</div>
+{% endblock %}

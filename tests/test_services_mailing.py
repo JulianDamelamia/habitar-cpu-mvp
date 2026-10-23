@@ -42,8 +42,14 @@ def test_send_email_sends_message_over_tls(smtp_user, monkeypatch):
     smtp_server.__enter__.return_value = smtp_server
 
     with patch.object(mailing.smtplib, "SMTP", return_value=smtp_server) as smtp:
-        mailing.send_email("alumno@example.com", "Alta de usuario", "Hola Alumno")
+        sent = mailing.send_email(
+            "alumno@example.com",
+            "Alta de usuario",
+            "Hola Alumno",
+            attachments=[("asistencia.png", b"qr-image", "image/png")],
+        )
 
+    assert sent is True
     smtp.assert_called_once_with("smtp.example.com", 2525, timeout=15)
     smtp_server.starttls.assert_called_once_with()
     if smtp_user:
@@ -56,7 +62,11 @@ def test_send_email_sends_message_over_tls(smtp_user, monkeypatch):
     assert sent_message["From"] == "Habitar <no-reply@example.com>"
     assert sent_message["To"] == "alumno@example.com"
     assert sent_message["Subject"] == "Alta de usuario"
-    assert sent_message.get_content().strip() == "Hola Alumno"
+    assert sent_message.get_body().get_content().strip() == "Hola Alumno"
+    parts = list(sent_message.iter_attachments())
+    assert len(parts) == 1
+    assert parts[0].get_filename() == "asistencia.png"
+    assert parts[0].get_content_type() == "image/png"
 
 
 def test_send_email_logs_smtp_failure_without_raising(caplog, monkeypatch):
