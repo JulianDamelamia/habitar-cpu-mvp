@@ -193,7 +193,7 @@ def docente_home(
     return render(request, "docente/home.html", user=user, db=db, actividades=actividades)
 
 
-@router.get("/docente/actividades/{actividad_id}/asistencia")
+@router.get("/docente/actividades/{actividad_id}/qr")
 def docente_asistencia(
     request: Request,
     actividad_id: int,

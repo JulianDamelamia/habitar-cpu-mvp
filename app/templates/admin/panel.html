@@ -124,7 +124,7 @@
             <a href="{{ url_for('preview', actividad_id=r.a.id).path }}" class="text-secondary hover-text-underline">Vista previa</a>
             <a href="{{ url_for('editar', actividad_id=r.a.id).path }}" class="text-link hover-text-underline">Editar</a>
             <a href="{{ url_for('inscriptos_detail', actividad_id=r.a.id).path }}" class="text-link hover-text-underline">Inscriptos</a>
-            <a href="{{ url_for('docente_asistencia', actividad_id=r.a.id).path }}" class="text-link hover-text-underline">Asistencia</a>
+            <a href="{{ url_for('admin_asistencia', actividad_id=r.a.id).path }}" class="text-link hover-text-underline">Asistencia</a>
             {% if r.a.estado != 'publicada' %}
               {% if r.a.carreras_asociadas %}
                 <form method="post" action="{{ url_for('publicar', actividad_id=r.a.id).path }}"><button class="text-success hover-text-underline">Publicar</button></form>

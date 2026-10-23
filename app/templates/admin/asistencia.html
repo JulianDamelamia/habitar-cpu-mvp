@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Asistencia{% if a %} - {{ a.titulo }}{% endif %}{% endblock %}
+{% block content %}
+<a href="{{ url_for('panel').path }}" class="type-body-small text-link hover-text-underline inline-flex items-center gap-1"><i data-lucide="arrow-left" class="w-4 h-4"></i> Actividades</a>
+
+{% if error %}
+  <div role="alert" class="mt-4 p-4 radius-panel surface-danger-soft border-width border-danger text-danger-contrast type-body-small">{{ error }}</div>
+{% elif mensaje %}
+  <div role="status" class="mt-4 p-4 radius-panel surface-success text-success-strong type-body-small">{{ mensaje }}</div>
+{% endif %}
+
+{% if a %}
+  <h1 class="type-heading weight-bold mt-2 mb-1">{{ a.titulo }}</h1>
+  <p class="text-muted mb-5 type-body-small"><i data-lucide="calendar" class="inline-block w-4 h-4 icon-baseline-align"></i> {{ a.fecha_inicio|fmt_dt }}, {{ inscriptos|length }} inscriptos</p>
+
+  <div class="surface-card radius-card elevation-card overflow-x-auto">
+    <table class="w-full type-body-small min-width-extra-wide">
+      <thead class="surface-muted text-muted text-align-left">
+        <tr><th>Estudiante</th><th>Email</th><th>Asistencia</th><th>Acción</th></tr>
+      </thead>
+      <tbody>
+      {% for e in inscriptos %}
+        <tr class="border-top">
+          <td class="weight-medium">{{ e.user.nombre_completo }}</td>
+          <td class="text-muted">{{ e.user.email }}</td>
+          <td>
+            {% if e.user_id in present %}
+              <span class="text-success weight-medium inline-flex items-center gap-1"><i data-lucide="check" class="w-4 h-4"></i> Presente</span>
+            {% else %}
+              <span class="text-subtle">Sin registrar</span>
+            {% endif %}
+          </td>
+          <td class="px-4 py-3 text-align-right">
+            {% if e.user_id in present %}
+              <form method="post" action="{{ url_for('admin_revocar_asistencia', actividad_id=a.id, student_id=e.user_id).path }}" onsubmit="return confirmarRevocacion(this)">
+                <button class="type-caption border-width radius-control px-2 py-1 surface-page-hover text-danger">Revocar asistencia</button>
+              </form>
+            {% else %}
+              <form method="post" action="{{ url_for('admin_marcar_asistencia', actividad_id=a.id, student_id=e.user_id).path }}">
+                <button class="type-caption border-width radius-control px-2 py-1 surface-page-hover">Marcar presente</button>
+              </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% else %}
+        <tr><td colspan="4" class="px-4 py-6 text-align-center text-muted">Sin inscriptos.</td></tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+  function confirmarRevocacion(form) {
+    if (!window.confirm('¿Seguro que querés revocar la asistencia?')) return false;
+    return window.confirm('Confirmación final: se quitará la asistencia y, si corresponde, los créditos acreditados.');
+  }
+</script>
+{% endblock %}

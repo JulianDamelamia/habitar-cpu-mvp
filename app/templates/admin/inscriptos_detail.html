@@ -27,7 +27,9 @@
         </td>
         <td class="px-4 py-3 text-align-right">
           {% if e.user_id not in present %}
-          <form method="post" action="{{ url_for('docente_mark', actividad_id=a.id, student_id=e.user_id).path }}"><button class="type-caption border-width radius-control px-2 py-1 surface-page-hover">Validar asistencia</button></form>
+          <form method="post" action="{{ url_for('admin_marcar_asistencia', actividad_id=a.id, student_id=e.user_id).path }}"><button class="type-caption border-width radius-control px-2 py-1 surface-page-hover">Validar asistencia</button></form>
+          {% else %}
+          <form method="post" action="{{ url_for('admin_revocar_asistencia', actividad_id=a.id, student_id=e.user_id).path }}" onsubmit="return confirmarRevocacion(this)"><button class="type-caption border-width radius-control px-2 py-1 surface-page-hover text-danger">Revocar asistencia</button></form>
           {% endif %}
         </td>
       </tr>
@@ -37,4 +39,12 @@
     </tbody>
   </table>
 </div>
+{% endblock %}
+{% block scripts %}
+<script>
+  function confirmarRevocacion(form) {
+    if (!window.confirm('¿Seguro que querés revocar la asistencia?')) return false;
+    return window.confirm('Confirmación final: se quitará la asistencia y, si corresponde, los créditos acreditados.');
+  }
+</script>
 {% endblock %}

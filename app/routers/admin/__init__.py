@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends
-from app.routers.admin import admin_carreras, admin_actividades, admin_enroll, admin_usuarios,admin_analytics, admin_mensajes
+from app.routers.admin import admin_carreras, admin_actividades, admin_enroll, admin_usuarios, admin_analytics, admin_mensajes, admin_asistencia
 from app.routers.faq import admin_faq_router
 from app.security import REQUIERE_ADMIN
 
@@ -11,6 +11,7 @@ admin_router = APIRouter(
 
 # Incluir cada submódulo
 admin_router.include_router(admin_actividades.router, prefix="/actividades", tags=["Admin - Actividades"])
+admin_router.include_router(admin_asistencia.router, prefix="/actividades", tags=["Admin - Asistencia"])
 admin_router.include_router(admin_carreras.router, prefix="/carreras", tags=["Admin - Carreras"])
 admin_router.include_router(admin_enroll.router, prefix="/inscriptos", tags=["Admin - Inscriptos"])
 admin_router.include_router(admin_usuarios.router, prefix="/usuarios", tags=["Admin - Usuarios"])

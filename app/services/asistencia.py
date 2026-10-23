@@ -277,3 +277,28 @@ def mark_present_manual(
     except IntegrityError:
         db.rollback()
         return False
+
+
+def revoke_present(db: Session, actividad_id: int, user_id: int) -> bool:
+    """Remove a student's attendance and reverse credits already awarded for it."""
+    attendance = (
+        db.query(Asistencia)
+        .filter(
+            Asistencia.actividad_id == actividad_id,
+            Asistencia.user_id == user_id,
+        )
+        .one_or_none()
+    )
+    if attendance is None:
+        return False
+    if attendance.estado_creditos == ESTADO_CREDITOS_ACREDITADO:
+        actividad = db.get(Actividad, actividad_id)
+        estudiante = db.get(Estudiante, user_id)
+        if actividad is None or estudiante is None:
+            raise AsistenciaError("No se pudieron revertir los créditos de la asistencia.")
+        estudiante.creditos_acreditados -= float(actividad.creditos)
+        if estudiante.creditos_acreditados < 0:
+            raise AsistenciaError("No se pudieron revertir los créditos de la asistencia.")
+    db.delete(attendance)
+    db.commit()
+    return True
