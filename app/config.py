@@ -49,7 +49,7 @@ def _normalize_db_url(url: str) -> str:
 class Settings:
     APP_NAME: str = os.getenv("APP_NAME", "Módulo Habitar")
     PUBLIC_BASE_URL: str = os.getenv(
-        "PUBLIC_BASE_URL", "https://habitar-cpu.onrender.com"
+        "PUBLIC_BASE_URL", ""
     ).rstrip("/")
     DATABASE_URL: str = _normalize_db_url(os.getenv("DATABASE_URL", ""))
     
