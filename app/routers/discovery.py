@@ -22,7 +22,7 @@ def list_actividades(
     tipo: str = "",
     fecha: str = "",
     min_creditos: str = "",
-    solo_disponibles: str = "",
+    solo_con_cupo: str = "",
     sort: str = "",
     direction: str = "",
     user: User = Depends(current_user_required),
@@ -37,13 +37,13 @@ def list_actividades(
         min_cred = None
     if min_cred is not None and (not min_cred.is_finite() or min_cred < 0.5):
         min_cred = None
-    items = services.actividades.list_published(
+    items = services.actividades.listar_disponibles(
         db,
         carrera_id=user.carrera_id,
         tipo=tipo or None,
         fecha=fecha or None,
         min_creditos=min_cred,
-        solo_disponibles=bool(solo_disponibles),
+        solo_con_cupo=bool(solo_con_cupo),
         orden=sort or None,
         direccion=direction or None,
     )
@@ -52,7 +52,7 @@ def list_actividades(
     return render(
         request, "student/actividades.html", user=user, db=db,
         rows=rows,
-        filtros={"tipo": tipo, "fecha": fecha, "min_creditos": min_creditos, "solo_disponibles": solo_disponibles,},
+        filtros={"tipo": tipo, "fecha": fecha, "min_creditos": min_creditos, "solo_con_cupo": solo_con_cupo,},
         tipos=[TIPO_PRESENCIAL, TIPO_VIRTUAL],
         sort=sort,
         direction=direction,
@@ -94,4 +94,5 @@ def actividad_detail(
         a=actividad, cupo=cupo, enrolled=enrolled,
         asistencia_validada=asistencia_validada,
         penalizacion_baja=penalizacion_baja,
+        inscripcion_cerrada=actividad.inscripcion_cerrada,
     )

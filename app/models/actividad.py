@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from decimal import Decimal
 
 from sqlalchemy import Boolean, CheckConstraint, DateTime, ForeignKey, Integer, Numeric, String, Text, func, text
@@ -16,6 +16,12 @@ if TYPE_CHECKING:
     from app.models.docente import Docente
     from app.models.inscripcion import Inscripcion
     from app.models.user import User
+
+
+def _as_utc(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
 
 
 class Actividad(Base):
@@ -57,4 +63,9 @@ class Actividad(Base):
     @property
     def finalizada(self) -> bool:
         """Indica si la actividad ya finalizó (fecha_fin pasada)."""
-        return self.fecha_fin <= datetime.now(tz=self.fecha_fin.tzinfo)
+        return _as_utc(self.fecha_fin) <= datetime.now(timezone.utc)
+
+    @property
+    def inscripcion_cerrada(self) -> bool:
+        """Indica si falta menos de 24 horas para el inicio de la actividad."""
+        return _as_utc(self.fecha_inicio) <= datetime.now(timezone.utc) + timedelta(hours=24)

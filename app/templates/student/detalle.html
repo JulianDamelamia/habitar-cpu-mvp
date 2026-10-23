@@ -6,12 +6,22 @@
   <div class="flex items-center gap-2 mb-2">
     <h1 class="type-heading weight-bold">{{ a.titulo }}</h1>
     <span class="type-caption px-2 py-0.5 radius-pill {% if a.tipo=='virtual' %}surface-info-strong text-info-strong{% else %}surface-warning text-warning{% endif %}">{{ a.tipo }}</span>
+    {% if a.finalizada %}
+      <span class="type-caption px-2 py-0.5 radius-pill surface-brand-soft text-link-strong weight-medium">finalizada</span>
+    {% elif inscripcion_cerrada %}
+      <span class="type-caption px-2 py-0.5 radius-pill surface-danger text-warning weight-medium">inscripción cerrada</span>
+    {% endif %}
   </div>
   <p class="text-secondary mb-4">{{ a.descripcion }}</p>
   <dl class="grid sm:grid-cols-2 gap-3 type-body-small mb-6">
     <div class="surface-page radius-control p-3"><dt class="text-subtle">Inicio</dt><dd class="weight-medium">{{ a.fecha_inicio|fmt_dt }}</dd></div>
     <div class="surface-page radius-control p-3"><dt class="text-subtle">Fin</dt><dd class="weight-medium">{{ a.fecha_fin|fmt_dt }}</dd></div>
-    <div class="surface-page radius-control p-3"><dt class="text-subtle">Lugar</dt><dd class="weight-medium">{{ a.lugar }}</dd></div>
+    <div class="surface-page radius-control p-3">
+      <dt class="text-subtle">Lugar</dt>
+      <dd class="weight-medium flex flex-wrap items-center gap-2">
+        {{ a.lugar }}
+      </dd>
+    </div>
     <div class="surface-page radius-control p-3"><dt class="text-subtle">Docentes</dt><dd class="weight-medium">{{ a.docentes|map(attribute='nombre_completo')|join(', ') or 'Sin asignar' }}</dd></div>
     <div class="surface-page radius-control p-3"><dt class="text-subtle">Créditos</dt><dd class="weight-medium">{{ a.creditos|fmt_creditos }}</dd></div>
     <div class="surface-page radius-control p-3"><dt class="text-subtle">Cupos disponibles</dt><dd class="weight-medium">{{ cupo.free }} / {{ a.cupo_max }}</dd></div>
@@ -21,16 +31,20 @@
     {% if enrolled %}
       <div class="flex items-center gap-3">
         <span class="text-success weight-medium inline-flex items-center gap-1"><i data-lucide="check" class="w-4 h-4"></i> Estás inscripto/a</span>
-        {% if not asistencia_validada %}
+        {% if not asistencia_validada and not a.finalizada %}
           <form method="post" action="{{ url_for('baja', actividad_id=a.id).path }}"
                 {% if penalizacion_baja %}onsubmit="return confirm('Si continúas, deberás acreditar 1 punto más por baja tardía. ¿Quieres continuar?')"{% endif %}>
             <button class="border-width border-danger-strong text-danger surface-danger-soft-hover radius-control px-4 py-2 type-body-small">Darme de baja</button>
           </form>
+        {% elif a.finalizada %}
+          <span class="text-muted type-body-small">No es posible darse de baja de una actividad finalizada.</span>
         {% else %}
           <span class="text-success weight-medium inline-flex items-center gap-1"><i data-lucide="check" class="w-4 h-4"></i> Asistencia validada</span>
         {% endif %}
         
       </div>
+    {% elif a.finalizada or inscripcion_cerrada %}
+      <button type="button" disabled class="surface-muted text-subtle border-width border-soft radius-control px-6 py-2.5 weight-medium cursor-disabled">Inscribirme</button>
     {% elif cupo.full %}
       <span class="text-danger-bright weight-medium">No quedan cupos disponibles.</span>
     {% else %}

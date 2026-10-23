@@ -33,7 +33,8 @@ def inscribir(db: Session, actividad_id: int, user_id: int) -> Actividad:
         raise EnrollError("La actividad no existe.")
     if actividad.estado != ESTADO_PUBLICADA:
         raise EnrollError("La actividad no está disponible para inscripción.")
-
+    if actividad.inscripcion_cerrada:
+        raise EnrollError("La inscripción a esta actividad ya está cerrada.")
     existing = (
         db.query(Inscripcion)
         .filter(Inscripcion.actividad_id == actividad_id, Inscripcion.user_id == user_id)
@@ -89,15 +90,18 @@ def unenroll(
     enr = active_enrollment(db, actividad_id, user_id)
     if not enr:
         raise EnrollError("No estás inscripto en esta actividad.")
-    asistencia = asistencia_validada(db, actividad_id, user_id)
-    if asistencia:
-        raise EnrollError("No podés darte de baja de una actividad ya completada.")
-
     actividad = db.get(Actividad, actividad_id)
     estudiante = db.get(Estudiante, user_id)
     user = db.get(User, user_id)
     if actividad is None or estudiante is None or user is None:
         raise EnrollError("No se pudo procesar la baja del estudiante.")
+    current_time = _as_utc(now or datetime.now(timezone.utc))
+    if _as_utc(actividad.fecha_fin) <= current_time:
+        raise EnrollError("No podés darte de baja de una actividad ya finalizada.")
+
+    asistencia = asistencia_validada(db, actividad_id, user_id)
+    if asistencia:
+        raise EnrollError("No podés darte de baja de una actividad ya completada.")
 
     penalizar = cancellation_penalty_applies(actividad, now=now)
 

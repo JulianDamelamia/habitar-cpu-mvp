@@ -22,7 +22,10 @@ from app.services.consultas_comunes import is_enrolled
 
 
 def test_inscribir_y_consultar_inscripcion(db_session, actividad_factory, user_factory):
-    actividad = actividad_factory(estado=ESTADO_PUBLICADA)
+    actividad = actividad_factory(
+        estado=ESTADO_PUBLICADA,
+        fecha_inicio=datetime.now(timezone.utc) + timedelta(days=2),
+    )
     usuario = user_factory()
 
     resultado = inscribir(db_session, actividad.id, usuario.id)
@@ -31,6 +34,19 @@ def test_inscribir_y_consultar_inscripcion(db_session, actividad_factory, user_f
     assert is_enrolled(db_session, actividad.id, usuario.id)
     assert active_enrollment(db_session, actividad.id, usuario.id).estado == INSCRIPCION_ALTA
     assert [e.user_id for e in inscriptos(db_session, actividad.id)] == [usuario.id]
+
+
+def test_inscribir_rechaza_actividad_con_inscripcion_cerrada(
+    db_session, actividad_factory, user_factory
+):
+    actividad = actividad_factory(
+        estado=ESTADO_PUBLICADA,
+        fecha_inicio=datetime.now(timezone.utc) + timedelta(hours=23),
+    )
+    usuario = user_factory()
+
+    with pytest.raises(EnrollError, match="inscripción.*cerrada"):
+        inscribir(db_session, actividad.id, usuario.id)
 
 
 @pytest.mark.parametrize(
@@ -49,7 +65,11 @@ def test_inscribir_rechaza_actividad_invalida(
 
 
 def test_inscribir_rechaza_duplicado_y_cupo_lleno(db_session, actividad_factory, user_factory):
-    actividad = actividad_factory(estado=ESTADO_PUBLICADA, cupo_max=1)
+    actividad = actividad_factory(
+        estado=ESTADO_PUBLICADA,
+        cupo_max=1,
+        fecha_inicio=datetime.now(timezone.utc) + timedelta(days=2),
+    )
     primero = user_factory()
     segundo = user_factory()
     inscribir(db_session, actividad.id, primero.id)
@@ -61,7 +81,10 @@ def test_inscribir_rechaza_duplicado_y_cupo_lleno(db_session, actividad_factory,
 
 
 def test_unenroll_permite_reinscripcion(db_session, actividad_factory, user_factory):
-    actividad = actividad_factory(estado=ESTADO_PUBLICADA)
+    actividad = actividad_factory(
+        estado=ESTADO_PUBLICADA,
+        fecha_inicio=datetime.now(timezone.utc) + timedelta(days=2),
+    )
     usuario = user_factory()
     inscribir(db_session, actividad.id, usuario.id)
 
@@ -79,13 +102,20 @@ def test_unenroll_permite_reinscripcion(db_session, actividad_factory, user_fact
 def test_unenroll_penaliza_solo_dentro_de_24_horas(
     db_session, actividad_factory, user_factory, hours_before, expected_penalty
 ):
-    now = datetime(2026, 10, 8, 12, tzinfo=timezone.utc)
+    now = datetime.now(timezone.utc)
     actividad = actividad_factory(
         estado=ESTADO_PUBLICADA,
         fecha_inicio=now + timedelta(hours=hours_before),
     )
     usuario = user_factory()
-    inscribir(db_session, actividad.id, usuario.id)
+    db_session.add(
+        Inscripcion(
+            actividad_id=actividad.id,
+            user_id=usuario.id,
+            estado=INSCRIPCION_ALTA,
+        )
+    )
+    db_session.commit()
 
     penalizada = unenroll(db_session, actividad.id, usuario.id, now=now)
 
@@ -107,7 +137,7 @@ def test_unenroll_penaliza_solo_dentro_de_24_horas(
 def test_cancellation_penalty_applies_respeta_horas_y_estado(
     actividad_factory,
 ):
-    now = datetime(2026, 10, 8, 12, tzinfo=timezone.utc)
+    now = datetime.now(timezone.utc)
     actividad_a_24_horas = actividad_factory(
         fecha_inicio=now + timedelta(hours=24)
     )
@@ -131,13 +161,20 @@ def test_cancellation_penalty_applies_respeta_horas_y_estado(
 def test_unenroll_no_penaliza_actividad_ya_iniciada(
     db_session, actividad_factory, user_factory
 ):
-    now = datetime(2026, 10, 8, 12, tzinfo=timezone.utc)
+    now = datetime.now(timezone.utc)
     actividad = actividad_factory(
         estado=ESTADO_PUBLICADA,
         fecha_inicio=now - timedelta(minutes=30),
     )
     usuario = user_factory()
-    inscribir(db_session, actividad.id, usuario.id)
+    db_session.add(
+        Inscripcion(
+            actividad_id=actividad.id,
+            user_id=usuario.id,
+            estado=INSCRIPCION_ALTA,
+        )
+    )
+    db_session.commit()
 
     penalizada = unenroll(db_session, actividad.id, usuario.id, now=now)
 
@@ -154,10 +191,35 @@ def test_unenroll_sin_inscripcion_falla(db_session, actividad_factory, user_fact
         unenroll(db_session, actividad.id, usuario.id)
 
 
+def test_unenroll_rechaza_actividad_finalizada(
+    db_session, actividad_factory, user_factory
+):
+    now = datetime.now(timezone.utc)
+    actividad = actividad_factory(
+        estado=ESTADO_PUBLICADA,
+        fecha_inicio=now - timedelta(hours=4),
+    )
+    usuario = user_factory()
+    db_session.add(
+        Inscripcion(
+            actividad_id=actividad.id,
+            user_id=usuario.id,
+            estado=INSCRIPCION_ALTA,
+        )
+    )
+    db_session.commit()
+
+    with pytest.raises(EnrollError, match="actividad ya finalizada"):
+        unenroll(db_session, actividad.id, usuario.id)
+
+    assert active_enrollment(db_session, actividad.id, usuario.id) is not None
+
+
 def test_my_actividades_filtra_publicadas_y_ordena(db_session, actividad_factory, user_factory):
     usuario = user_factory()
     futura = actividad_factory(estado=ESTADO_PUBLICADA)
     borrador = actividad_factory(estado="borrador")
+    futura.fecha_inicio = datetime.now(timezone.utc) + timedelta(days=2)
     inscribir(db_session, futura.id, usuario.id)
     db_session.add(
         Inscripcion(actividad_id=borrador.id, user_id=usuario.id, estado=INSCRIPCION_ALTA)

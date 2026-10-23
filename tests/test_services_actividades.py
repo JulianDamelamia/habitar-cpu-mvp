@@ -7,7 +7,7 @@ from app.services.actividades import (
     get,
     inscriptos_count,
     list_all,
-    list_published,
+    listar_disponibles,
     update,
 )
 
@@ -45,7 +45,7 @@ def test_cupo_info_no_informa_cupos_negativos(db_session, actividad_factory, use
     assert cupo_info(db_session, actividad) == {"taken": 1, "free": 0, "full": True}
 
 
-def test_list_published_aplica_filtros_y_ordena(db_session, actividad_factory, carrera_factory):
+def test_listar_disponibles_aplica_filtros_y_ordena(db_session, actividad_factory, carrera_factory):
     carrera = carrera_factory()
     base = datetime(2026, 9, 20, tzinfo=timezone.utc)
     actividad_factory(
@@ -66,7 +66,7 @@ def test_list_published_aplica_filtros_y_ordena(db_session, actividad_factory, c
     )
     actividad_factory(titulo="Borrador", fecha_inicio=base, carreras=[carrera])
 
-    resultado = list_published(
+    resultado = listar_disponibles(
         db_session,
         carreras_ids=[carrera.id],
         tipo="presencial",
@@ -77,11 +77,11 @@ def test_list_published_aplica_filtros_y_ordena(db_session, actividad_factory, c
     assert resultado == [esperada]
 
 
-def test_list_published_devuelve_vacio_para_estudiante_sin_carreras(db_session):
-    assert list_published(db_session, carreras_ids=[]) == []
+def test_listar_disponibles_devuelve_vacio_para_estudiante_sin_carreras(db_session):
+    assert listar_disponibles(db_session, carreras_ids=[]) == []
 
 
-def test_list_published_solo_disponibles_excluye_llenas(
+def test_listar_disponibles_solo_con_cupo_excluye_llenas(
     db_session, actividad_factory, user_factory
 ):
     actividad = actividad_factory(estado=ESTADO_PUBLICADA, cupo_max=1)
@@ -89,7 +89,7 @@ def test_list_published_solo_disponibles_excluye_llenas(
     db_session.add(Inscripcion(actividad_id=actividad.id, user_id=usuario.id))
     db_session.commit()
 
-    assert list_published(db_session, solo_disponibles=True) == []
+    assert listar_disponibles(db_session, solo_con_cupo=True) == []
 
 
 def test_list_all_filtra_carreras_y_acepta_todas(db_session, actividad_factory, carrera_factory):

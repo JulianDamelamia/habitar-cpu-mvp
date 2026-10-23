@@ -151,14 +151,14 @@ def _clave_estado_actividad(actividad: Actividad) -> int:
     return 4
 
 
-def list_published(
+def listar_disponibles(
     db: Session,
     *,
     carrera_id: list[int] | None = None,
     tipo: str | None = None,
     fecha: str | None = None,
     min_creditos: Decimal | None = None,
-    solo_disponibles: bool = False,
+    solo_con_cupo: bool = False,
     orden: str | None = None,
     direccion: str | None = None,
 ) -> list[Actividad]:
@@ -169,7 +169,10 @@ def list_published(
     if carrera_id is None: 
         return []
 
-    stmt = select(Actividad).where(Actividad.estado == ESTADO_PUBLICADA)
+    stmt = select(Actividad).where(
+        Actividad.estado == ESTADO_PUBLICADA
+        and not Actividad.finalizada 
+        and not Actividad.inscripcion_cerrada)
 
     if carrera_id:
         stmt = stmt.where(Actividad.carreras_asociadas.any(Carrera.id == carrera_id))
@@ -184,7 +187,7 @@ def list_published(
         except ValueError:
             pass
     actividades = list(db.execute(stmt).scalars().all())
-    if solo_disponibles:
+    if solo_con_cupo:
         actividades = [a for a in actividades if not cupo_info(db, a)["full"]]
     if orden:
         return ordenar_actividades(

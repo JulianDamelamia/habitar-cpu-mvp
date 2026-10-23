@@ -22,7 +22,7 @@
     <input type="number" name="min_creditos" min="0.5" step="0.5" value="{{ filtros.min_creditos }}" class="w-full border-width radius-control px-2 py-2">
   </div>
   <label class="flex items-center gap-2 type-body-small">
-    <input type="checkbox" name="solo_disponibles" value="1" {% if filtros.solo_disponibles %}checked{% endif %}> Con cupo
+    <input type="checkbox" name="solo_con_cupo" value="1" {% if filtros.solo_con_cupo %}checked{% endif %}> Con cupo
   </label>
   <div class="flex gap-2">
     <button class="surface-brand surface-brand-hover text-on-contrast radius-control px-4 py-2 type-body-small">Filtrar</button>
@@ -53,8 +53,16 @@
       <div class="flex items-center gap-2">
         <h2 class="weight-semibold type-subheading">{{ r.a.titulo }}</h2>
         <span class="type-caption px-2 py-0.5 radius-pill {% if r.a.tipo=='virtual' %}surface-info-strong text-info-strong{% else %}surface-warning text-warning{% endif %}">{{ r.a.tipo }}</span>
+        {% if r.a.finalizada %}
+          <span class="type-caption px-2 py-0.5 radius-pill surface-brand-soft text-link-strong weight-medium">finalizada</span>
+        {% elif r.a.inscripcion_cerrada %}
+          <span class="type-caption px-2 py-0.5 radius-pill surface-danger text-warning weight-medium">inscripción cerrada</span>
+        {% endif %}
       </div>
-      <p class="type-body-small text-muted"><i data-lucide="calendar" class="inline-block w-4 h-4 icon-baseline-align"></i> {{ r.a.fecha_inicio|fmt_dt }}, <i data-lucide="map-pin" class="inline-block w-4 h-4 icon-baseline-align"></i> {{ r.a.lugar }}</p>
+      <p class="type-body-small text-muted flex flex-wrap items-center gap-1">
+        <i data-lucide="calendar" class="inline-block w-4 h-4 icon-baseline-align"></i> {{ r.a.fecha_inicio|fmt_dt }},
+        <i data-lucide="map-pin" class="inline-block w-4 h-4 icon-baseline-align"></i> {{ r.a.lugar or 'Sin información' }}
+      </p>
       <p class="type-body-small text-secondary mt-1"><i data-lucide="star" class="inline-block w-4 h-4 icon-baseline-align"></i> {{ r.a.creditos|fmt_creditos }} créditos, cupos: {{ r.cupo.free }}/{{ r.a.cupo_max }}</p>
     </div>
     <div class="flex items-center gap-2">
