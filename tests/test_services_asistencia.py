@@ -13,8 +13,8 @@ from app.services import asistencia
 from app.services.asistencia import (
     AsistenciaError,
     check_in,
-    close_attendance_window,
-    ensure_attendance_window,
+    cerrar_ventana_asistencia,
+    asegurar_ventana_asistencia,
     mark_present_manual,
     present_user_ids,
     acreditar_creditos_pendientes,
@@ -29,8 +29,8 @@ def test_attendance_window_has_stable_activity_code(
 ):
     actividad = actividad_factory(estado=ESTADO_PUBLICADA)
 
-    primera = ensure_attendance_window(db_session, actividad.id)
-    segunda = ensure_attendance_window(db_session, actividad.id)
+    primera = asegurar_ventana_asistencia(db_session, actividad.id)
+    segunda = asegurar_ventana_asistencia(db_session, actividad.id)
 
     assert primera.id == segunda.id
     assert primera.codigo == segunda.codigo
@@ -111,7 +111,7 @@ def test_check_in_registra_asistencia_para_usuario_inscripto(
     actividad.fecha_inicio = datetime.now(timezone.utc) + timedelta(minutes=20)
     actividad.fecha_fin = actividad.fecha_inicio + timedelta(hours=2)
     db_session.commit()
-    window = ensure_attendance_window(db_session, actividad.id)
+    window = asegurar_ventana_asistencia(db_session, actividad.id)
 
     resultado = check_in(db_session, f"  {window.codigo}  ", estudiante.id)
 
@@ -133,7 +133,7 @@ def test_check_in_rechaza_codigo_valido_antes_de_30_minutos_del_inicio(
     inscribir(db_session, actividad.id, estudiante.id)
     hora = actividad.fecha_inicio.replace(tzinfo=timezone.utc) - timedelta(minutes=31)
     monkeypatch.setattr(asistencia, "_now", lambda: hora)
-    window = ensure_attendance_window(db_session, actividad.id)
+    window = asegurar_ventana_asistencia(db_session, actividad.id)
 
     with pytest.raises(AsistenciaError, match="no está abierta"):
         check_in(db_session, window.codigo, estudiante.id)
@@ -151,7 +151,7 @@ def test_check_in_acepta_codigo_valido_dentro_de_ventana_hasta_seis_horas_del_fi
     inscribir(db_session, actividad.id, estudiante.id)
     hora = actividad.fecha_inicio.replace(tzinfo=timezone.utc) + timedelta(hours=5)
     monkeypatch.setattr(asistencia, "_now", lambda: hora)
-    window = ensure_attendance_window(db_session, actividad.id)
+    window = asegurar_ventana_asistencia(db_session, actividad.id)
 
     resultado = check_in(db_session, window.codigo, estudiante.id)
 
@@ -173,7 +173,7 @@ def test_check_in_rechaza_codigo_valido_despues_de_seis_horas_del_fin(
         hours=6, seconds=1
     )
     monkeypatch.setattr(asistencia, "_now", lambda: hora)
-    window = ensure_attendance_window(db_session, actividad.id)
+    window = asegurar_ventana_asistencia(db_session, actividad.id)
 
     with pytest.raises(AsistenciaError, match="no está abierta"):
         check_in(db_session, window.codigo, estudiante.id)
@@ -193,7 +193,7 @@ def test_check_in_defers_credits_until_survey_then_releases_once(
     actividad.fecha_inicio = datetime.now(timezone.utc) + timedelta(minutes=20)
     actividad.fecha_fin = actividad.fecha_inicio + timedelta(hours=2)
     db_session.commit()
-    window = ensure_attendance_window(db_session, actividad.id)
+    window = asegurar_ventana_asistencia(db_session, actividad.id)
 
     check_in(db_session, window.codigo, estudiante.id)
 
@@ -240,7 +240,7 @@ def test_survey_not_required_credits_are_awarded_immediately(
     actividad.fecha_inicio = datetime.now(timezone.utc) + timedelta(minutes=20)
     actividad.fecha_fin = actividad.fecha_inicio + timedelta(hours=2)
     db_session.commit()
-    window = ensure_attendance_window(db_session, actividad.id)
+    window = asegurar_ventana_asistencia(db_session, actividad.id)
 
     check_in(db_session, window.codigo, estudiante.id)
 
@@ -274,7 +274,7 @@ def test_check_in_rechaza_expirado_no_inscripto_y_duplicado(
     inscribir(db_session, actividad.id, estudiante.id)
     ahora = actividad.fecha_inicio.replace(tzinfo=timezone.utc) - timedelta(minutes=10)
     monkeypatch.setattr(asistencia, "_now", lambda: ahora)
-    window = ensure_attendance_window(db_session, actividad.id)
+    window = asegurar_ventana_asistencia(db_session, actividad.id)
     no_inscripto = user_factory()
 
     with pytest.raises(AsistenciaError, match="No estás inscripto"):
@@ -286,43 +286,43 @@ def test_check_in_rechaza_expirado_no_inscripto_y_duplicado(
         check_in(db_session, window.codigo, estudiante.id)
 
 
-def test_close_attendance_window_invalidates_activity_code(
+def test_cerrar_ventana_asistencia_invalidates_activity_code(
     db_session, actividad_factory, monkeypatch
 ):
     actividad = actividad_factory(
         estado=ESTADO_PUBLICADA,
         fecha_inicio=datetime.now(timezone.utc) + timedelta(days=2),
     )
-    window = ensure_attendance_window(db_session, actividad.id)
+    window = asegurar_ventana_asistencia(db_session, actividad.id)
     ahora = actividad.fecha_inicio.replace(tzinfo=timezone.utc)
     monkeypatch.setattr(asistencia, "_now", lambda: ahora)
-    assert asistencia.attendance_window_open(actividad, window)
+    assert asistencia.ventana_asistencia_abierta(actividad, window)
 
-    assert close_attendance_window(db_session, window.codigo_cierre)
+    assert cerrar_ventana_asistencia(db_session, window.codigo_cierre)
 
     db_session.refresh(window)
-    assert not asistencia.attendance_window_open(actividad, window)
-    assert not close_attendance_window(db_session, window.codigo_cierre)
+    assert not asistencia.ventana_asistencia_abierta(actividad, window)
+    assert not cerrar_ventana_asistencia(db_session, window.codigo_cierre)
 
 
-def test_close_attendance_window_rejected_before_activity_starts(
+def test_cerrar_ventana_asistencia_rejected_before_activity_starts(
     db_session, actividad_factory
 ):
     actividad = actividad_factory(
         estado=ESTADO_PUBLICADA,
         fecha_inicio=datetime.now(timezone.utc) + timedelta(days=2),
     )
-    window = ensure_attendance_window(db_session, actividad.id)
+    window = asegurar_ventana_asistencia(db_session, actividad.id)
     inicio = actividad.fecha_inicio.replace(tzinfo=timezone.utc)
 
-    assert not close_attendance_window(
+    assert not cerrar_ventana_asistencia(
         db_session,
         window.codigo_cierre,
         now=inicio - timedelta(seconds=1),
     )
     db_session.refresh(window)
     assert not window.cerrada_manualmente
-    assert close_attendance_window(
+    assert cerrar_ventana_asistencia(
         db_session, window.codigo_cierre, now=inicio
     )
 
@@ -334,16 +334,16 @@ def test_attendance_window_uses_start_time_boundaries(
         estado=ESTADO_PUBLICADA,
         fecha_inicio=datetime.now(timezone.utc) + timedelta(days=2),
     )
-    window = ensure_attendance_window(db_session, actividad.id)
+    window = asegurar_ventana_asistencia(db_session, actividad.id)
     inicio = actividad.fecha_inicio.replace(tzinfo=timezone.utc)
 
-    assert asistencia.attendance_window_open(
+    assert asistencia.ventana_asistencia_abierta(
         actividad, window, now=inicio - timedelta(minutes=30)
     )
-    assert asistencia.attendance_window_open(
+    assert asistencia.ventana_asistencia_abierta(
         actividad, window, now=inicio + timedelta(hours=5, minutes=59)
     )
-    assert not asistencia.attendance_window_open(
+    assert not asistencia.ventana_asistencia_abierta(
         actividad, window, now=inicio + timedelta(hours=6)
     )
 

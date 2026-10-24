@@ -207,7 +207,7 @@ def test_teacher_close_link_closes_window_without_login(
         estado=ESTADO_PUBLICADA,
         fecha_inicio=datetime.now(timezone.utc) + timedelta(days=2),
     )
-    window = services_asistencia.ensure_attendance_window(
+    window = services_asistencia.asegurar_ventana_asistencia(
         db_session, activity.id
     )
 

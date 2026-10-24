@@ -110,21 +110,21 @@ def attendance_window_close_page(
         window=window,
         puede_cerrar=(
             actividad is not None
-            and services.asistencia.can_close_attendance_window(actividad)
+            and services.asistencia.puede_cerrar_ventana_asistencia(actividad)
             and not window.cerrada_manualmente
         ),
         error=(
             "El período de asistencia solo se puede cerrar desde el inicio de la actividad."
             if actividad is not None
             and not window.cerrada_manualmente
-            and not services.asistencia.can_close_attendance_window(actividad)
+            and not services.asistencia.puede_cerrar_ventana_asistencia(actividad)
             else None
         ),
     )
 
 
 @router.post("/docente/asistencia/cerrar/{codigo_cierre}")
-def close_attendance_window_submit(
+def cerrar_ventana_asistencia_submit(
     request: Request,
     codigo_cierre: str,
     db: Session = Depends(get_db),
@@ -141,7 +141,7 @@ def close_attendance_window_submit(
             error="El enlace de cierre no es válido.",
             window=None,
         )
-    was_open = services.asistencia.close_attendance_window(db, codigo_cierre)
+    was_open = services.asistencia.cerrar_ventana_asistencia(db, codigo_cierre)
     actividad = db.get(Actividad, window.actividad_id)
     if actividad is not None and not was_open and not window.cerrada_manualmente:
         return render(
@@ -311,12 +311,12 @@ def docente_token(
             {"error": "El QR estará disponible al cerrar la inscripción."},
             status_code=409,
         )
-    window = services.asistencia.ensure_attendance_window(db, actividad_id)
+    window = services.asistencia.asegurar_ventana_asistencia(db, actividad_id)
     return JSONResponse(
         {
             "token": window.codigo,
             "qr": _qr_data_uri(window.codigo),
-            "is_open": services.asistencia.attendance_window_open(
+            "is_open": services.asistencia.ventana_asistencia_abierta(
                 actividad, window
             ),
             "closed_manually": window.cerrada_manualmente,

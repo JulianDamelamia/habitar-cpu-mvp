@@ -1,4 +1,4 @@
-"""Asistencia service: activity-bound QR validation and credit tracking."""
+"""Asistencia service: registro de asistencia y acreditación de créditos."""
 from __future__ import annotations
 
 import io
@@ -27,12 +27,15 @@ from app.services.consultas_comunes import is_enrolled
 
 class AsistenciaError(Exception):
     pass
-
-
+        
+    
 def _acreditar_creditos(
     db: Session, actividad_id: int, user_id: int, cantidad: float
 ) -> bool:
-    attendance = (
+    '''Comprueba si el estudiante ya tiene acreditados los créditos de la 
+    actividad y, si no, si ha completado la encuesta los acredita.
+    '''
+    asistencia = (
         db.query(Asistencia)
         .filter(
             Asistencia.actividad_id == actividad_id,
@@ -40,15 +43,21 @@ def _acreditar_creditos(
         )
         .one_or_none()
     )
-    if attendance is None:
+    if asistencia is None:
         raise AsistenciaError("No se encontró la asistencia para acreditar.")
-    if attendance.estado_creditos == ESTADO_CREDITOS_ACREDITADO:
+    
+    # validar estado y early return si ya están acreditados
+    if asistencia.estado_creditos == ESTADO_CREDITOS_ACREDITADO:
         return True
-    if attendance.estado_creditos != ESTADO_CREDITOS_PENDIENTE_ENCUESTA:
+    
+    if asistencia.estado_creditos != ESTADO_CREDITOS_PENDIENTE_ENCUESTA:
         raise AsistenciaError("La asistencia tiene un estado de créditos inválido.")
+
+    # verificar completitud de la encuesta
     if not estudiante_completo_encuesta(db, user_id, actividad_id):
         return False
-
+    
+    # intentar actualizar el estado de la asistencia (con control de concurrencia)
     marked = db.execute(
         update(Asistencia)
         .where(
@@ -58,8 +67,10 @@ def _acreditar_creditos(
         )
         .values(estado_creditos=ESTADO_CREDITOS_ACREDITADO)
     )
+    
+    # si hubo un conflicto de concurrencia, re-verificar estado actual
     if marked.rowcount != 1:
-        attendance = (
+        asistencia = (
             db.query(Asistencia)
             .filter(
                 Asistencia.actividad_id == actividad_id,
@@ -67,10 +78,11 @@ def _acreditar_creditos(
             )
             .one_or_none()
         )
-        if attendance is None:
+        if asistencia is None:
             raise AsistenciaError("No se encontró la asistencia para acreditar.")
-        return attendance.estado_creditos == ESTADO_CREDITOS_ACREDITADO
-
+        return asistencia.estado_creditos == ESTADO_CREDITOS_ACREDITADO
+    
+    # actualizar créditos del estudiante de forma segura
     result = db.execute(
         update(Estudiante)
         .where(Estudiante.user_id == user_id)
@@ -78,6 +90,7 @@ def _acreditar_creditos(
     )
     if result.rowcount != 1:
         raise AsistenciaError("No se pudo actualizar el registro de créditos del estudiante.")
+        
     return True
 
 
@@ -97,6 +110,9 @@ def creditos_pendientes_encuesta(db: Session, actividad_id: int, user_id: int) -
 def acreditar_creditos_pendientes(
     db: Session, actividad_id: int, user_id: int
 ) -> float:
+    '''Acredita los créditos pendientes de encuesta para un estudiante en una actividad.
+    Devuelve la cantidad de créditos acreditados (0.0 si no se acreditó nada).
+    '''
     actividad = db.get(Actividad, actividad_id)
     if actividad is None:
         return 0.0
@@ -121,9 +137,12 @@ def _now() -> datetime:
     return datetime.now(timezone.utc)
 
 
-def ensure_attendance_window(
+def asegurar_ventana_asistencia(
     db: Session, actividad_id: int
 ) -> VentanaAsistencia:
+    '''Asegura que exista una ventana de asistencia para la actividad, creándola si no existe.
+    Devuelve la ventana existente o recién creada.
+    '''
     window = (
         db.query(VentanaAsistencia)
         .filter(VentanaAsistencia.actividad_id == actividad_id)
@@ -133,7 +152,7 @@ def ensure_attendance_window(
         return window
     window = VentanaAsistencia(
         actividad_id=actividad_id,
-        codigo=_unique_attendance_code(db),
+        codigo=_codigo_asistencia_unico(db),
         codigo_cierre=secrets.token_urlsafe(48),
     )
     db.add(window)
@@ -152,7 +171,7 @@ def ensure_attendance_window(
     return window
 
 
-def _unique_attendance_code(db: Session) -> str:
+def _codigo_asistencia_unico(db: Session) -> str:
     for _ in range(100):
         code = f"{secrets.randbelow(1_000_000):06d}"
         if not db.query(VentanaAsistencia).filter(
@@ -162,12 +181,13 @@ def _unique_attendance_code(db: Session) -> str:
     raise RuntimeError("No se pudo generar un código de asistencia único.")
 
 
-def close_attendance_window(
+def cerrar_ventana_asistencia(
     db: Session,
     close_code: str,
     *,
     now: datetime | None = None,
 ) -> bool:
+    '''Cierra manualmente la ventana de asistencia asociada al código de cierre.'''
     window = (
         db.query(VentanaAsistencia)
         .filter(VentanaAsistencia.codigo_cierre == close_code)
@@ -176,16 +196,17 @@ def close_attendance_window(
     if window is None or window.cerrada_manualmente:
         return False
     actividad = db.get(Actividad, window.actividad_id)
-    if actividad is None or not can_close_attendance_window(actividad, now=now):
+    if actividad is None or not puede_cerrar_ventana_asistencia(actividad, now=now):
         return False
     window.cerrada_manualmente = True
     db.commit()
     return True
 
 
-def can_close_attendance_window(
+def puede_cerrar_ventana_asistencia(
     actividad: Actividad, *, now: datetime | None = None
 ) -> bool:
+    '''Indica si la ventana de asistencia puede cerrarse manualmente (E-09).'''
     inicio = actividad.fecha_inicio
     if inicio.tzinfo is None:
         inicio = inicio.replace(tzinfo=timezone.utc)
@@ -197,12 +218,13 @@ def can_close_attendance_window(
     return current >= inicio
 
 
-def attendance_window_open(
+def ventana_asistencia_abierta(
     actividad: Actividad,
     window: VentanaAsistencia,
     *,
     now: datetime | None = None,
 ) -> bool:
+    '''Indica si la ventana de asistencia está abierta para registrar asistencia (E-09).'''
     if window.cerrada_manualmente:
         return False
     start = actividad.fecha_inicio
@@ -240,7 +262,7 @@ def process_closed_enrollment_attendance_emails(
             start = start.replace(tzinfo=timezone.utc)
         if start > current + timedelta(hours=24):
             continue
-        window = ensure_attendance_window(db, activity.id)
+        window = asegurar_ventana_asistencia(db, activity.id)
         notified_emails = set(json.loads(window.correos_enviados))
         teachers = {
             teacher_user.email: teacher_user
@@ -321,7 +343,7 @@ def check_in(db: Session, token: str, user_id: int) -> Actividad:
     if window is None:
         raise AsistenciaError("Código inválido.")
     actividad = db.get(Actividad, window.actividad_id)
-    if actividad is None or not attendance_window_open(actividad, window):
+    if actividad is None or not ventana_asistencia_abierta(actividad, window):
         raise AsistenciaError("La actividad no está abierta para registrar asistencia.")
     if not is_enrolled(db, window.actividad_id, user_id):
         raise AsistenciaError("No estás inscripto en esta actividad.")
