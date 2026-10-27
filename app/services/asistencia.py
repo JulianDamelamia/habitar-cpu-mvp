@@ -291,10 +291,7 @@ def process_closed_enrollment_attendance_emails(
                 f"{career.tipo.nombre} {career.nombre}" if career else "Sin carrera"
             )
             roster.append(
-                f"- Nombre: {student.nombre}\n"
-                f"  Apellido: {student.apellido}\n"
-                f"  Mail: {student.email}\n"
-                f"  Carrera: {career_name}"
+                f"| {student.nombre} | {student.apellido} | {student.email} | {career_name} |"
             )
         close_url = (
             f"{settings.PUBLIC_BASE_URL}/docente/asistencia/cerrar/"
@@ -308,7 +305,13 @@ def process_closed_enrollment_attendance_emails(
             "6 horas después del inicio.\n"
             f"Cierre manual: {close_url}\n\n"
             "Inscriptos:\n"
-            + ("\n".join(roster) if roster else "- No hay inscriptos.")
+            + (
+                "| Nombre | Apellido | Mail | Carrera |\n"
+                "| --- | --- | --- | --- |\n"
+                + "\n".join(roster)
+                if roster
+                else "- No hay inscriptos."
+            )
         )
         qr_buffer = io.BytesIO()
         #TODO: En producción, guardar el QR en un directorio accesible y enviar la URL en lugar de adjuntar la imagen.

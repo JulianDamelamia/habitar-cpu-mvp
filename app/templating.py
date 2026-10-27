@@ -9,6 +9,7 @@ from fastapi import Request
 from fastapi.responses import RedirectResponse
 
 from app.config import settings
+from app.services.parsing import to_local_datetime
 from app.services.notifications import unread_count
 
 templates = Jinja2Templates(directory="app/templates")
@@ -17,7 +18,7 @@ templates = Jinja2Templates(directory="app/templates")
 def _fmt_dt(value, fmt: str = "%d/%m/%Y %H:%M") -> str:
     if value is None:
         return ""
-    return value.strftime(fmt)
+    return to_local_datetime(value).strftime(fmt)
 
 
 templates.env.filters["fmt_dt"] = _fmt_dt

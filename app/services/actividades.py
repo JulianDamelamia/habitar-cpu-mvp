@@ -21,6 +21,7 @@ from .carreras import get_carreras_desde_dropdown
 
 
 def validar_creditos(valor: object) -> Decimal:
+    '''Valida que el valor de créditos sea un número positivo y múltiplo de 0,5.'''
     try:
         creditos = Decimal(str(valor))
     except (InvalidOperation, ValueError):
@@ -238,6 +239,7 @@ def update(db: Session, actividad: Actividad, **fields) -> Actividad:
         fields["estado"] = ESTADO_BORRADOR
     for key, value in fields.items():
         setattr(actividad, key, value)
+        
     db.commit()
     db.refresh(actividad)
     return actividad

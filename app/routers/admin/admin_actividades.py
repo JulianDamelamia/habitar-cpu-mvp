@@ -235,6 +235,7 @@ def actualizar(
     was_published = a.estado == ESTADO_PUBLICADA
     fecha_cambio = a.fecha_inicio != inicio
     try:
+        #TODO esto está repetido en update
         creditos_validados = services.actividades.validar_creditos(creditos)
         docentes = services.actividades.resolver_docentes(
             db, docentes_ids=docentes_ids, nombres=docentes_nombres, apellidos=docentes_apellidos

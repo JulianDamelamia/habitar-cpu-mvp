@@ -21,6 +21,7 @@ from app.models import (
 from app.security import hash_password
 from app.routers.admin.admin_actividades import parse_intervalo_tiempo
 from app.services.parsing import parse_duracion
+from app.templating import _fmt_dt
 from app.services.credits import accumulated_credits
 
 
@@ -89,6 +90,19 @@ def test_parse_dates_rejects_dates_before_today():
             duracion="01:00",
             modo_finalizacion="duracion",
         )
+
+
+def test_parse_activity_times_uses_argentina_timezone_and_round_trips_locally():
+    inicio, fin = parse_intervalo_tiempo(
+        "2030-01-10T15:00",
+        duracion="02:30",
+        modo_finalizacion="duracion",
+    )
+
+    assert inicio == datetime(2030, 1, 10, 18, tzinfo=timezone.utc)
+    assert fin == datetime(2030, 1, 10, 20, 30, tzinfo=timezone.utc)
+    assert _fmt_dt(inicio, "%Y-%m-%dT%H:%M") == "2030-01-10T15:00"
+    assert _fmt_dt(fin, "%Y-%m-%dT%H:%M") == "2030-01-10T17:30"
 
 
 def test_admin_activities_pages_require_coordination_role(
@@ -299,6 +313,46 @@ def test_update_activity_validation_errors_render_on_edit_form(
         assert 'value="2030-01-10T09:00"' in response.text
     db_session.refresh(actividad)
     assert actividad.titulo == "Actividad nueva"
+
+
+def test_update_activity_persists_and_renders_argentina_start_and_end_times(
+    admin_actividades_client,
+):
+    client, db_session, docente, carrera = admin_actividades_client
+    create_response = client.post(
+        "/admin/actividades",
+        data=actividad_form_data(docente.docente_id, carrera.id),
+    )
+    assert create_response.status_code == 303
+    activity = db_session.query(Actividad).one()
+
+    update_data = actividad_form_data(docente.docente_id, carrera.id)
+    update_data.update(
+        fecha_inicio="2030-01-10T15:00",
+        fecha_fin="",
+        duracion="02:30",
+        modo_finalizacion="duracion",
+    )
+    update_response = client.post(
+        f"/admin/actividades/{activity.id}",
+        data=update_data,
+    )
+
+    assert update_response.status_code == 303
+    db_session.refresh(activity)
+    stored_start = activity.fecha_inicio
+    stored_end = activity.fecha_fin
+    if stored_start.tzinfo is None:
+        stored_start = stored_start.replace(tzinfo=timezone.utc)
+    if stored_end.tzinfo is None:
+        stored_end = stored_end.replace(tzinfo=timezone.utc)
+    assert stored_start == datetime(2030, 1, 10, 18, tzinfo=timezone.utc)
+    assert stored_end == datetime(2030, 1, 10, 20, 30, tzinfo=timezone.utc)
+
+    edit_response = client.get(f"/admin/actividades/{activity.id}/editar")
+    assert edit_response.status_code == 200
+    assert 'value="2030-01-10T15:00"' in edit_response.text
+    assert 'value="2030-01-10T17:30"' in edit_response.text
 
 
 def test_activity_without_career_cannot_be_published(admin_actividades_client):
