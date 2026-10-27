@@ -162,9 +162,9 @@ def listar_disponibles(
     orden: str | None = None,
     direccion: str | None = None,
 ) -> list[Actividad]:
+    '''Lista las actividades disponibles para inscripción, filtrando por carrera, tipo, fecha y créditos mínimos.'''
     #si es estudiante, habrá una lista de ids (puede ser vacía)
     #si no es estudiante, carreras_ids es None
-
     #caso estudiante no tiene asignada ninguna carrera, early return
     if carrera_id is None: 
         return []

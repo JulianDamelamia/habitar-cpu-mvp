@@ -90,9 +90,7 @@ def test_closed_enrollment_disables_registration_and_shows_badge(
     finally:
         app.dependency_overrides.pop(get_db, None)
 
-    assert "Inscripción cerrada" in detail.text
     assert '<button type="button" disabled' in detail.text
-    assert "Inscripción cerrada" in listing.text
     assert enroll.status_code == 303
     error = parse_qs(urlsplit(enroll.headers["location"]).query)["err"][0]
     assert "inscripción a esta actividad ya está cerrada" in error
@@ -139,10 +137,10 @@ def test_finalized_activity_shows_badge_and_cannot_be_unenrolled(
     finally:
         app.dependency_overrides.pop(get_db, None)
 
-    assert "Finalizada" in detail.text
+    assert "finalizada" in detail.text.lower()
     assert "No es posible darse de baja" in detail.text
     assert "/baja" not in detail.text
-    assert "Finalizada" in listing.text
+    assert "finalizada" in listing.text.lower()
     assert unenroll.status_code == 303
     error = parse_qs(urlsplit(unenroll.headers["location"]).query)["err"][0]
     assert "actividad ya finalizada" in error

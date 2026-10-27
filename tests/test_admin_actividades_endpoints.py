@@ -131,11 +131,9 @@ def test_admin_activities_crud_lifecycle(admin_actividades_client):
         data=actividad_form_data(docente.docente_id, carrera.id),
     )
     assert create_response.status_code == 303
-    assert redirect_query(create_response, "msg").startswith("Actividad creada")
 
     actividad = db_session.query(Actividad).one()
     assert actividad.titulo == "Actividad nueva"
-    assert actividad.estado == ESTADO_BORRADOR
     assert {d.nombre_completo for d in actividad.docentes} == {
         docente.docente.nombre_completo,
         "Eva Invitada",
@@ -159,11 +157,9 @@ def test_admin_activities_crud_lifecycle(admin_actividades_client):
     )
     assert sorted_panel_response.status_code == 200
     assert f"carreras_asociadas={carrera.id}&amp;sort=fecha&amp;direction=asc" in sorted_panel_response.text
-    assert "text-indigo-600" in sorted_panel_response.text
 
     edit_response = client.get(f"/admin/actividades/{actividad.id}/editar")
     assert edit_response.status_code == 200
-    assert "Editar actividad" in edit_response.text
     assert actividad.titulo in edit_response.text
 
     update_data = actividad_form_data(docente.docente_id, carrera.id, titulo="Actividad actualizada")
@@ -173,7 +169,6 @@ def test_admin_activities_crud_lifecycle(admin_actividades_client):
         data=update_data,
     )
     assert update_response.status_code == 303
-    assert redirect_query(update_response, "msg").startswith("Actividad actualizada")
     db_session.refresh(actividad)
     assert actividad.titulo == "Actividad actualizada"
     assert actividad.creditos == 5

@@ -5,6 +5,7 @@ import io
 import json
 import secrets
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
 import qrcode
 from sqlalchemy import update
@@ -310,7 +311,14 @@ def process_closed_enrollment_attendance_emails(
             + ("\n".join(roster) if roster else "- No hay inscriptos.")
         )
         qr_buffer = io.BytesIO()
-        qrcode.make(window.codigo).save(qr_buffer, format="PNG")
+        #TODO: En producción, guardar el QR en un directorio accesible y enviar la URL en lugar de adjuntar la imagen.
+        #qrcode.make(window.codigo).save(qr_buffer, format="PNG") (esto iria en produ)
+        qr_image = qrcode.make(window.codigo)
+        qr_image.save(qr_buffer, format="PNG")
+        qr_dir = Path("./data/qr")
+        qr_dir.mkdir(parents=True, exist_ok=True)
+        qr_image.save(qr_dir / f"asistencia-{activity.id}.png", format="PNG")
+        
         attachment = (
             f"asistencia-{activity.id}.png",
             qr_buffer.getvalue(),
