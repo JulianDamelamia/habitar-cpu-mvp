@@ -1,15 +1,14 @@
 from __future__ import annotations
 
-from datetime import datetime
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, String, event, func
+from sqlalchemy import Boolean, ForeignKey, String, event
 from sqlalchemy.orm import Mapped, Session, mapped_column, relationship
 
 from app.database import Base
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from app.models.carrera import Carrera
-    from app.models.docente import Docente
+
     from app.models.estudiante import Estudiante
 from app.models.enums import ROL_ESTUDIANTE
 
@@ -18,20 +17,21 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(primary_key=True)
-    email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
+    persona_id: Mapped[int | None] = mapped_column(ForeignKey("personas.id"), nullable=True)
+    # email: Mapped[str] = mapped_column(String(255), unique=True, index=True)
     pw_hash: Mapped[str] = mapped_column(String(255))
-    nombre: Mapped[str] = mapped_column(String(120), default="")
-    apellido: Mapped[str] = mapped_column(String(120), default="")
+    # nombre: Mapped[str] = mapped_column(String(120), default="")
+    # apellido: Mapped[str] = mapped_column(String(120), default="")
     debe_cambiar_pw: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
-
+    #created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
     estudiante: Mapped["Estudiante | None"] = relationship(
         back_populates="user", uselist=False, cascade="all, delete-orphan"
     )
 
     rol: Mapped[str] = mapped_column(String(20), default=ROL_ESTUDIANTE, index=True)
-    docente_id: Mapped[int | None] = mapped_column(ForeignKey("docentes.id"), nullable=True)
-    docente: Mapped["Docente | None"] = relationship(back_populates="usuarios")
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    # docente_id: Mapped[int | None] = mapped_column(ForeignKey("docentes.id"), nullable=True)
+    # docente: Mapped["Docente | None"] = relationship(back_populates="usuarios")
+    
 
     @property
     def nombre_completo(self) -> str:
@@ -74,6 +74,7 @@ def _normalizar_nombre(nombre: str | None, apellido: str | None) -> tuple[str, s
 def _asociar_usuarios_con_docentes(
     session: Session, _flush_context: object, _instances: object
 ) -> None:
+    '''Asocia automáticamente los usuarios con docentes existentes o crea nuevos docentes según el nombre y apellido del usuario.'''
     from app.models.docente import Docente
 
     usuarios = [
