@@ -193,6 +193,7 @@ def resolver_docentes(
             if persona.usuario is not None and persona.docente is None:
                 raise ValueError("El email ya está asociado a una cuenta de usuario.")
             docente = persona.docente or Docente(persona=persona)
+            db.add(persona)
             db.add(docente)
         elif docente is not None:
             if docente.persona.email:
@@ -205,6 +206,7 @@ def resolver_docentes(
                 docente.persona.email = email
         else:
             persona = Persona(nombre=nombre, apellido=apellido, email=email)
+            db.add(persona)
             docente = Docente(persona=persona)
             db.add(docente)
 

@@ -247,6 +247,25 @@ def test_resolver_docentes_asigna_email_a_persona_existente_sin_email(db_session
     assert persona.email == "eva@example.com"
 
 
+def test_resolver_docentes_creates_and_links_persona_for_new_docente(db_session):
+    resultado = resolver_docentes(
+        db_session,
+        DocentesInput(
+            ids=[],
+            nombres=["Eva"],
+            apellidos=["Invitada"],
+            emails=["eva@example.com"],
+        ),
+    )
+    db_session.flush()
+
+    assert len(resultado) == 1
+    assert resultado[0].persona.nombre == "Eva"
+    assert resultado[0].persona.apellido == "Invitada"
+    assert resultado[0].persona.email == "eva@example.com"
+    assert resultado[0].persona.docente is resultado[0]
+
+
 def test_resolver_docentes_rechaza_email_asociado_a_otro_nombre(db_session):
     db_session.add(
         Persona(
