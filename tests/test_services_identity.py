@@ -3,15 +3,12 @@ import pytest
 from app.models import Persona, User
 from app.security import hash_password
 from app.services.identity import (
+    SignupContext,
     SignupError,
     authenticate,
     create_student,
     email_taken,
-
 )
-
-
-
 
 
 def test_create_student_rechaza_email_repetido(db_session):
@@ -30,14 +27,17 @@ def test_create_student_rechaza_email_repetido(db_session):
     with pytest.raises(SignupError, match="Ya existe"):
         create_student(
             db_session,
-            email="existente@example.com",
-            password="secret",
-            nombre="Nuevo",
-            apellido="Usuario",
+            SignupContext(
+                email="existente@example.com",
+                password="secret",
+                nombre="Nuevo",
+                apellido="Usuario",
+                carrera_id=None,
+            ),
         )
 
 
-def test_email_taken_y_authenticate_normalizan_email(db_session, user_factory):
+def test_email_taken_y_authenticate_normalizan_email(db_session):
     user = User(
         persona=Persona(
             email="alumno@example.com",

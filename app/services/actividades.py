@@ -1,6 +1,7 @@
 """Actividad catalogue service (E-02 discovery, E-08 admin CRUD)."""
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 
@@ -18,7 +19,29 @@ from app.models import (
     Carrera,
     Persona,
 )
-from .carreras import get_carreras_desde_dropdown
+
+
+@dataclass(frozen=True)
+class DocentesInput:
+    ids: list[int]
+    nombres: list[str]
+    apellidos: list[str]
+    emails: list[str]
+
+
+@dataclass(frozen=True)
+class ActividadContext:
+    titulo: str
+    descripcion: str
+    tipo: str
+    fecha_inicio: datetime
+    fecha_fin: datetime
+    lugar: str
+    docentes: list[Docente]
+    creditos: Decimal
+    cupo_max: int
+    encuesta_obligatoria: bool
+    carreras_asociadas: list[Carrera]
 
 
 def validar_creditos(valor: object) -> Decimal:
@@ -34,12 +57,13 @@ def validar_creditos(valor: object) -> Decimal:
 
 def resolver_docentes(
     db: Session,
-    *,
-    docentes_ids: list[int],
-    nombres: list[str],
-    apellidos: list[str],
-    emails: list[str],
+    datos: DocentesInput,
 ) -> list[Docente]:
+    docentes_ids = datos.ids
+    nombres = datos.nombres
+    apellidos = datos.apellidos
+    emails = datos.emails
+
     if len(nombres) != len(apellidos) or len(nombres) != len(emails) or len(apellidos) != len(emails):
         raise ValueError("Cada docente nuevo debe tener nombre, apellido y mail.")
 
@@ -66,14 +90,40 @@ def resolver_docentes(
         if not nombre and not apellido:
             continue
         clave = (nombre.casefold(), apellido.casefold())
+        personas = (
+            db.query(Persona)
+            .filter(func.lower(Persona.email) == email)
+            .all()
+        )
+        if len(personas) > 1:
+            raise ValueError("El email está asociado a más de una persona.")
+
+        persona = personas[0] if personas else None
         docente = por_nombre.get(clave)
-        if docente is None:
-            persona = db.query(Persona).filter(Persona.email == email).first()
-            if persona is None:
-                persona = Persona(nombre=nombre, apellido=apellido, email=email)
+        if persona is not None:
+            nombre_persona = " ".join(persona.nombre.split()).casefold()
+            apellido_persona = " ".join(persona.apellido.split()).casefold()
+            if (nombre_persona, apellido_persona) != clave:
+                raise ValueError("El email ya está asociado a otra persona.")
+            if persona.usuario is not None and persona.docente is None:
+                raise ValueError("El email ya está asociado a una cuenta de usuario.")
             docente = persona.docente or Docente(persona=persona)
             db.add(docente)
-            por_nombre[clave] = docente
+        elif docente is not None:
+            if docente.persona.email:
+                email_existente = docente.persona.email.strip().lower()
+                if email_existente != email:
+                    raise ValueError(
+                        "El docente ya tiene otro email asociado; seleccioná el docente existente."
+                    )
+            else:
+                docente.persona.email = email
+        else:
+            persona = Persona(nombre=nombre, apellido=apellido, email=email)
+            docente = Docente(persona=persona)
+            db.add(docente)
+
+        por_nombre[clave] = docente
         docentes.append(docente)
     return list({docente.id if docente.id is not None else id(docente): docente for docente in docentes}.values())
 
@@ -225,28 +275,64 @@ def list_all(
     return sorted(actividades, key=lambda actividad: actividad.fecha_inicio, reverse=True)
 
 
-def create(db: Session, **fields) -> Actividad:
-    if "creditos" in fields:
-        fields["creditos"] = validar_creditos(fields["creditos"])
-    carreras_asociadas = fields.get("carreras_asociadas") or []
-    if not carreras_asociadas:
-        fields["estado"] = ESTADO_BORRADOR
-    actividad = Actividad(**fields)
+def create(
+    db: Session,
+    contexto: ActividadContext,
+    *,
+    created_by: int | None = None,
+) -> Actividad:
+    estado = (
+        ESTADO_BORRADOR
+        if not contexto.carreras_asociadas
+        else ESTADO_PUBLICADA
+    )
+    actividad = Actividad(
+        titulo=contexto.titulo,
+        descripcion=contexto.descripcion,
+        tipo=contexto.tipo,
+        fecha_inicio=contexto.fecha_inicio,
+        fecha_fin=contexto.fecha_fin,
+        lugar=contexto.lugar,
+        docentes=contexto.docentes,
+        creditos=validar_creditos(contexto.creditos),
+        cupo_max=contexto.cupo_max,
+        encuesta_obligatoria=contexto.encuesta_obligatoria,
+        carreras_asociadas=contexto.carreras_asociadas,
+        estado=estado,
+        created_by=created_by,
+    )
     db.add(actividad)
     db.commit()
     db.refresh(actividad)
     return actividad
 
 
-def update(db: Session, actividad: Actividad, **fields) -> Actividad:
-    if "creditos" in fields:
-        fields["creditos"] = validar_creditos(fields["creditos"])
-    carreras_asociadas = fields.get("carreras_asociadas", actividad.carreras_asociadas)
-    if not carreras_asociadas:
-        fields["estado"] = ESTADO_BORRADOR
-    for key, value in fields.items():
-        setattr(actividad, key, value)
-        
+def update(
+    db: Session,
+    actividad: Actividad,
+    contexto: ActividadContext,
+) -> Actividad:
+    actividad.titulo = contexto.titulo
+    actividad.descripcion = contexto.descripcion
+    actividad.tipo = contexto.tipo
+    actividad.fecha_inicio = contexto.fecha_inicio
+    actividad.fecha_fin = contexto.fecha_fin
+    actividad.lugar = contexto.lugar
+    actividad.docentes = contexto.docentes
+    actividad.creditos = validar_creditos(contexto.creditos)
+    actividad.cupo_max = contexto.cupo_max
+    actividad.encuesta_obligatoria = contexto.encuesta_obligatoria
+    actividad.carreras_asociadas = contexto.carreras_asociadas
+    if not contexto.carreras_asociadas:
+        actividad.estado = ESTADO_BORRADOR
+
+    db.commit()
+    db.refresh(actividad)
+    return actividad
+
+
+def update_estado(db: Session, actividad: Actividad, estado: str) -> Actividad:
+    actividad.estado = estado
     db.commit()
     db.refresh(actividad)
     return actividad

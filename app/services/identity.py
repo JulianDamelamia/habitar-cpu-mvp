@@ -1,7 +1,7 @@
 """Identity / SIU-mock service. Single swap point for real SIU Guaraní integration."""
 from __future__ import annotations
+from dataclasses import dataclass
 import secrets
-from typing import Optional
 
 import pandas as pd
 from sqlalchemy.orm import Session
@@ -13,6 +13,15 @@ from app.security import hash_password, verify_password
 
 class SignupError(Exception):
     pass
+
+
+@dataclass(frozen=True)
+class SignupContext:
+    email: str
+    password: str
+    nombre: str
+    apellido: str
+    carrera_id: int | None
 
 
 def get_emails_registrados(db: Session, emails: set[str]) -> set[str]:
@@ -32,14 +41,9 @@ def email_taken(db: Session, email: str) -> bool:
 
 def create_student(
     db: Session,
-    *,
-    email: str,
-    password: str,
-    nombre: str,
-    apellido: str,
-    carrera_id: Optional[int] = None,
+    contexto: SignupContext,
 ) -> User:
-    email_clean = email.lower().strip()
+    email_clean = contexto.email.lower().strip()
 
     # Validar unicidad de email BD
     datos_existentes = get_emails_registrados(db, emails={email_clean})
@@ -48,10 +52,14 @@ def create_student(
         raise SignupError("Ya existe una cuenta con ese email.")
 
     user = User(
-        persona=Persona(email=email_clean, nombre=nombre.strip(), apellido=apellido.strip()),
-        pw_hash=hash_password(password),
+        persona=Persona(
+            email=email_clean,
+            nombre=contexto.nombre.strip(),
+            apellido=contexto.apellido.strip(),
+        ),
+        pw_hash=hash_password(contexto.password),
         rol=ROL_ESTUDIANTE,
-        estudiante=Estudiante(carrera_id=carrera_id),
+        estudiante=Estudiante(carrera_id=contexto.carrera_id),
     )
 
     db.add(user)

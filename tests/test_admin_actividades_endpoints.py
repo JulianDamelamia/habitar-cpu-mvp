@@ -63,7 +63,7 @@ def actividad_form_data(docente_id, carrera_id, *, titulo="Actividad nueva"):
         "docentes_ids": str(docente_id),
         "docentes_nombres": ["Eva"],
         "docentes_apellidos": ["Invitada"],
-        "docentes_emails": ["eva@example.com"],
+        "docentes_emails": [" EVA@Example.com "],
         "creditos": "2.5",
         "cupo_max": "20",
         "carreras_asociadas": str(carrera_id),
@@ -154,6 +154,8 @@ def test_admin_activities_crud_lifecycle(admin_actividades_client):
         docente.docente.nombre_completo,
         "Eva Invitada",
     }
+    eva = next(d for d in actividad.docentes if d.nombre_completo == "Eva Invitada")
+    assert eva.persona.email == "eva@example.com"
     assert actividad.creditos == 2.5
     assert actividad.carreras_asociadas == [carrera]
 
@@ -177,6 +179,10 @@ def test_admin_activities_crud_lifecycle(admin_actividades_client):
     edit_response = client.get(f"/admin/actividades/{actividad.id}/editar")
     assert edit_response.status_code == 200
     assert actividad.titulo in edit_response.text
+    assert 'name="fecha_inicio"\n          value="2030-01-10T10:00"' in edit_response.text
+    assert 'name="fecha_fin"\n          value="2030-01-10T12:00"' in edit_response.text
+    assert f'value="{docente.docente_id}" selected' in edit_response.text
+    assert f'data-id="{carrera.id}"' in edit_response.text
 
     update_data = actividad_form_data(docente.docente_id, carrera.id, titulo="Actividad actualizada")
     update_data["creditos"] = "5"
@@ -188,6 +194,8 @@ def test_admin_activities_crud_lifecycle(admin_actividades_client):
     db_session.refresh(actividad)
     assert actividad.titulo == "Actividad actualizada"
     assert actividad.creditos == 5
+    eva = next(d for d in actividad.docentes if d.nombre_completo == "Eva Invitada")
+    assert eva.persona.email == "eva@example.com"
 
     preview_response = client.get(f"/admin/actividades/{actividad.id}/preview")
     assert preview_response.status_code == 200

@@ -6,6 +6,7 @@ import hmac
 import logging
 import secrets
 from datetime import datetime, timedelta, timezone
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Form, Request
 from sqlalchemy.orm import Session
@@ -23,6 +24,7 @@ from app.security import (
     logout_user,
 )
 from app import services
+from app.schemas.forms import SignupForm
 from app.templating import redirect_to, render
 
 router = APIRouter()
@@ -233,23 +235,32 @@ def signup_form(request: Request):
 @router.post("/signup")
 def signup_submit(
     request: Request,
-    email: str = Form(...),
-    password: str = Form(...),
-    nombre: str = Form(...),
-    apellido: str = Form(...),
-    carrera: str = Form(""),
+    form: Annotated[SignupForm, Form()],
     db: Session = Depends(get_db),
 ):
-    carrera_id = services.carreras.get_carreras_desde_dropdown(carreras_input=[carrera], db=db)[0].id
+    carrera_id = services.carreras.get_carreras_desde_dropdown(
+        carreras_input=[form.carrera], db=db
+    )[0].id
     try:
         user = services.identity.create_student(
-            db,email=email, password=password,
-            nombre=nombre, apellido=apellido, carrera_id=carrera_id,
+            db,
+            services.identity.SignupContext(
+                email=form.email,
+                password=form.password,
+                nombre=form.nombre,
+                apellido=form.apellido,
+                carrera_id=carrera_id,
+            ),
         )
     except services.identity.SignupError as exc:
         return render(
-            request, "auth/signup.html", error=str(exc),
-            email=email, nombre=nombre, apellido=apellido, carrera=carrera,
+            request,
+            "auth/signup.html",
+            error=str(exc),
+            email=form.email,
+            nombre=form.nombre,
+            apellido=form.apellido,
+            carrera=form.carrera,
         )
     login_user(request, user)
     return redirect_to(

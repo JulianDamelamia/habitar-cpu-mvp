@@ -1,14 +1,29 @@
 from datetime import datetime, timedelta, timezone
+from dataclasses import replace
+from decimal import Decimal
 
-from app.models import ESTADO_BORRADOR, ESTADO_CANCELADA, ESTADO_PUBLICADA, Inscripcion
+import pytest
+
+from app.models import (
+    Docente,
+    ESTADO_BORRADOR,
+    ESTADO_CANCELADA,
+    ESTADO_PUBLICADA,
+    Inscripcion,
+    Persona,
+)
 from app.services.actividades import (
+    ActividadContext,
+    DocentesInput,
     create,
     cupo_info,
     get,
     inscriptos_count,
     list_all,
     listar_disponibles,
+    resolver_docentes,
     update,
+    update_estado,
 )
 
 
@@ -172,15 +187,106 @@ def test_list_all_state_ordering_uses_derived_finalized_status(
     ]
 
 
-def test_create_y_update_persisten_actividad(db_session, actividad_factory):
-    actividad = create(
-        db_session,
+def test_create_y_update_persisten_actividad(db_session):
+    contexto = ActividadContext(
         titulo="Nueva actividad",
+        descripcion="",
+        tipo="presencial",
         fecha_inicio=datetime(2026, 10, 1),
         fecha_fin=datetime(2026, 10, 1, 2),
-        estado=ESTADO_PUBLICADA,
+        lugar="",
+        docentes=[],
+        creditos=Decimal("1"),
+        cupo_max=30,
+        encuesta_obligatoria=True,
+        carreras_asociadas=[],
     )
-    update(db_session, actividad, titulo="Actividad actualizada", creditos=5)
+    actividad = create(
+        db_session,
+        contexto,
+    )
+    contexto_actualizado = replace(
+        contexto,
+        titulo="Actividad actualizada",
+        creditos=Decimal("5"),
+    )
+    update(db_session, actividad, contexto_actualizado)
 
     assert get(db_session, actividad.id).titulo == "Actividad actualizada"
     assert get(db_session, actividad.id).creditos == 5
+    assert get(db_session, actividad.id).estado == ESTADO_BORRADOR
+
+
+def test_update_estado_actualiza_estado_sin_requerir_contexto(
+    db_session, actividad_factory
+):
+    actividad = actividad_factory()
+
+    update_estado(db_session, actividad, ESTADO_PUBLICADA)
+
+    assert get(db_session, actividad.id).estado == ESTADO_PUBLICADA
+
+
+def test_resolver_docentes_asigna_email_a_persona_existente_sin_email(db_session):
+    persona = Persona(nombre="Eva", apellido="Invitada")
+    docente = Docente(persona=persona)
+    db_session.add(docente)
+    db_session.commit()
+
+    resultado = resolver_docentes(
+        db_session,
+        DocentesInput(
+            ids=[],
+            nombres=[" Eva "],
+            apellidos=["Invitada"],
+            emails=[" EVA@Example.com "],
+        ),
+    )
+
+    assert resultado == [docente]
+    assert persona.email == "eva@example.com"
+
+
+def test_resolver_docentes_rechaza_email_asociado_a_otro_nombre(db_session):
+    db_session.add(
+        Persona(
+            nombre="Ana",
+            apellido="Persona",
+            email="ana@example.com",
+        )
+    )
+    db_session.commit()
+
+    with pytest.raises(ValueError, match="asociado a otra persona"):
+        resolver_docentes(
+            db_session,
+            DocentesInput(
+                ids=[],
+                nombres=["Eva"],
+                apellidos=["Invitada"],
+                emails=["ana@example.com"],
+            ),
+        )
+
+
+def test_resolver_docentes_rechaza_email_nuevo_para_nombre_ya_vinculado(db_session):
+    docente = Docente(
+        persona=Persona(
+            nombre="Eva",
+            apellido="Invitada",
+            email="eva-anterior@example.com",
+        )
+    )
+    db_session.add(docente)
+    db_session.commit()
+
+    with pytest.raises(ValueError, match="otro email asociado"):
+        resolver_docentes(
+            db_session,
+            DocentesInput(
+                ids=[],
+                nombres=["Eva"],
+                apellidos=["Invitada"],
+                emails=["eva-nuevo@example.com"],
+            ),
+        )

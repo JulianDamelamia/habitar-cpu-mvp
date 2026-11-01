@@ -2,6 +2,8 @@
 from __future__ import annotations
 
 from datetime import date
+from typing import Annotated
+
 from fastapi import APIRouter, Depends, Form, Query, Request
 from fastapi.responses import RedirectResponse, Response
 from sqlalchemy.orm import Session
@@ -12,7 +14,6 @@ from app.models import (
     Asistencia,
     Inscripcion,
     INSCRIPCION_ALTA,
-    ESTADO_BORRADOR,
     ESTADO_CANCELADA,
     ESTADO_CREDITOS_PENDIENTE_ENCUESTA,
     ESTADO_PUBLICADA,
@@ -26,7 +27,12 @@ from app.services.notifications import notify
 from app.security import REQUIERE_ADMIN
 from app import services 
 
-from app.services.parsing import formatear_duracion, parse_intervalo_tiempo
+from app.schemas.forms import ActividadForm
+from app.services.parsing import (
+    formatear_duracion,
+    parse_intervalo_tiempo,
+    to_local_datetime,
+)
 from app.templating import build_sort_links, redirect_to, render
 
 router = APIRouter()
@@ -98,79 +104,115 @@ def _render_edit_form(
     error: str | None = None,
     form_data: dict[str, object] | None = None,
 ) -> _TemplateResponse:
-    values = form_data or {}
+    values: dict[str, object] = {
+        "titulo": actividad.titulo,
+        "descripcion": actividad.descripcion,
+        "tipo": actividad.tipo,
+        "fecha_inicio": to_local_datetime(actividad.fecha_inicio).strftime(
+            "%Y-%m-%dT%H:%M"
+        ),
+        "fecha_fin": to_local_datetime(actividad.fecha_fin).strftime(
+            "%Y-%m-%dT%H:%M"
+        ),
+        "duracion": formatear_duracion(
+            actividad.fecha_inicio, actividad.fecha_fin
+        ),
+        "modo_finalizacion": "fecha_fin",
+        "lugar": actividad.lugar,
+        "docentes_ids": [str(docente.id) for docente in actividad.docentes],
+        "docentes_nombres": [],
+        "docentes_apellidos": [],
+        "docentes_emails": [],
+        "creditos": str(actividad.creditos),
+        "cupo_max": actividad.cupo_max,
+        "encuesta_obligatoria": actividad.encuesta_obligatoria,
+        "carreras_asociadas": [
+            str(carrera.id) for carrera in actividad.carreras_asociadas
+        ],
+    }
+    values.update(form_data or {})
     return render(
         request, "admin/form.html", user=user, db=db,
         a=actividad, docentes=get_docentes(db), tipos=[TIPO_PRESENCIAL, TIPO_VIRTUAL],
         lista_carreras=services.carreras.get_carreras(db),
-        duracion_inicial=values.get(
-            "duracion", formatear_duracion(actividad.fecha_inicio, actividad.fecha_fin)
-        ),
+        duracion_inicial=values["duracion"],
         fecha_hoy=date.today().isoformat(),
         error=error,
         form_data=values,
     )
 
 
+def _actividad_form_data(form: ActividadForm) -> dict[str, object]:
+    values = form.model_dump()
+    values["docentes_ids"] = [str(docente_id) for docente_id in form.docentes_ids]
+    return values
+
+
+def _crear_contexto_actividad(
+    form: ActividadForm,
+    db: Session,
+) -> services.actividades.ActividadContext:
+    try:
+        inicio, fin = parse_intervalo_tiempo(
+            form.fecha_inicio,
+            form.fecha_fin,
+            form.duracion,
+            form.modo_finalizacion,
+        )
+    except ValueError:
+        raise ValueError("Fechas inválidas: revisá inicio y fin.") from None
+
+    creditos = services.actividades.validar_creditos(form.creditos)
+    docentes = services.actividades.resolver_docentes(
+        db,
+        services.actividades.DocentesInput(
+            ids=form.docentes_ids,
+            nombres=form.docentes_nombres,
+            apellidos=form.docentes_apellidos,
+            emails=form.docentes_emails,
+        ),
+    )
+    carreras = services.carreras.get_carreras_desde_dropdown(
+        form.carreras_asociadas, db
+    )
+    if not carreras:
+        raise ValueError("No se puede crear una actividad sin carreras asociadas.")
+
+    return services.actividades.ActividadContext(
+        titulo=form.titulo.strip(),
+        descripcion=form.descripcion.strip(),
+        tipo=form.tipo,
+        fecha_inicio=inicio,
+        fecha_fin=fin,
+        lugar=form.lugar.strip(),
+        docentes=docentes,
+        creditos=creditos,
+        cupo_max=form.cupo_max,
+        encuesta_obligatoria=form.encuesta_obligatoria,
+        carreras_asociadas=carreras,
+    )
+
+
 @router.post("")
 def crear(
     request: Request,
-    titulo: str = Form(...),
-    descripcion: str = Form(""),
-    tipo: str = Form(TIPO_PRESENCIAL),
-    fecha_inicio: str = Form(...),
-    fecha_fin: str = Form(""),
-    duracion: str = Form(""),
-    modo_finalizacion: str = Form("duracion"),
-    lugar: str = Form(""),
-    docentes_ids: list[int] = Form([]),
-    docentes_nombres: list[str] = Form([]),
-    docentes_apellidos: list[str] = Form([]),
-    docentes_emails: list[str] = Form([]),
-    creditos: str = Form("1"),
-    cupo_max: int = Form(30),
-    encuesta_obligatoria: bool = Form(True),
-    carreras_asociadas: list[str] = Form([]),
+    form: Annotated[ActividadForm, Form()],
     user: User = Depends(REQUIERE_ADMIN),
     db: Session = Depends(get_db),
 ) -> RedirectResponse:
     try:
-        inicio, fin = parse_intervalo_tiempo(fecha_inicio, fecha_fin, duracion, modo_finalizacion)
-    except ValueError:
-        return redirect_to(
-            request, "nueva",
-            query_params={"err": "Fechas inválidas: revisá inicio y fin."},
-        )
-    try:
-        creditos_validados = services.actividades.validar_creditos(creditos)
-        docentes = services.actividades.resolver_docentes(
-            db,
-            docentes_ids=docentes_ids,
-            nombres=docentes_nombres,
-            apellidos=docentes_apellidos,
-            emails=docentes_emails
-        )
+        contexto = _crear_contexto_actividad(form, db)
     except ValueError as exc:
+        db.rollback()
         return redirect_to(request, "nueva", query_params={"err": str(exc)})
-    carreras_asociadas_list = services.carreras.get_carreras_desde_dropdown(carreras_asociadas, db)
-    if not carreras_asociadas_list:
-        return redirect_to(
-            request, "nueva",
-            query_params={"err": "No se puede crear una actividad sin carreras asociadas."},
-        )
     services.actividades.create(
         db,
-        titulo=titulo.strip(), descripcion=descripcion.strip(), tipo=tipo,
-        fecha_inicio=inicio, fecha_fin=fin, lugar=lugar.strip(),
-        docentes=docentes,
-        creditos=creditos_validados, cupo_max=cupo_max,
-        encuesta_obligatoria=encuesta_obligatoria,
-        estado=ESTADO_PUBLICADA, created_by=user.id,
-        carreras_asociadas=carreras_asociadas_list,
+        contexto,
+        created_by=user.id,
     )
     return redirect_to(
         request, "panel",
-        query_params={"msg": f"{titulo} publicada"},
+        query_params={"msg": f"{form.titulo} publicada"},
     )
 
 @router.get("/{actividad_id}/editar", name="editar")
@@ -188,24 +230,9 @@ def editar(request: Request, actividad_id: int, user: User = Depends(REQUIERE_AD
 def actualizar(
     request: Request,
     actividad_id: int,
-    titulo: str = Form(...),
-    descripcion: str = Form(""),
-    tipo: str = Form(TIPO_PRESENCIAL),
-    fecha_inicio: str = Form(...),
-    fecha_fin: str = Form(""),
-    duracion: str = Form(""),
-    modo_finalizacion: str = Form("duracion"),
-    lugar: str = Form(""),
-    docentes_ids: list[int] = Form([]),
-    docentes_nombres: list[str] = Form([]),
-    docentes_apellidos: list[str] = Form([]),
-    docentes_emails: list[str] = Form([]),
-    creditos: str = Form("1"),
-    cupo_max: int = Form(30),
-    encuesta_obligatoria: bool = Form(True),
+    form: Annotated[ActividadForm, Form()],
     user: User = Depends(REQUIERE_ADMIN),
     db: Session = Depends(get_db),
-    carreras_asociadas: list[str] = Form([])
 ) -> Response:
     a = services.actividades.get(db, actividad_id)
     if a is None:
@@ -213,63 +240,21 @@ def actualizar(
             request, "panel",
             query_params={"err": "Actividad no encontrada."},
         )
-    form_data = {
-        "titulo": titulo,
-        "descripcion": descripcion,
-        "tipo": tipo,
-        "fecha_inicio": fecha_inicio,
-        "fecha_fin": fecha_fin,
-        "duracion": duracion,
-        "modo_finalizacion": modo_finalizacion,
-        "lugar": lugar,
-        "docentes_ids": [str(docente_id) for docente_id in docentes_ids],
-        "docentes_nombres": docentes_nombres,
-        "docentes_apellidos": docentes_apellidos,
-        "docentes_emails": docentes_emails,
-        "creditos": creditos,
-        "cupo_max": cupo_max,
-        "encuesta_obligatoria": encuesta_obligatoria,
-        "carreras_asociadas": carreras_asociadas,
-    }
+    form_data = _actividad_form_data(form)
     try:
-        inicio, fin = parse_intervalo_tiempo(fecha_inicio, fecha_fin, duracion, modo_finalizacion)
-    except ValueError:
-        return _render_edit_form(
-            request, a, user, db,
-            error="Fechas inválidas: revisá inicio y fin.",
-            form_data=form_data,
-        )
-    was_published = a.estado == ESTADO_PUBLICADA
-    fecha_cambio = a.fecha_inicio != inicio
-    try:
-        #TODO esto está repetido en update
-        creditos_validados = services.actividades.validar_creditos(creditos)
-        docentes = services.actividades.resolver_docentes(
-            db, docentes_ids=docentes_ids, nombres=docentes_nombres, apellidos=docentes_apellidos, emails=docentes_emails
-        )
+        contexto = _crear_contexto_actividad(form, db)
     except ValueError as exc:
-        return _render_edit_form(
-            request, a, user, db,
-            error=str(exc),
-            form_data=form_data,
-        )
-    carreras_asociadas_list = services.carreras.get_carreras_desde_dropdown(carreras_asociadas, db)
-    if not carreras_asociadas_list:
-        return _render_edit_form(
-            request, a, user, db,
-            error="No se puede crear una actividad sin carreras asociadas.",
-            form_data=form_data,
-        )
+        db.rollback()
+        return _render_edit_form(request, a, user, db, error=str(exc), form_data=form_data)
+
+    was_published = a.estado == ESTADO_PUBLICADA
+    fecha_cambio = a.fecha_inicio != contexto.fecha_inicio
     services.actividades.update(
-        db, a,
-        titulo=titulo.strip(), descripcion=descripcion.strip(), tipo=tipo,
-        fecha_inicio=inicio, fecha_fin=fin,
-        lugar=lugar.strip(), docentes=docentes,
-        creditos=creditos_validados, cupo_max=cupo_max,
-        encuesta_obligatoria=encuesta_obligatoria,
-        carreras_asociadas=carreras_asociadas_list
+        db,
+        a,
+        contexto,
     )
-    if not encuesta_obligatoria:
+    if not contexto.encuesta_obligatoria:
         estudiantes_pendientes = (
             db.query(Asistencia.user_id)
             .filter(
@@ -343,7 +328,7 @@ def publicar(request: Request, actividad_id: int, user: User = Depends(REQUIERE_
                 "err": "No se puede publicar una actividad sin carreras asociadas."
             },
         )
-    services.actividades.update(db, a, estado=ESTADO_PUBLICADA)
+    services.actividades.update_estado(db, a, ESTADO_PUBLICADA)
     return redirect_to(
         request, "panel",
         query_params={"msg": "Actividad publicada. Ya es visible para los estudiantes."},
@@ -358,7 +343,7 @@ def cancelar(request: Request, actividad_id: int, user: User = Depends(REQUIERE_
             request, "panel",
             query_params={"err": "Actividad no encontrada."},
         )
-    services.actividades.update(db, a, estado=ESTADO_CANCELADA)
+    services.actividades.update_estado(db, a, ESTADO_CANCELADA)
     return redirect_to(
         request, "panel",
         query_params={"msg": "Actividad cancelada."},

@@ -9,7 +9,7 @@ from app.database import get_db
 from app.main import app
 import app.main as main_module
 from app.config import settings
-from app.models import PasswordReset
+from app.models import PasswordReset, Persona, User
 from app.security import hash_password
 
 
@@ -38,6 +38,33 @@ def test_login_form_responds_ok(auth_client):
     assert 'action="/login"' in response.text
     assert 'name="password"' in response.text
     assert 'href="/recuperar-contrasena"' in response.text
+
+
+def test_signup_parses_form_dto_and_creates_persona(auth_client, db_session, carrera_factory):
+    client, _ = auth_client
+    carrera = carrera_factory()
+
+    response = client.post(
+        "/signup",
+        data={
+            "email": "nueva@example.com",
+            "password": "signup-password",
+            "nombre": "Nueva",
+            "apellido": "Estudiante",
+            "carrera": str(carrera.id),
+        },
+    )
+
+    user = (
+        db_session.query(User)
+        .join(User.persona)
+        .filter(Persona.email == "nueva@example.com")
+        .one()
+    )
+    assert response.status_code == 303
+    assert user.nombre == "Nueva"
+    assert user.apellido == "Estudiante"
+    assert user.estudiante.carrera_id == carrera.id
 
 
 def test_password_reset_sends_code_and_changes_password(
