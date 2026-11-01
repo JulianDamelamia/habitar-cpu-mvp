@@ -128,9 +128,10 @@
         <p class="type-caption text-muted mt-1">Usá Ctrl o Cmd para seleccionar varios.</p>
         <div id="docentes-nuevos" class="space-y-2 mt-3">
           {% for nombre in valores_formulario.get('docentes_nombres', []) %}
-            <div class="grid grid-cols-2 gap-2">
+            <div class="grid grid-cols-3 gap-2">
               <input name="docentes_nombres" value="{{ nombre }}" placeholder="Nombre" required class="border-width radius-control px-3 py-2">
               <input name="docentes_apellidos" value="{{ valores_formulario.get('docentes_apellidos', [])[loop.index0] if loop.index0 < valores_formulario.get('docentes_apellidos', [])|length else '' }}" placeholder="Apellido" required class="border-width radius-control px-3 py-2">
+              <input name="docentes_emails" type="email" value="{{ valores_formulario.get('docentes_emails', [])[loop.index0] if loop.index0 < valores_formulario.get('docentes_emails', [])|length else '' }}" placeholder="Email" required class="border-width radius-control px-3 py-2">
             </div>
           {% endfor %}
         </div>
@@ -429,10 +430,11 @@
   const docentesNuevos = document.getElementById('docentes-nuevos');
   document.getElementById('agregar-docente').addEventListener('click', () => {
     const fila = document.createElement('div');
-    fila.className = 'grid grid-cols-2 gap-2';
+    fila.className = 'grid grid-cols-3 gap-2';
     fila.innerHTML = `
       <input name="docentes_nombres" placeholder="Nombre" required class="border-width radius-control px-3 py-2">
       <input name="docentes_apellidos" placeholder="Apellido" required class="border-width radius-control px-3 py-2">
+      <input name="docentes_emails" type="email" placeholder="Email" required class="border-width radius-control px-3 py-2">
     `;
     docentesNuevos.appendChild(fila);
   });

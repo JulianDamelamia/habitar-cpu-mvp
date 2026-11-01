@@ -5,10 +5,10 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.database import Base
 from app.models.actividad import Actividad
+from app.models.estudiante import Estudiante
 from app.models.associations import actividad_carrera
-from typing import TYPE_CHECKING
-if TYPE_CHECKING:
-    from app.models.estudiante import Estudiante
+# from typing import TYPE_CHECKING
+# if TYPE_CHECKING:
 
 
 class Carrera(Base):
@@ -19,11 +19,11 @@ class Carrera(Base):
     creditos_requeridos: Mapped[int] = mapped_column(Integer, nullable=False)
     tipo_id: Mapped[int] = mapped_column(Integer, ForeignKey("tipos_carrera.id"), nullable=False)
     tipo = relationship("TipoCarrera", back_populates="carreras")
+    estudiantes: Mapped[list[Estudiante]] = relationship(back_populates="carrera")
     actividades: Mapped[list["Actividad"]] = relationship(
         secondary=actividad_carrera,
         back_populates="carreras_asociadas",
     )
-    estudiantes: Mapped[list["Estudiante"]] = relationship(back_populates="carrera")
 
     def __repr__(self) -> str:
         return f"<Carrera(id={self.id}, nombre='{self.nombre}', tipo_id={self.tipo_id})>"

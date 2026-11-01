@@ -11,7 +11,9 @@ from app.models import (
     Actividad,
     Asistencia,
     Carrera,
+    Docente,
     ESTADO_PUBLICADA,
+    Estudiante,
     Inscripcion,
     INSCRIPCION_ALTA,
     Faq,
@@ -25,6 +27,7 @@ from app.models import (
     TipoCarrera,
     User,
 )
+from app.models.persona import Persona
 from app.security import hash_password, verify_password
 
 DEMO_PASSWORD = "habitar123"
@@ -63,24 +66,45 @@ def _now() -> datetime:
 
 
 def _get_or_create_user(db: Session, email: str, **fields) -> User:
-    user = db.query(User).filter(User.email == email).first()
-    if user:
+    persona = db.query(Persona).filter(Persona.email == email).first()
+    rol = fields.pop("rol", None)
+    nombre = fields.pop("nombre", "Sin Nombre")
+    apellido = fields.pop("apellido", "Sin Apellido")
+    carrera_id = fields.pop("carrera_id", None)
+    if persona and persona.usuario:
         # Las cuentas creadas por este seed son cuentas demo: mantener su contraseña
         # documentada permite recuperar el acceso después de cambios de base o hash.
+        user = persona.usuario
         if not verify_password(DEMO_PASSWORD, user.pw_hash):
             user.pw_hash = hash_password(DEMO_PASSWORD)
             db.flush()
+        if user.rol == ROL_ESTUDIANTE and user.estudiante is None:
+            user.estudiante = Estudiante(carrera_id=carrera_id)
+        if user.rol == ROL_DOCENTE and user.persona.docente is None:
+            user.persona.docente = Docente()
         return user
 
-    rol = fields.get("rol", None)
     if rol is None:
         raise ValueError(f"Debe asignarse un rol al usuario asociado a {email}")
 
-    carrera = fields.get("carrera_id", None)
-    if rol == ROL_ESTUDIANTE and not carrera:
+    if rol == ROL_ESTUDIANTE and not carrera_id:
         raise ValueError(f"Debe asignarse una o más carreras al usuario asociado a {email} por ser de tipo Estudiante")
 
-    user = User(email=email, pw_hash=hash_password(DEMO_PASSWORD), **fields)
+    if not persona:
+        persona = Persona(email=email, nombre=nombre, apellido=apellido)
+        db.add(persona)
+        db.flush()  # Para obtener el persona.id
+
+    user = User(
+        persona=persona,
+        pw_hash=hash_password(DEMO_PASSWORD),
+        rol=rol,
+        **fields
+    )
+    if rol == ROL_ESTUDIANTE:
+        user.estudiante = Estudiante(carrera_id=carrera_id)
+    elif rol == ROL_DOCENTE and persona.docente is None:
+        persona.docente = Docente()
     db.add(user)
     db.flush()
     return user

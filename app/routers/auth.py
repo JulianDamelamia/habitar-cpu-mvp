@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.config import settings
 from app.database import get_db
-from app.models import PasswordReset, User
+from app.models import PasswordReset, User, Persona
 from app.models.carrera import Carrera
 from app.models.enums import ROL_ESTUDIANTE
 from app.security import (
@@ -85,7 +85,8 @@ def password_reset_submit(
     if action == "request_code":
         user = (
             db.query(User)
-            .filter(User.email == email_clean, User.rol == ROL_ESTUDIANTE)
+            .join(User.persona)
+            .filter(Persona.email == email_clean, User.rol == ROL_ESTUDIANTE)
             .first()
         )
         if user:
@@ -139,7 +140,8 @@ def password_reset_submit(
     reset = (
         db.query(PasswordReset)
         .join(User, User.id == PasswordReset.user_id)
-        .filter(User.email == email_clean, User.rol == ROL_ESTUDIANTE)
+        .join(User.persona)
+        .filter(Persona.email == email_clean, User.rol == ROL_ESTUDIANTE)
         .first()
     )
     invalid_message = "El código es inválido o venció. Solicitá uno nuevo."

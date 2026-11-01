@@ -1,14 +1,13 @@
 """Identity / SIU-mock service. Single swap point for real SIU Guaraní integration."""
 from __future__ import annotations
 import secrets
-from typing import NamedTuple, Optional
+from typing import Optional
 
 import pandas as pd
-from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
-from app.models import ROL_ESTUDIANTE, User#, ValidLegajo
-from app.models.carrera import Carrera
+from app.models import Estudiante, Persona, ROL_ESTUDIANTE, User
+
 from app.security import hash_password, verify_password
 
 
@@ -19,18 +18,18 @@ class SignupError(Exception):
 def get_emails_registrados(db: Session, emails: set[str]) -> set[str]:
     if not emails :
         return set()
-    results = (
-        db.query(User.email)
-        .filter(User.email.in_(emails))
-        .all()
-    )
-    emails_existentes:set[str] = {r.email.lower() for r in results if r.email}
+    results = db.query(Persona.email).filter(Persona.email.in_(emails)).all()
+    emails_existentes: set[str] = {email.lower() for (email,) in results if email}
     return emails_existentes
 
 def email_taken(db: Session, email: str) -> bool:
-    return db.query(User).filter(User.email == email.lower().strip()).first() is not None
+    return (
+        db.query(Persona.id)
+        .filter(Persona.email == email.lower().strip())
+        .first()
+        is not None
+    )
 
-#TODO: create_studen y el script de carga masiva podrían reutilizar algo de código pero no es prioritario
 def create_student(
     db: Session,
     *,
@@ -38,7 +37,7 @@ def create_student(
     password: str,
     nombre: str,
     apellido: str,
-    carrera_id:Optional[int] = None
+    carrera_id: Optional[int] = None,
 ) -> User:
     email_clean = email.lower().strip()
 
@@ -49,23 +48,26 @@ def create_student(
         raise SignupError("Ya existe una cuenta con ese email.")
 
     user = User(
-        email=email_clean,
+        persona=Persona(email=email_clean, nombre=nombre.strip(), apellido=apellido.strip()),
         pw_hash=hash_password(password),
-        nombre=nombre.strip(),
-        apellido=apellido.strip(),
         rol=ROL_ESTUDIANTE,
-        carrera_id=carrera_id
+        estudiante=Estudiante(carrera_id=carrera_id),
     )
-    
+
     db.add(user)
     db.commit()
     db.refresh(user)
-    
+
     return user
 
 
 def authenticate(db: Session, email: str, password: str) -> User | None:
-    user = db.query(User).filter(User.email == email.lower().strip()).first()
+    user = (
+        db.query(User)
+        .join(User.persona)
+        .filter(Persona.email == email.lower().strip())
+        .first()
+        )
     if user and verify_password(password, user.pw_hash):
         return user
     return None
@@ -79,61 +81,10 @@ def validar_email(email, existentes, seen_emails_in_file):
         return "El email está duplicado dentro del mismo archivo"
     return None
 
-# def validar_dni(dni, existentes, seen_dnis_in_file):
-#     if pd.isna(dni):
-#         return"DNI inválido o requerido"
-#     elif dni in existentes.dnis:
-#         return"El DNI ya existe en la base de datos"
-#     elif dni in seen_dnis_in_file:
-#         return"El DNI está duplicado dentro del mismo archivo"
-#     return None
-
-# from app.services.consultas_comunes import get_carreras
-# from rapidfuzz import process, fuzz
-# class CarreraMatcher:
-#     def __init__(self, carreras: list[Carrera]):
-#         self.carreras = carreras
-#         self.choices: dict[str, Carrera] = {}
-
-#         # Generamos combinaciones posibles para mejorar las coincidencias
-#         for c in carreras:
-#             tipo_nombre = c.tipo.nombre if c.tipo else ""
-            
-#             # Opción 1: "Ingeniería Ambiental"
-#             combinada_1 = f"{tipo_nombre} {c.nombre}".strip().lower()
-#             # Opción 2: "Ambiental" (por si no ponen el tipo)
-#             combinada_2 = c.nombre.strip().lower()
-
-#             self.choices[combinada_1] = c
-#             self.choices[combinada_2] = c
-
-#     def resolver_id_carrera(self, carrera_texto: str, score_corte: float = 65.0) -> int | None:
-#         """
-#         Retorna el ID de la carrera si la similitud supera el score_corte.
-#         De lo contrario, retorna None.
-#         """
-#         if not carrera_texto or not str(carrera_texto).strip():
-#             return None
-
-#         texto_limpio = str(carrera_texto).strip().lower()
-
-#         # WRatio maneja diferencias de orden, minúsculas/mayúsculas y substrings
-#         resultado = process.extractOne(
-#             texto_limpio,
-#             self.choices.keys(),
-#             scorer=fuzz.WRatio
-#         )
-
-#         if resultado:
-#             coincidencia, score, _ = resultado
-#             if score >= score_corte:
-#                 return self.choices[coincidencia].id
-
-#         return None
 
 def procesar_carga_masiva(
-    db: Session, 
-    df: pd.DataFrame, 
+    db: Session,
+    df: pd.DataFrame,
 ) -> dict[str, list]:
     """Procesa una carga masiva de usuarios desde un DataFrame.
 
@@ -161,7 +112,7 @@ def procesar_carga_masiva(
     usuarios_a_crear: list[User] = []
     notificaciones_mail: list[dict] = []
     errores: list[dict] = []
-    
+
 
     seen_emails_in_file = set()
 
@@ -171,7 +122,7 @@ def procesar_carga_masiva(
         apellido = str(row.get('apellido', '')).strip()
         carrera_id = None
         row_errors = []
-        
+
         errores_email = validar_email(email, existentes, seen_emails_in_file)
         if errores_email is not None:
             row_errors.append(errores_email)
@@ -184,12 +135,10 @@ def procesar_carga_masiva(
         contrasena_temporal = f"{secrets.randbelow(1_000_000):06d}"
 
         user = User(
-            email=email,
+            persona=Persona(email=email, nombre=nombre, apellido=apellido),
             pw_hash=hash_password(contrasena_temporal),
-            nombre=nombre,
-            apellido=apellido,
-            carrera_id=carrera_id,
             rol=ROL_ESTUDIANTE,
+            estudiante=Estudiante(carrera_id=carrera_id),
         )
         usuarios_a_crear.append(user)
 
@@ -200,7 +149,7 @@ def procesar_carga_masiva(
             "password_temporal": contrasena_temporal
         })
 
-    if usuarios_a_crear and not errores:  
+    if usuarios_a_crear and not errores:
         db.add_all(usuarios_a_crear)
         db.commit()
 

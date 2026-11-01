@@ -16,6 +16,7 @@ from app.models import (
     ESTADO_CREDITOS_PENDIENTE_ENCUESTA,
     ESTADO_PUBLICADA,
     Actividad,
+    Persona,
     User,
 )
 from app.security import hash_password
@@ -62,6 +63,7 @@ def actividad_form_data(docente_id, carrera_id, *, titulo="Actividad nueva"):
         "docentes_ids": str(docente_id),
         "docentes_nombres": ["Eva"],
         "docentes_apellidos": ["Invitada"],
+        "docentes_emails": ["eva@example.com"],
         "creditos": "2.5",
         "cupo_max": "20",
         "carreras_asociadas": str(carrera_id),
@@ -243,27 +245,30 @@ def test_create_activity_rejects_credits_not_in_half_point_steps(admin_actividad
     assert db_session.query(Actividad).count() == 0
 
 
-def test_user_with_matching_name_links_to_existing_docente(
+def test_user_with_matching_name_keeps_separate_persona_from_docente(
     db_session, user_factory
 ):
     staff = user_factory(rol="docente")
     student = User(
-        email="coincide@example.com",
+        persona=Persona(
+            email="coincide@example.com",
+            nombre=staff.nombre,
+            apellido=staff.apellido,
+        ),
         pw_hash="test-hash",
-        nombre=staff.nombre,
-        apellido=staff.apellido,
         estudiante=Estudiante(),
     )
     db_session.add(student)
     db_session.commit()
 
     assert db_session.query(Docente).count() == 1
-    assert student.docente_id == staff.docente_id
+    assert staff.docente_id is not None
+    assert student.docente_id is None
 
 
 def test_create_activity_with_invalid_dates_redirects_with_error(admin_actividades_client):
     client, db_session, docente, carrera = admin_actividades_client
-    data = actividad_form_data(docente.id, carrera.id)
+    data = actividad_form_data(docente.docente_id, carrera.id)
     data["fecha_fin"] = "2030-01-10T09:00"
 
     response = client.post("/admin/actividades", data=data)
@@ -405,7 +410,7 @@ def test_disabling_activity_survey_releases_pending_credits(
     client, db_session, docente, carrera = admin_actividades_client
     create_response = client.post(
         "/admin/actividades",
-        data=actividad_form_data(docente.id, carrera.id),
+        data=actividad_form_data(docente.docente_id, carrera.id),
     )
     assert create_response.status_code == 303
     activity = db_session.query(Actividad).one()

@@ -8,7 +8,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from app import services
 from app.database import get_db
-from app.models import Carrera, Estudiante, ROL_ESTUDIANTE, User
+from app.models import Carrera, Estudiante, Persona, ROL_ESTUDIANTE, User
 from app.security import REQUIERE_ADMIN
 from app.templating import redirect_to, render
 
@@ -40,19 +40,20 @@ def _render_usuarios(
         query = (
             db.query(User)
             .join(Estudiante, Estudiante.user_id == User.id)
+            .join(User.persona)
             .options(selectinload(User.estudiante).selectinload(Estudiante.carrera))
             .filter(User.rol == ROL_ESTUDIANTE)
         )
         termino = f"%{busqueda.strip()}%"
         query = query.filter(
             or_(
-                User.email.ilike(termino),
-                User.nombre.ilike(termino),
-                User.apellido.ilike(termino),
+                Persona.email.ilike(termino),
+                Persona.nombre.ilike(termino),
+                Persona.apellido.ilike(termino),
             )
         )
         estudiantes = query.order_by(
-            User.apellido, User.nombre, User.email
+            Persona.apellido, Persona.nombre, Persona.email
         ).limit(50).all()
     return render(
         request,

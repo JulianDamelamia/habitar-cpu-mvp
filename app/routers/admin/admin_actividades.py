@@ -126,6 +126,7 @@ def crear(
     docentes_ids: list[int] = Form([]),
     docentes_nombres: list[str] = Form([]),
     docentes_apellidos: list[str] = Form([]),
+    docentes_emails: list[str] = Form([]),
     creditos: str = Form("1"),
     cupo_max: int = Form(30),
     encuesta_obligatoria: bool = Form(True),
@@ -143,7 +144,11 @@ def crear(
     try:
         creditos_validados = services.actividades.validar_creditos(creditos)
         docentes = services.actividades.resolver_docentes(
-            db, docentes_ids=docentes_ids, nombres=docentes_nombres, apellidos=docentes_apellidos
+            db,
+            docentes_ids=docentes_ids,
+            nombres=docentes_nombres,
+            apellidos=docentes_apellidos,
+            emails=docentes_emails
         )
     except ValueError as exc:
         return redirect_to(request, "nueva", query_params={"err": str(exc)})
@@ -194,6 +199,7 @@ def actualizar(
     docentes_ids: list[int] = Form([]),
     docentes_nombres: list[str] = Form([]),
     docentes_apellidos: list[str] = Form([]),
+    docentes_emails: list[str] = Form([]),
     creditos: str = Form("1"),
     cupo_max: int = Form(30),
     encuesta_obligatoria: bool = Form(True),
@@ -219,6 +225,7 @@ def actualizar(
         "docentes_ids": [str(docente_id) for docente_id in docentes_ids],
         "docentes_nombres": docentes_nombres,
         "docentes_apellidos": docentes_apellidos,
+        "docentes_emails": docentes_emails,
         "creditos": creditos,
         "cupo_max": cupo_max,
         "encuesta_obligatoria": encuesta_obligatoria,
@@ -238,7 +245,7 @@ def actualizar(
         #TODO esto está repetido en update
         creditos_validados = services.actividades.validar_creditos(creditos)
         docentes = services.actividades.resolver_docentes(
-            db, docentes_ids=docentes_ids, nombres=docentes_nombres, apellidos=docentes_apellidos
+            db, docentes_ids=docentes_ids, nombres=docentes_nombres, apellidos=docentes_apellidos, emails=docentes_emails
         )
     except ValueError as exc:
         return _render_edit_form(

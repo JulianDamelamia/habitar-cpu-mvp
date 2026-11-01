@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Actividad, Carrera, Estudiante, Inscripcion, Mensaje, ROL_ESTUDIANTE, User
+from app.models import Actividad, Carrera, Estudiante, Inscripcion, Mensaje, Persona, ROL_ESTUDIANTE, User
 from app.models.enums import INSCRIPCION_ALTA
 from app.security import REQUIERE_ADMIN
 from app.services import mensajes
@@ -24,8 +24,9 @@ def _compose_page(
     estudiantes = (
         db.query(User)
         .join(Estudiante, Estudiante.user_id == User.id)
+        .join(User.persona)
         .filter(User.rol == ROL_ESTUDIANTE)
-        .order_by(User.apellido, User.nombre)
+        .order_by(Persona.apellido, Persona.nombre)
         .all()
     )
     carreras = db.query(Carrera).order_by(Carrera.nombre).all()

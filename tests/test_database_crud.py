@@ -4,7 +4,7 @@ import pytest
 from sqlalchemy import inspect, select
 
 from app.database import SessionLocal, engine
-from app.models import User
+from app.models import Persona, User
 
 
 @pytest.fixture
@@ -25,10 +25,12 @@ def database_session():
 def test_user_crud(database_session):
     email = f"test-{uuid4().hex}@example.com"
     user = User(
-        email=email,
+        persona=Persona(
+            email=email,
+            nombre="Usuario",
+            apellido="De Prueba",
+        ),
         pw_hash="test-hash",
-        nombre="Usuario",
-        apellido="De Prueba",
     )
     database_session.add(user)
     database_session.commit()

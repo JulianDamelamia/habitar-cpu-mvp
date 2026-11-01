@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from app import services
 from app.database import get_db
 from app.main import app
-from app.models import ROL_ESTUDIANTE, User
+from app.models import Persona, ROL_ESTUDIANTE, User
 from app.security import hash_password, verify_password
 
 
@@ -62,7 +62,12 @@ def test_user_import_creates_account_and_sends_its_temporary_password(
         "Creados 1 usuarios nuevos."
     ]
 
-    student = db_session.query(User).filter_by(email="ana@example.com").one()
+    student = (
+        db_session.query(User)
+        .join(User.persona)
+        .filter(Persona.email == "ana@example.com")
+        .one()
+    )
     assert student.rol == ROL_ESTUDIANTE
     assert student.nombre == "Ana"
     assert student.apellido == "Pérez"
@@ -101,4 +106,10 @@ def test_user_import_with_invalid_columns_does_not_create_accounts_or_send_email
     )
 
     assert response.status_code == 400
-    assert db_session.query(User).filter_by(email="ana@example.com").count() == 0
+    assert (
+        db_session.query(User)
+        .join(User.persona)
+        .filter(Persona.email == "ana@example.com")
+        .count()
+        == 0
+    )

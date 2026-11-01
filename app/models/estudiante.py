@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from sqlalchemy import CheckConstraint, Float, ForeignKey, text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-
 from app.database import Base
-
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from app.models.user import User
+    from app.models.carrera import Carrera
 
 class Estudiante(Base):
     __tablename__ = "estudiantes"
@@ -32,3 +34,10 @@ class Estudiante(Base):
 
     user: Mapped["User"] = relationship(back_populates="estudiante")
     carrera: Mapped["Carrera | None"] = relationship(back_populates="estudiantes")
+
+    @property
+    def nombre_completo(self) -> str:
+        return f"{self.user.nombre} {self.user.apellido}".strip()
+    @property
+    def email(self) -> str | None:
+        return self.user.email if self.user else None

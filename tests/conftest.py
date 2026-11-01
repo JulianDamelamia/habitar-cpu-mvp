@@ -9,7 +9,9 @@ from app.models import (
     Actividad,
     Carrera,
     ESTADO_BORRADOR,
+    Docente,
     Estudiante,
+    Persona,
     TipoCarrera,
     User,
 )
@@ -45,14 +47,19 @@ def user_factory(db_session):
     def create_user(*, rol="estudiante", email=None):
         nonlocal counter
         counter += 1
-        user = User(
+        persona = Persona(
             email=email or f"user-{counter}@example.com",
-            pw_hash="test-hash",
             nombre=f"Nombre {counter}",
             apellido="Prueba",
+        )
+        user = User(
+            persona=persona,
+            pw_hash="test-hash",
             rol=rol,
             estudiante=Estudiante() if rol == "estudiante" else None,
         )
+        if rol == "docente":
+            persona.docente = Docente()
         db_session.add(user)
         db_session.commit()
         db_session.refresh(user)

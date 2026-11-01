@@ -15,7 +15,8 @@ from app.models import (
     ESTADO_PUBLICADA,
     Inscripcion,
     INSCRIPCION_ALTA,
-    Carrera
+    Carrera,
+    Persona,
 )
 from .carreras import get_carreras_desde_dropdown
 
@@ -37,15 +38,17 @@ def resolver_docentes(
     docentes_ids: list[int],
     nombres: list[str],
     apellidos: list[str],
+    emails: list[str],
 ) -> list[Docente]:
-    if len(nombres) != len(apellidos):
-        raise ValueError("Cada docente nuevo debe tener nombre y apellido.")
+    if len(nombres) != len(apellidos) or len(nombres) != len(emails) or len(apellidos) != len(emails):
+        raise ValueError("Cada docente nuevo debe tener nombre, apellido y mail.")
 
     nombres_limpios = [" ".join(nombre.split()) for nombre in nombres]
     apellidos_limpios = [" ".join(apellido.split()) for apellido in apellidos]
-    for nombre, apellido in zip(nombres_limpios, apellidos_limpios):
-        if bool(nombre) != bool(apellido):
-            raise ValueError("Ingresá nombre y apellido para cada docente nuevo.")
+    emails_limpios = [" ".join(email.split()).lower() for email in emails]
+    for nombre, apellido, email in zip(nombres_limpios, apellidos_limpios, emails_limpios):
+        if bool(nombre) != bool(apellido) or bool(nombre) != bool(email) or bool(apellido) != bool(email):
+            raise ValueError("Ingresá nombre, apellido y email para cada docente nuevo.")
 
     docentes = []
     if docentes_ids:
@@ -55,16 +58,20 @@ def resolver_docentes(
         docentes.extend(encontrados)
 
     por_nombre = {
-        (" ".join(d.nombre.split()).casefold(), " ".join(d.apellido.split()).casefold()): d
+        (" ".join(d.persona.nombre.split()).casefold(), " ".join(d.persona.apellido.split()).casefold()): d
         for d in db.query(Docente).all()
+        if d.persona is not None
     }
-    for nombre, apellido in zip(nombres_limpios, apellidos_limpios):
+    for nombre, apellido, email in zip(nombres_limpios, apellidos_limpios, emails_limpios):
         if not nombre and not apellido:
             continue
         clave = (nombre.casefold(), apellido.casefold())
         docente = por_nombre.get(clave)
         if docente is None:
-            docente = Docente(nombre=nombre, apellido=apellido)
+            persona = db.query(Persona).filter(Persona.email == email).first()
+            if persona is None:
+                persona = Persona(nombre=nombre, apellido=apellido, email=email)
+            docente = persona.docente or Docente(persona=persona)
             db.add(docente)
             por_nombre[clave] = docente
         docentes.append(docente)
