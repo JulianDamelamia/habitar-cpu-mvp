@@ -368,6 +368,7 @@ def create(
     *,
     created_by: int | None = None,
 ) -> Actividad:
+    '''Crea una nueva actividad en la base de datos a partir del contexto proporcionado.'''
     estado = (
         ESTADO_BORRADOR
         if not contexto.carreras_asociadas
@@ -399,6 +400,7 @@ def update(
     actividad: Actividad,
     contexto: ActividadContext,
 ) -> Actividad:
+    '''Actualiza los campos de la actividad con los valores del contexto.'''
     actividad.titulo = contexto.titulo
     actividad.descripcion = contexto.descripcion
     actividad.tipo = contexto.tipo

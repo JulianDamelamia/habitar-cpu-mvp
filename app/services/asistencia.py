@@ -263,7 +263,7 @@ def process_closed_enrollment_attendance_emails(
     from app.config import settings
     from app.models import ESTADO_PUBLICADA, INSCRIPCION_ALTA, Inscripcion
     from app.services.mailing import send_email
-
+    '''Envía correos a los docentes de actividades cuya inscripción se cerró en las últimas 24h, con el listado de inscriptos y el código de asistencia. Devuelve la cantidad de correos enviados.'''
     current = now or _now()
     if current.tzinfo is None:
         current = current.replace(tzinfo=timezone.utc)
@@ -330,14 +330,14 @@ def process_closed_enrollment_attendance_emails(
             )
         )
         qr_buffer = io.BytesIO()
-        #TODO: En producción, guardar el QR en un directorio accesible y enviar la URL en lugar de adjuntar la imagen.
-        #qrcode.make(window.codigo).save(qr_buffer, format="PNG") (esto iria en produ)
+        qrcode.make(window.codigo).save(qr_buffer, format="PNG")
+        #TODO: esto no va en producción, es solo para debug y testing. En producción se debería generar el QR en el front-end.
         qr_image = qrcode.make(window.codigo)
         qr_image.save(qr_buffer, format="PNG")
         qr_dir = Path("./data/qr")
         qr_dir.mkdir(parents=True, exist_ok=True)
         qr_image.save(qr_dir / f"asistencia-{activity.id}.png", format="PNG")
-        
+        ###
         attachment = (
             f"asistencia-{activity.id}.png",
             qr_buffer.getvalue(),

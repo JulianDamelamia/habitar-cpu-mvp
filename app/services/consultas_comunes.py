@@ -9,7 +9,6 @@ from app.models.enums import INSCRIPCION_ALTA
 from app.models.docente import Docente
 from app.models.persona import Persona
 from app.models.tipo_carrera import TipoCarrera
-from app.models.user import User
 
 #Tuve que hacer este módulo de consultas para romper una importación circular
 # TODO: revisar arquitectura y ver bien cómo organizar los módulos
