@@ -8,6 +8,7 @@ from decimal import Decimal, InvalidOperation
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.schemas.forms import ActividadForm
 from app.models import (
     Actividad,
     Docente,
@@ -19,6 +20,8 @@ from app.models import (
     Carrera,
     Persona,
 )
+from app.services.parsing import parse_intervalo_tiempo
+from .carreras import get_carreras_desde_dropdown
 
 
 @dataclass(frozen=True)
@@ -42,6 +45,55 @@ class ActividadContext:
     cupo_max: int
     encuesta_obligatoria: bool
     carreras_asociadas: list[Carrera]
+
+
+def actividad_form_data(form: ActividadForm) -> dict[str, object]:
+    data = form.model_dump()
+    data["docentes_ids"] = [str(docente_id) for docente_id in form.docentes_ids]
+    return data
+
+
+def crear_contexto_actividad(
+    form: ActividadForm,
+    db: Session,
+) -> ActividadContext:
+    try:
+        inicio, fin = parse_intervalo_tiempo(
+            form.fecha_inicio,
+            form.fecha_fin,
+            form.duracion,
+            form.modo_finalizacion,
+        )
+    except ValueError:
+        raise ValueError("Fechas inválidas: revisá inicio y fin.") from None
+
+    creditos = validar_creditos(form.creditos)
+    docentes = resolver_docentes(
+        db,
+        DocentesInput(
+            ids=form.docentes_ids,
+            nombres=form.docentes_nombres,
+            apellidos=form.docentes_apellidos,
+            emails=form.docentes_emails,
+        ),
+    )
+    carreras = get_carreras_desde_dropdown(form.carreras_asociadas, db)
+    if not carreras:
+        raise ValueError("No se puede crear una actividad sin carreras asociadas.")
+
+    return ActividadContext(
+        titulo=form.titulo.strip(),
+        descripcion=form.descripcion.strip(),
+        tipo=form.tipo,
+        fecha_inicio=inicio,
+        fecha_fin=fin,
+        lugar=form.lugar.strip(),
+        docentes=docentes,
+        creditos=creditos,
+        cupo_max=form.cupo_max,
+        encuesta_obligatoria=form.encuesta_obligatoria,
+        carreras_asociadas=carreras,
+    )
 
 
 def validar_creditos(valor: object) -> Decimal:

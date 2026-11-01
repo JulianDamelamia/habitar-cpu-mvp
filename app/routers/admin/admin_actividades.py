@@ -26,11 +26,9 @@ from app.services.consultas_comunes import get_docentes
 from app.services.notifications import notify
 from app.security import REQUIERE_ADMIN
 from app import services 
-
 from app.schemas.forms import ActividadForm
 from app.services.parsing import (
     formatear_duracion,
-    parse_intervalo_tiempo,
     to_local_datetime,
 )
 from app.templating import build_sort_links, redirect_to, render
@@ -142,57 +140,6 @@ def _render_edit_form(
     )
 
 
-def _actividad_form_data(form: ActividadForm) -> dict[str, object]:
-    values = form.model_dump()
-    values["docentes_ids"] = [str(docente_id) for docente_id in form.docentes_ids]
-    return values
-
-
-def _crear_contexto_actividad(
-    form: ActividadForm,
-    db: Session,
-) -> services.actividades.ActividadContext:
-    try:
-        inicio, fin = parse_intervalo_tiempo(
-            form.fecha_inicio,
-            form.fecha_fin,
-            form.duracion,
-            form.modo_finalizacion,
-        )
-    except ValueError:
-        raise ValueError("Fechas inválidas: revisá inicio y fin.") from None
-
-    creditos = services.actividades.validar_creditos(form.creditos)
-    docentes = services.actividades.resolver_docentes(
-        db,
-        services.actividades.DocentesInput(
-            ids=form.docentes_ids,
-            nombres=form.docentes_nombres,
-            apellidos=form.docentes_apellidos,
-            emails=form.docentes_emails,
-        ),
-    )
-    carreras = services.carreras.get_carreras_desde_dropdown(
-        form.carreras_asociadas, db
-    )
-    if not carreras:
-        raise ValueError("No se puede crear una actividad sin carreras asociadas.")
-
-    return services.actividades.ActividadContext(
-        titulo=form.titulo.strip(),
-        descripcion=form.descripcion.strip(),
-        tipo=form.tipo,
-        fecha_inicio=inicio,
-        fecha_fin=fin,
-        lugar=form.lugar.strip(),
-        docentes=docentes,
-        creditos=creditos,
-        cupo_max=form.cupo_max,
-        encuesta_obligatoria=form.encuesta_obligatoria,
-        carreras_asociadas=carreras,
-    )
-
-
 @router.post("")
 def crear(
     request: Request,
@@ -201,7 +148,7 @@ def crear(
     db: Session = Depends(get_db),
 ) -> RedirectResponse:
     try:
-        contexto = _crear_contexto_actividad(form, db)
+        contexto = services.actividades.crear_contexto_actividad(form, db)
     except ValueError as exc:
         db.rollback()
         return redirect_to(request, "nueva", query_params={"err": str(exc)})
@@ -240,9 +187,9 @@ def actualizar(
             request, "panel",
             query_params={"err": "Actividad no encontrada."},
         )
-    form_data = _actividad_form_data(form)
+    form_data = services.actividades.actividad_form_data(form)
     try:
-        contexto = _crear_contexto_actividad(form, db)
+        contexto = services.actividades.crear_contexto_actividad(form, db)
     except ValueError as exc:
         db.rollback()
         return _render_edit_form(request, a, user, db, error=str(exc), form_data=form_data)

@@ -20,8 +20,7 @@ from app.models import (
     User,
 )
 from app.security import hash_password
-from app.routers.admin.admin_actividades import parse_intervalo_tiempo
-from app.services.parsing import parse_duracion
+from app.services.parsing import parse_duracion, parse_intervalo_tiempo
 from app.templating import _fmt_dt
 from app.services.credits import accumulated_credits
 
