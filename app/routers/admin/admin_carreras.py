@@ -10,7 +10,7 @@ from app import services
 from app.database import get_db
 from app.models import TipoCarrera, User
 from app.security import REQUIERE_ADMIN, verify_password
-from app.templating import redirect_to, render
+from app.templating import build_query_links, redirect_to, render
 
 router = APIRouter()
 
@@ -65,23 +65,21 @@ def listar_carreras(
         clave_orden = lambda carrera: carrera.creditos_requeridos
     carreras.sort(key=clave_orden, reverse=direccion == "desc")
 
-    def url_orden(nuevo_orden: str) -> str:
-        nueva_direccion = (
-            "desc"
-            if orden == nuevo_orden and direccion == "asc"
-            else "asc"
-        )
-        parametros_orden = {
-            "orden": nuevo_orden,
-            "direccion": nueva_direccion,
-        }
-        if tipo:
-            parametros_orden["tipo"] = tipo
-        if nombre:
-            parametros_orden["nombre"] = nombre
-        return str(
-            request.url.include_query_params(**parametros_orden)
-        )
+    ordenes = ("nombre", "inscriptos", "creditos")
+    urls_orden = build_query_links(
+        request,
+        {
+            nuevo_orden: {
+                "orden": nuevo_orden,
+                "direccion": (
+                    "desc"
+                    if orden == nuevo_orden and direccion == "asc"
+                    else "asc"
+                ),
+            }
+            for nuevo_orden in ordenes
+        },
+    )
 
     return render(
         request,
@@ -97,11 +95,7 @@ def listar_carreras(
         nombre_buscado=nombre,
         orden_actual=orden,
         direccion_actual=direccion,
-        urls_orden={
-            "nombre": url_orden("nombre"),
-            "inscriptos": url_orden("inscriptos"),
-            "creditos": url_orden("creditos"),
-        },
+        urls_orden=urls_orden,
     )
 
 

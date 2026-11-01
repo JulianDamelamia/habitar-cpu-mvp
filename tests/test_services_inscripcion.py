@@ -15,10 +15,37 @@ from app.services.inscripcion import (
     inscribir,
     inscriptos,
     my_actividades,
+    inscriptos_dataframe,
     cancellation_penalty_applies,
     unenroll,
 )
 from app.services.consultas_comunes import is_enrolled
+
+
+def test_inscriptos_dataframe_incluye_identidad_y_asistencia(
+    db_session, actividad_factory, user_factory
+):
+    activity = actividad_factory()
+    student = user_factory(email="student@example.com")
+    db_session.add(
+        Inscripcion(
+            actividad_id=activity.id,
+            user_id=student.id,
+            estado=INSCRIPCION_ALTA,
+        )
+    )
+    db_session.commit()
+
+    dataframe = inscriptos_dataframe(db_session, activity.id)
+
+    assert dataframe.to_dict("records") == [
+        {
+            "apellido": student.apellido,
+            "nombre": student.nombre,
+            "email": student.email,
+            "asistio": "no",
+        }
+    ]
 
 
 def test_inscribir_y_consultar_inscripcion(db_session, actividad_factory, user_factory):

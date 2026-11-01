@@ -1,8 +1,10 @@
 from datetime import datetime, timedelta, timezone
+import base64
 
 import pytest
 
 from app.models import (
+    Actividad,
     Asistencia,
     ESTADO_CREDITOS_ACREDITADO,
     ESTADO_CREDITOS_PENDIENTE_ENCUESTA,
@@ -22,6 +24,28 @@ from app.services.asistencia import (
 from app.services.encuestas import estudiante_completo_encuesta
 from app.services.credits import accumulated_credits
 from app.services.inscripcion import inscribir
+
+
+def test_qr_data_uri_contains_png_image():
+    data_uri = asistencia.qr_data_uri("test-token")
+    encoded_image = data_uri.removeprefix("data:image/png;base64,")
+
+    assert base64.b64decode(encoded_image).startswith(b"\x89PNG\r\n\x1a\n")
+
+
+def test_puede_gestionar_actividad_respeta_coordinacion_y_docente(
+    db_session, actividad_factory, user_factory
+):
+    activity = actividad_factory()
+    teacher = user_factory(rol="docente")
+    other_teacher = user_factory(rol="docente")
+    coordinator = user_factory(rol="coordinacion")
+    activity.docentes.append(teacher.docente)
+    db_session.commit()
+
+    assert asistencia.puede_gestionar_actividad(activity, teacher)
+    assert asistencia.puede_gestionar_actividad(activity, coordinator)
+    assert not asistencia.puede_gestionar_actividad(activity, other_teacher)
 
 
 def test_attendance_window_has_stable_activity_code(

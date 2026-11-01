@@ -1,7 +1,6 @@
 """E-01 Authentication & profile."""
 from __future__ import annotations
 
-import hashlib
 import hmac
 import logging
 import secrets
@@ -25,6 +24,7 @@ from app.security import (
 )
 from app import services
 from app.schemas.forms import SignupForm
+from app.services.parsing import to_utc_datetime
 from app.templating import redirect_to, render
 
 router = APIRouter()
@@ -33,15 +33,108 @@ logger = logging.getLogger("habitar.auth")
 PASSWORD_RESET_TTL = timedelta(minutes=15)
 PASSWORD_RESET_COOLDOWN = timedelta(seconds=60)
 PASSWORD_RESET_MAX_ATTEMPTS = 5
+PASSWORD_RESET_INVALID_MESSAGE = "El código es inválido o venció. Solicitá uno nuevo."
 
 
-def _password_reset_digest(email: str, code: str) -> str:
-    value = f"{email}:{code}".encode()
-    return hmac.new(settings.SECRET_KEY.encode(), value, hashlib.sha256).hexdigest()
+def _request_password_reset_code(db: Session, email: str) -> None:
+    user = (
+        db.query(User)
+        .join(User.persona)
+        .filter(Persona.email == email, User.rol == ROL_ESTUDIANTE)
+        .first()
+    )
+    if user is None:
+        return
+
+    now = datetime.now(timezone.utc)
+    reset = db.get(PasswordReset, user.id)
+    if (
+        reset is not None
+        and to_utc_datetime(reset.created_at) > now - PASSWORD_RESET_COOLDOWN
+    ):
+        return
+
+    if reset is None:
+        reset = PasswordReset(
+            user_id=user.id,
+            code_digest="",
+            expires_at=now + PASSWORD_RESET_TTL,
+            attempts=0,
+        )
+        db.add(reset)
+
+    reset_code = f"{secrets.randbelow(1_000_000):06d}"
+    reset.code_digest = services.identity.password_reset_digest(
+        email, reset_code, settings.SECRET_KEY
+    )
+    reset.expires_at = now + PASSWORD_RESET_TTL
+    reset.attempts = 0
+    db.commit()
+    services.mailing.send_email(
+        user.email,
+        "Restablecer contraseña - Módulo Habitar",
+        (
+            f"Hola {user.nombre_completo},\n\n"
+            f"Tu código para restablecer la contraseña es: {reset_code}\n"
+            "El código vence en 15 minutos y se puede usar una sola vez."
+        ),
+    )
+    if settings.ENVIRONMENT == "development":
+        logger.info("Código de recuperación para %s: %s", user.email, reset_code)
 
 
-def _as_utc(value: datetime) -> datetime:
-    return value if value.tzinfo else value.replace(tzinfo=timezone.utc)
+def _get_valid_password_reset(
+    db: Session,
+    email: str,
+    code: str,
+) -> PasswordReset | None:
+    reset = (
+        db.query(PasswordReset)
+        .join(User, User.id == PasswordReset.user_id)
+        .join(User.persona)
+        .filter(Persona.email == email, User.rol == ROL_ESTUDIANTE)
+        .first()
+    )
+    if reset is None:
+        return None
+
+    now = datetime.now(timezone.utc)
+    if (
+        to_utc_datetime(reset.expires_at) <= now
+        or reset.attempts >= PASSWORD_RESET_MAX_ATTEMPTS
+    ):
+        db.delete(reset)
+        db.commit()
+        return None
+
+    expected_digest = services.identity.password_reset_digest(
+        email, code, settings.SECRET_KEY
+    )
+    if hmac.compare_digest(reset.code_digest, expected_digest):
+        return reset
+
+    reset.attempts += 1
+    if reset.attempts >= PASSWORD_RESET_MAX_ATTEMPTS:
+        db.delete(reset)
+    db.commit()
+    return None
+
+
+def _set_password_from_reset(
+    db: Session,
+    reset: PasswordReset,
+    password: str,
+) -> bool:
+    user = db.get(User, reset.user_id)
+    if user is None:
+        db.delete(reset)
+        db.commit()
+        return False
+
+    user.pw_hash = hash_password(password)
+    db.delete(reset)
+    db.commit()
+    return True
 
 
 def _render_password_reset(
@@ -85,45 +178,7 @@ def password_reset_submit(
     email_clean = email.strip().lower()
 
     if action == "request_code":
-        user = (
-            db.query(User)
-            .join(User.persona)
-            .filter(Persona.email == email_clean, User.rol == ROL_ESTUDIANTE)
-            .first()
-        )
-        if user:
-            now = datetime.now(timezone.utc)
-            reset = db.get(PasswordReset, user.id)
-            if reset is None or _as_utc(reset.created_at) <= now - PASSWORD_RESET_COOLDOWN:
-                if reset is None:
-                    reset = PasswordReset(
-                        user_id=user.id,
-                        code_digest="",
-                        expires_at=now + PASSWORD_RESET_TTL,
-                        attempts=0,
-                    )
-                    db.add(reset)
-                reset_code = f"{secrets.randbelow(1_000_000):06d}"
-                reset.code_digest = _password_reset_digest(email_clean, reset_code)
-                reset.expires_at = now + PASSWORD_RESET_TTL
-                reset.attempts = 0
-                db.commit()
-                services.mailing.send_email(
-                    user.email,
-                    "Restablecer contraseña - Módulo Habitar",
-                    (
-                        f"Hola {user.nombre_completo},\n\n"
-                        f"Tu código para restablecer la contraseña es: {reset_code}\n"
-                        "El código vence en 15 minutos y se puede usar una sola vez."
-                    ),
-                )
-                if settings.ENVIRONMENT == "development":
-                    logger.info(
-                        "Código de recuperación para %s: %s",
-                        user.email,
-                        reset_code,
-                    )
-
+        _request_password_reset_code(db, email_clean)
         return _render_password_reset(
             request,
             email=email_clean,
@@ -134,44 +189,19 @@ def password_reset_submit(
             show_code_form=True,
         )
 
-    if action != "reset_password":
+    if action == "reset_password":
+        reset = _get_valid_password_reset(db, email_clean, code.strip())
+    else:
         return _render_password_reset(
             request, email=email_clean, error="Solicitud inválida."
         )
 
-    reset = (
-        db.query(PasswordReset)
-        .join(User, User.id == PasswordReset.user_id)
-        .join(User.persona)
-        .filter(Persona.email == email_clean, User.rol == ROL_ESTUDIANTE)
-        .first()
-    )
-    invalid_message = "El código es inválido o venció. Solicitá uno nuevo."
     if reset is None:
         return _render_password_reset(
-            request, email=email_clean, error=invalid_message, show_code_form=True
-        )
-
-    now = datetime.now(timezone.utc)
-    if (
-        _as_utc(reset.expires_at) <= now
-        or reset.attempts >= PASSWORD_RESET_MAX_ATTEMPTS
-    ):
-        db.delete(reset)
-        db.commit()
-        return _render_password_reset(
-            request, email=email_clean, error=invalid_message, show_code_form=True
-        )
-
-    if not hmac.compare_digest(
-        reset.code_digest, _password_reset_digest(email_clean, code.strip())
-    ):
-        reset.attempts += 1
-        if reset.attempts >= PASSWORD_RESET_MAX_ATTEMPTS:
-            db.delete(reset)
-        db.commit()
-        return _render_password_reset(
-            request, email=email_clean, error=invalid_message, show_code_form=True
+            request,
+            email=email_clean,
+            error=PASSWORD_RESET_INVALID_MESSAGE,
+            show_code_form=True,
         )
 
     if len(password) < 8:
@@ -189,17 +219,22 @@ def password_reset_submit(
             show_code_form=True,
         )
 
-    user = db.get(User, reset.user_id)
-    if user is None:
-        db.delete(reset)
-        db.commit()
+    if password != password_confirm:
         return _render_password_reset(
-            request, email=email_clean, error=invalid_message, show_code_form=True
+            request,
+            email=email_clean,
+            error="Las contraseñas no coinciden.",
+            show_code_form=True,
         )
 
-    user.pw_hash = hash_password(password)
-    db.delete(reset)
-    db.commit()
+    if not _set_password_from_reset(db, reset, password):
+        return _render_password_reset(
+            request,
+            email=email_clean,
+            error=PASSWORD_RESET_INVALID_MESSAGE,
+            show_code_form=True,
+        )
+
     return redirect_to(
         request,
         "login_form",

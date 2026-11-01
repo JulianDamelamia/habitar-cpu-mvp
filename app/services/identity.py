@@ -1,10 +1,13 @@
 """Identity / SIU-mock service. Single swap point for real SIU Guaraní integration."""
 from __future__ import annotations
 from dataclasses import dataclass
+import hashlib
+import hmac
 import secrets
 
 import pandas as pd
-from sqlalchemy.orm import Session
+from sqlalchemy import or_
+from sqlalchemy.orm import Session, selectinload
 
 from app.models import Estudiante, Persona, ROL_ESTUDIANTE, User
 
@@ -13,6 +16,11 @@ from app.security import hash_password, verify_password
 
 class SignupError(Exception):
     pass
+
+
+def password_reset_digest(email: str, code: str, secret_key: str) -> str:
+    value = f"{email}:{code}".encode()
+    return hmac.new(secret_key.encode(), value, hashlib.sha256).hexdigest()
 
 
 @dataclass(frozen=True)
@@ -38,6 +46,28 @@ def email_taken(db: Session, email: str) -> bool:
         .first()
         is not None
     )
+
+
+def search_students(db: Session, query: str, *, limit: int = 50) -> list[User]:
+    term = f"%{query.strip()}%"
+    return (
+        db.query(User)
+        .join(Estudiante, Estudiante.user_id == User.id)
+        .join(User.persona)
+        .options(selectinload(User.estudiante).selectinload(Estudiante.carrera))
+        .filter(
+            User.rol == ROL_ESTUDIANTE,
+            or_(
+                Persona.email.ilike(term),
+                Persona.nombre.ilike(term),
+                Persona.apellido.ilike(term),
+            ),
+        )
+        .order_by(Persona.apellido, Persona.nombre, Persona.email)
+        .limit(limit)
+        .all()
+    )
+
 
 def create_student(
     db: Session,

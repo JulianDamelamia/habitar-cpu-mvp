@@ -1,10 +1,6 @@
 """E-05 QR asistencia (docente rotating code + student check-in) and E-06 survey."""
 from __future__ import annotations
 
-import base64
-import io
-
-import qrcode
 from fastapi import APIRouter, Depends, Form, Request
 from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy.exc import IntegrityError
@@ -14,9 +10,7 @@ from app.database import get_db
 from app.models import (
     Actividad,
     Asistencia,
-    Docente,
     ESTADO_PUBLICADA,
-    ROL_COORDINACION,
     SurveyResponse,
     User,
     VentanaAsistencia,
@@ -26,20 +20,6 @@ from app import services
 from app.templating import redirect_to, render
 
 router = APIRouter()
-
-
-def _qr_data_uri(text: str) -> str:
-    img = qrcode.make(text)
-    buf = io.BytesIO()
-    img.save(buf, format="PNG") # type: ignore
-    return "data:image/png;base64," + base64.b64encode(buf.getvalue()).decode()
-
-
-def _can_manage(actividad: Actividad, user: User) -> bool:
-    return user.rol == ROL_COORDINACION or (
-        user.docente_id is not None
-        and any(docente.id == user.docente_id for docente in actividad.docentes)
-    )
 
 
 # ---- Student check-in --------------------------------------------------------
@@ -283,7 +263,9 @@ def docente_asistencia(
     db: Session = Depends(get_db),
 ):
     actividad = db.get(Actividad, actividad_id)
-    if actividad is None or not _can_manage(actividad, user):
+    if actividad is None or not services.asistencia.puede_gestionar_actividad(
+        actividad, user
+    ):
         return redirect_to(
             request, "docente_home",
             query_params={"err": "Actividad no encontrada."},
@@ -304,7 +286,9 @@ def docente_token(
     db: Session = Depends(get_db),
 ):
     actividad = db.get(Actividad, actividad_id)
-    if actividad is None or not _can_manage(actividad, user):
+    if actividad is None or not services.asistencia.puede_gestionar_actividad(
+        actividad, user
+    ):
         return JSONResponse({"error": "forbidden"}, status_code=403)
     if not actividad.inscripcion_cerrada:
         return JSONResponse(
@@ -315,7 +299,7 @@ def docente_token(
     return JSONResponse(
         {
             "token": window.codigo,
-            "qr": _qr_data_uri(window.codigo),
+            "qr": services.asistencia.qr_data_uri(window.codigo),
             "is_open": services.asistencia.ventana_asistencia_abierta(
                 actividad, window
             ),
@@ -333,7 +317,9 @@ def docente_mark(
     db: Session = Depends(get_db),
 ):
     actividad = db.get(Actividad, actividad_id)
-    if actividad is None or not _can_manage(actividad, user):
+    if actividad is None or not services.asistencia.puede_gestionar_actividad(
+        actividad, user
+    ):
         return redirect_to(
             request, "docente_home",
             query_params={"err": "Actividad no encontrada."},

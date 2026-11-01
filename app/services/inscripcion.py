@@ -17,8 +17,10 @@ from app.models import (
     INSCRIPCION_ALTA,
     User,
 )
+from app.services.asistencia import present_user_ids
 from app.services.consultas_comunes import asistencia_validada, active_enrollment
 from app.services.notifications import notify
+from app.services.parsing import to_utc_datetime
 
 class EnrollError(Exception):
     pass
@@ -61,18 +63,12 @@ def inscribir(db: Session, actividad_id: int, user_id: int) -> Actividad:
     return actividad
 
 
-def _as_utc(value: datetime) -> datetime:
-    if value.tzinfo is None:
-        return value.replace(tzinfo=timezone.utc)
-    return value.astimezone(timezone.utc)
-
-
 def cancellation_penalty_applies(
     actividad: Actividad, *, now: datetime | None = None
 ) -> bool:
-    current_time = _as_utc(now or datetime.now(timezone.utc))
-    fecha_inicio = _as_utc(actividad.fecha_inicio)
-    fecha_fin = _as_utc(actividad.fecha_fin)
+    current_time = to_utc_datetime(now or datetime.now(timezone.utc))
+    fecha_inicio = to_utc_datetime(actividad.fecha_inicio)
+    fecha_fin = to_utc_datetime(actividad.fecha_fin)
     return (
         current_time < fecha_inicio
         and current_time < fecha_fin
@@ -95,8 +91,8 @@ def unenroll(
     user = db.get(User, user_id)
     if actividad is None or estudiante is None or user is None:
         raise EnrollError("No se pudo procesar la baja del estudiante.")
-    current_time = _as_utc(now or datetime.now(timezone.utc))
-    if _as_utc(actividad.fecha_fin) <= current_time:
+    current_time = to_utc_datetime(now or datetime.now(timezone.utc))
+    if to_utc_datetime(actividad.fecha_fin) <= current_time:
         raise EnrollError("No podés darte de baja de una actividad ya finalizada.")
 
     asistencia = asistencia_validada(db, actividad_id, user_id)
@@ -142,6 +138,21 @@ def inscriptos(db: Session, actividad_id: int) -> list[Inscripcion]:
         .filter(Inscripcion.actividad_id == actividad_id, Inscripcion.estado == INSCRIPCION_ALTA)
         .all()
     )
+
+
+def inscriptos_dataframe(db: Session, actividad_id: int) -> pd.DataFrame:
+    inscriptos_actividad = inscriptos(db, actividad_id)
+    presentes = present_user_ids(db, actividad_id)
+    rows = [
+        {
+            "apellido": enrollment.user.apellido,
+            "nombre": enrollment.user.nombre,
+            "email": enrollment.user.email,
+            "asistio": "sí" if enrollment.user_id in presentes else "no",
+        }
+        for enrollment in inscriptos_actividad
+    ]
+    return pd.DataFrame(rows, columns=["apellido", "nombre", "email", "asistio"])
 
 async def leer_tabla_usuarios(archivo:UploadFile)-> pd.DataFrame:
     raw = await archivo.read()

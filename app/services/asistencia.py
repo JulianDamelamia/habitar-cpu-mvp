@@ -1,6 +1,7 @@
 """Asistencia service: registro de asistencia y acreditación de créditos."""
 from __future__ import annotations
 
+import base64
 import io
 import json
 import secrets
@@ -19,6 +20,7 @@ from app.models import (
     ESTADO_CREDITOS_PENDIENTE_ENCUESTA,
     ESTADO_PUBLICADA,
     Estudiante,
+    ROL_COORDINACION,
     ROL_ESTUDIANTE,
     User,
     VentanaAsistencia,
@@ -28,6 +30,20 @@ from app.services.consultas_comunes import is_enrolled
 
 class AsistenciaError(Exception):
     pass
+
+
+def qr_data_uri(text: str) -> str:
+    qr_image = qrcode.make(text)
+    buffer = io.BytesIO()
+    qr_image.save(buffer, format="PNG")
+    return "data:image/png;base64," + base64.b64encode(buffer.getvalue()).decode()
+
+
+def puede_gestionar_actividad(actividad: Actividad, user: User) -> bool:
+    return user.rol == ROL_COORDINACION or (
+        user.docente_id is not None
+        and any(docente.id == user.docente_id for docente in actividad.docentes)
+    )
         
     
 def _acreditar_creditos(

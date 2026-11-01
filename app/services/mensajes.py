@@ -1,7 +1,68 @@
+from dataclasses import dataclass
+
 from sqlalchemy import and_, or_
 from sqlalchemy.orm import Session, aliased
 
-from app.models import Mensaje, MensajeLectura, ROL_ESTUDIANTE, User
+from app.models import (
+    Actividad,
+    Carrera,
+    Estudiante,
+    Mensaje,
+    MensajeLectura,
+    Persona,
+    ROL_ESTUDIANTE,
+    User,
+)
+
+
+@dataclass(frozen=True)
+class CoordinationComposeContext:
+    estudiantes: list[User]
+    carreras: list[Carrera]
+    actividades: list[Actividad]
+    enviados: list[Mensaje]
+    recibidos: list[Mensaje]
+    consultas_no_leidas: int
+    respuestas_por_mensaje: dict[int, list[Mensaje]]
+
+
+def coordination_compose_context(
+    db: Session,
+    user: User,
+    *,
+    lectura: str = "todas",
+    respuesta: str = "todas",
+    orden: str = "desc",
+) -> CoordinationComposeContext:
+    estudiantes = (
+        db.query(User)
+        .join(Estudiante, Estudiante.user_id == User.id)
+        .join(User.persona)
+        .filter(User.rol == ROL_ESTUDIANTE)
+        .order_by(Persona.apellido, Persona.nombre)
+        .all()
+    )
+    carreras = db.query(Carrera).order_by(Carrera.nombre).all()
+    actividades = db.query(Actividad).order_by(Actividad.titulo).all()
+    enviados = (
+        db.query(Mensaje)
+        .filter(Mensaje.remitente_id == user.id)
+        .order_by(Mensaje.created_at.desc(), Mensaje.id.desc())
+        .limit(50)
+        .all()
+    )
+    recibidos, consultas_no_leidas, respuestas_por_mensaje = coordination_inbox(
+        db, user, lectura=lectura, respuesta=respuesta, orden=orden
+    )
+    return CoordinationComposeContext(
+        estudiantes=estudiantes,
+        carreras=carreras,
+        actividades=actividades,
+        enviados=enviados,
+        recibidos=recibidos,
+        consultas_no_leidas=consultas_no_leidas,
+        respuestas_por_mensaje=respuestas_por_mensaje,
+    )
 
 
 def inbox(db: Session, user: User) -> list[Mensaje]:

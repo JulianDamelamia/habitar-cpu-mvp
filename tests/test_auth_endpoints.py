@@ -96,6 +96,19 @@ def test_password_reset_sends_code_and_changes_password(
     assert len(code) == 6 and code.isdigit()
     assert code in caplog.text
 
+    invalid_password = client.post(
+        "/recuperar-contrasena",
+        data={
+            "action": "reset_password",
+            "email": user.email,
+            "code": code,
+            "password": "short",
+            "password_confirm": "short",
+        },
+    )
+    assert "al menos 8 caracteres" in invalid_password.text
+    assert db_session.query(PasswordReset).count() == 1
+
     response = client.post(
         "/recuperar-contrasena",
         data={

@@ -27,10 +27,6 @@ from app.services.notifications import notify
 from app.security import REQUIERE_ADMIN
 from app import services 
 from app.schemas.forms import ActividadForm
-from app.services.parsing import (
-    formatear_duracion,
-    to_local_datetime,
-)
 from app.templating import build_sort_links, redirect_to, render
 
 router = APIRouter()
@@ -102,32 +98,7 @@ def _render_edit_form(
     error: str | None = None,
     form_data: dict[str, object] | None = None,
 ) -> _TemplateResponse:
-    values: dict[str, object] = {
-        "titulo": actividad.titulo,
-        "descripcion": actividad.descripcion,
-        "tipo": actividad.tipo,
-        "fecha_inicio": to_local_datetime(actividad.fecha_inicio).strftime(
-            "%Y-%m-%dT%H:%M"
-        ),
-        "fecha_fin": to_local_datetime(actividad.fecha_fin).strftime(
-            "%Y-%m-%dT%H:%M"
-        ),
-        "duracion": formatear_duracion(
-            actividad.fecha_inicio, actividad.fecha_fin
-        ),
-        "modo_finalizacion": "fecha_fin",
-        "lugar": actividad.lugar,
-        "docentes_ids": [str(docente.id) for docente in actividad.docentes],
-        "docentes_nombres": [],
-        "docentes_apellidos": [],
-        "docentes_emails": [],
-        "creditos": str(actividad.creditos),
-        "cupo_max": actividad.cupo_max,
-        "encuesta_obligatoria": actividad.encuesta_obligatoria,
-        "carreras_asociadas": [
-            str(carrera.id) for carrera in actividad.carreras_asociadas
-        ],
-    }
+    values = services.actividades.actividad_edit_form_data(actividad)
     values.update(form_data or {})
     return render(
         request, "admin/form.html", user=user, db=db,

@@ -6,6 +6,12 @@ from zoneinfo import ZoneInfo
 ARGENTINA_TIMEZONE = ZoneInfo("America/Argentina/Buenos_Aires")
 
 
+def to_utc_datetime(value: datetime) -> datetime:
+    if value.tzinfo is None:
+        return value.replace(tzinfo=timezone.utc)
+    return value.astimezone(timezone.utc)
+
+
 def to_local_datetime(value: datetime) -> datetime:
     """Convert a stored UTC datetime to Argentina local time for display."""
     if value.tzinfo is None:

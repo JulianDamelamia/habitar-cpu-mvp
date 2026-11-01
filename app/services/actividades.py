@@ -20,7 +20,11 @@ from app.models import (
     Carrera,
     Persona,
 )
-from app.services.parsing import parse_intervalo_tiempo
+from app.services.parsing import (
+    formatear_duracion,
+    parse_intervalo_tiempo,
+    to_local_datetime,
+)
 from .carreras import get_carreras_desde_dropdown
 
 
@@ -51,6 +55,35 @@ def actividad_form_data(form: ActividadForm) -> dict[str, object]:
     data = form.model_dump()
     data["docentes_ids"] = [str(docente_id) for docente_id in form.docentes_ids]
     return data
+
+
+def actividad_edit_form_data(actividad: Actividad) -> dict[str, object]:
+    return {
+        "titulo": actividad.titulo,
+        "descripcion": actividad.descripcion,
+        "tipo": actividad.tipo,
+        "fecha_inicio": to_local_datetime(actividad.fecha_inicio).strftime(
+            "%Y-%m-%dT%H:%M"
+        ),
+        "fecha_fin": to_local_datetime(actividad.fecha_fin).strftime(
+            "%Y-%m-%dT%H:%M"
+        ),
+        "duracion": formatear_duracion(
+            actividad.fecha_inicio, actividad.fecha_fin
+        ),
+        "modo_finalizacion": "fecha_fin",
+        "lugar": actividad.lugar,
+        "docentes_ids": [str(docente.id) for docente in actividad.docentes],
+        "docentes_nombres": [],
+        "docentes_apellidos": [],
+        "docentes_emails": [],
+        "creditos": str(actividad.creditos),
+        "cupo_max": actividad.cupo_max,
+        "encuesta_obligatoria": actividad.encuesta_obligatoria,
+        "carreras_asociadas": [
+            str(carrera.id) for carrera in actividad.carreras_asociadas
+        ],
+    }
 
 
 def crear_contexto_actividad(

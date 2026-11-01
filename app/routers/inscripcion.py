@@ -10,13 +10,10 @@ from app.models import User
 from app.services.notifications import notify
 from app.security import current_user_required, requiere_roles
 from app import services
+from app.services.parsing import to_utc_datetime
 from app.templating import redirect_to, render
 
 router = APIRouter()
-
-
-def _aware(dt: datetime) -> datetime:
-    return dt if dt.tzinfo else dt.replace(tzinfo=timezone.utc)
 
 
 @router.post("/actividades/{actividad_id}/inscribir")
@@ -92,7 +89,11 @@ def home(
 ):
     now = datetime.now(timezone.utc)
     mine = services.inscripcion.my_actividades(db, user.id)
-    proximas = [a for a in mine if _aware(a.fecha_fin) >= now]
+    proximas = [
+        a
+        for a in mine
+        if to_utc_datetime(a.fecha_fin) >= now
+    ]
     progreso = services.credits.progress(db, user.id)
     historial = services.credits.completed_actividades(db, user.id)
     encuestas_pendientes = services.credits.pending_survey_activities(db, user.id)

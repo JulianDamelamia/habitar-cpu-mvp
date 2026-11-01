@@ -58,6 +58,16 @@ def build_sort_links(
     return links
 
 
+def build_query_links(
+    request: Request,
+    values_by_key: dict[str, dict[str, str]],
+) -> dict[str, str]:
+    return {
+        key: str(request.url.include_query_params(**values))
+        for key, values in values_by_key.items()
+    }
+
+
 def render(request, name, *, user=None, db=None, status_code: int = 200, **ctx):
     context = {"user": user, "unread": 0}
     if db is not None and user is not None:

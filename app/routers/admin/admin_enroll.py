@@ -15,22 +15,6 @@ from app.templating import redirect_to, render
 
 router = APIRouter()
 
-#TODO: esto dónde va? en servicios?
-def _inscriptos_dataframe(db: Session, actividad_id: int) -> pd.DataFrame:
-    inscriptos = services.inscripcion.inscriptos(db, actividad_id)
-    present = services.asistencia.present_user_ids(db, actividad_id)
-    data = [
-        {
-            "apellido": e.user.apellido,
-            "nombre": e.user.nombre,
-            "email": e.user.email,
-            "asistio": "sí" if e.user_id in present else "no",
-        }
-        for e in inscriptos
-    ]
-    return pd.DataFrame(data, columns=["apellido", "nombre", "email", "asistio"])
-
-
 @router.get("")
 def inscriptos_index(request: Request, user: User = Depends(REQUIERE_ADMIN), db: Session = Depends(get_db)):
     items = services.actividades.list_all(db)
@@ -56,7 +40,7 @@ def inscriptos_detail(request: Request, actividad_id: int, user: User = Depends(
 
 @router.get("/{actividad_id}/export.csv")
 def export_csv(actividad_id: int, user: User = Depends(REQUIERE_ADMIN), db: Session = Depends(get_db)):
-    df = _inscriptos_dataframe(db, actividad_id)
+    df = services.inscripcion.inscriptos_dataframe(db, actividad_id)
     csv_bytes = df.to_csv(index=False).encode("utf-8-sig")
     return Response(
         content=csv_bytes,
@@ -67,7 +51,7 @@ def export_csv(actividad_id: int, user: User = Depends(REQUIERE_ADMIN), db: Sess
 
 @router.get("/{actividad_id}/export.xlsx")
 def export_xlsx(actividad_id: int, user: User = Depends(REQUIERE_ADMIN), db: Session = Depends(get_db)):
-    df = _inscriptos_dataframe(db, actividad_id)
+    df = services.inscripcion.inscriptos_dataframe(db, actividad_id)
     buf = io.BytesIO()
     with pd.ExcelWriter(buf, engine="openpyxl") as writer:
         df.to_excel(writer, index=False, sheet_name="Inscriptos")

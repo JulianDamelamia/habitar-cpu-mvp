@@ -1,29 +1,15 @@
 
-from decimal import Decimal
-
 from fastapi import APIRouter, BackgroundTasks, Depends, File, Form, HTTPException, Query, Request, UploadFile
-from pydantic import BaseModel, Field, field_validator
-from sqlalchemy import or_
-from sqlalchemy.orm import Session, selectinload
+from sqlalchemy.orm import Session
 
 from app import services
 from app.database import get_db
-from app.models import Carrera, Estudiante, Persona, ROL_ESTUDIANTE, User
+from app.models import Carrera, ROL_ESTUDIANTE, User
+from app.schemas.admin import CreditosRequeridosUpdate
 from app.security import REQUIERE_ADMIN
 from app.templating import redirect_to, render
 
 router = APIRouter()
-
-
-class CreditosRequeridosUpdate(BaseModel):
-    creditos_requeridos: Decimal = Field(gt=0)
-
-    @field_validator("creditos_requeridos")
-    @classmethod
-    def validate_credit_step(cls, value: Decimal) -> Decimal:
-        if not value.is_finite() or value % Decimal("0.5") != 0:
-            raise ValueError("Los créditos requeridos deben avanzar en pasos de 0,5.")
-        return value
 
 
 def _render_usuarios(
@@ -35,26 +21,11 @@ def _render_usuarios(
     errores: list | None = None,
     err: str | None = None,
 ):
-    estudiantes = []
-    if busqueda:
-        query = (
-            db.query(User)
-            .join(Estudiante, Estudiante.user_id == User.id)
-            .join(User.persona)
-            .options(selectinload(User.estudiante).selectinload(Estudiante.carrera))
-            .filter(User.rol == ROL_ESTUDIANTE)
-        )
-        termino = f"%{busqueda.strip()}%"
-        query = query.filter(
-            or_(
-                Persona.email.ilike(termino),
-                Persona.nombre.ilike(termino),
-                Persona.apellido.ilike(termino),
-            )
-        )
-        estudiantes = query.order_by(
-            Persona.apellido, Persona.nombre, Persona.email
-        ).limit(50).all()
+    estudiantes = (
+        services.identity.search_students(db, busqueda)
+        if busqueda
+        else []
+    )
     return render(
         request,
         "admin/usuarios.html",

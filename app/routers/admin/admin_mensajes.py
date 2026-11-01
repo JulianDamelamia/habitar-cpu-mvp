@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.models import Actividad, Carrera, Estudiante, Inscripcion, Mensaje, Persona, ROL_ESTUDIANTE, User
+from app.models import Actividad, Carrera, Estudiante, Inscripcion, Mensaje, ROL_ESTUDIANTE, User
 from app.models.enums import INSCRIPCION_ALTA
 from app.security import REQUIERE_ADMIN
 from app.services import mensajes
@@ -21,34 +21,21 @@ def _compose_page(
     respuesta: str = "todas",
     orden: str = "desc",
 ):
-    estudiantes = (
-        db.query(User)
-        .join(Estudiante, Estudiante.user_id == User.id)
-        .join(User.persona)
-        .filter(User.rol == ROL_ESTUDIANTE)
-        .order_by(Persona.apellido, Persona.nombre)
-        .all()
-    )
-    carreras = db.query(Carrera).order_by(Carrera.nombre).all()
-    actividades = db.query(Actividad).order_by(Actividad.titulo).all()
-    enviados = (
-        db.query(Mensaje)
-        .filter(Mensaje.remitente_id == user.id)
-        .order_by(Mensaje.created_at.desc(), Mensaje.id.desc())
-        .limit(50)
-        .all()
-    )
-    recibidos, consultas_no_leidas, respuestas_por_mensaje = mensajes.coordination_inbox(
-        db, user, lectura=lectura, respuesta=respuesta, orden=orden
+    context = mensajes.coordination_compose_context(
+        db,
+        user,
+        lectura=lectura,
+        respuesta=respuesta,
+        orden=orden,
     )
     return render(
         request,
         "admin/mensajes.html",
         user=user,
         db=db,
-        estudiantes=estudiantes,
-        carreras=carreras,
-        actividades=actividades,
+        estudiantes=context.estudiantes,
+        carreras=context.carreras,
+        actividades=context.actividades,
         destinatarios_disponibles={
             "estudiantes": [
                 {
@@ -56,21 +43,21 @@ def _compose_page(
                     "tipo": "Usuario",
                     "texto": f"{estudiante.apellido}, {estudiante.nombre} · {estudiante.email}",
                 }
-                for estudiante in estudiantes
+                for estudiante in context.estudiantes
             ],
             "carreras": [
                 {"id": f"carrera_{carrera.id}", "tipo": "Carrera", "texto": carrera.nombre}
-                for carrera in carreras
+                for carrera in context.carreras
             ],
             "actividades": [
                 {"id": f"act_{actividad.id}", "tipo": "Actividad", "texto": actividad.titulo}
-                for actividad in actividades
+                for actividad in context.actividades
             ],
         },
-        enviados=enviados,
-        recibidos=recibidos,
-        consultas_no_leidas=consultas_no_leidas,
-        respuestas_por_mensaje=respuestas_por_mensaje,
+        enviados=context.enviados,
+        recibidos=context.recibidos,
+        consultas_no_leidas=context.consultas_no_leidas,
+        respuestas_por_mensaje=context.respuestas_por_mensaje,
         lectura=lectura,
         respuesta=respuesta,
         orden=orden,
